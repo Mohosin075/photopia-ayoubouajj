@@ -19,12 +19,14 @@ router.post(
   validateRequest(AuthValidations.loginZodSchema),
   CustomAuthController.adminLogin,
 )
-router.post(
-  '/login',
-  validateRequest(AuthValidations.loginZodSchema),
-  passport.authenticate('local', { session: false }),
-  PassportAuthController.login,
-)
+
+// i disabled the local login route because it is not used in the app
+// router.post(
+//   '/login',
+//   validateRequest(AuthValidations.loginZodSchema),
+//   passport.authenticate('local', { session: false }),
+//   PassportAuthController.login,
+// )
 
 router.get(
   '/google',
@@ -43,8 +45,9 @@ router.post(
   CustomAuthController.verifyAccount,
 )
 
+// custom login route
 router.post(
-  '/custom-login',
+  '/login',
   validateRequest(AuthValidations.loginZodSchema),
   CustomAuthController.customLogin,
 )
