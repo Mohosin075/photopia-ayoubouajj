@@ -61,7 +61,7 @@ export class EmailProvider {
       )
 
       const mailOptions: nodemailer.SendMailOptions = {
-        from: `EventHub <${config.email.from}>`,
+        from: `Photopia <${config.email.from}>`,
         to: Array.isArray(data.to) ? data.to.join(',') : data.to,
         subject,
         html,

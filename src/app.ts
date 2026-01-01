@@ -104,10 +104,10 @@ app.get('/', (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Welcome to the Gathering API',
+    message: 'Welcome to the Photopia API',
     data: {
       timestamp: new Date().toISOString(),
-      projectName: 'Gathering',
+      projectName: 'Photopia',
     },
   })
 })
