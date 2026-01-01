@@ -47,12 +47,7 @@ app.use(
       'http://localhost:3003',
       'http://localhost:3004',
       'http://localhost:3005',
-      'http://10.10.7.11:5173',
-      'http://localhost:60851',
-      'http://localhost:5173',
-      'https://buddi-script-server.vercel.app',
-      'https://buddi-script.vercel.app',
-      'https://your-frontend.vercel.app',
+      'http://10.10.7.11:5173'
     ],
     credentials: true,
   }),

@@ -74,14 +74,13 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
 }
 
 const getAllReviews = async (
-  user: JwtPayload,
   type: 'reviewer' | 'reviewee',
   paginationOptions: IPaginationOptions,
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
+  // const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
 
   // const cachedResult = await redisClient.get(cacheKey);
 

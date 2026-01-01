@@ -63,7 +63,6 @@ async function main() {
 
     // Socket helper
     socketHelper.socket(io)
-    //@ts-ignore
     global.io = io
 
     console.log(colors.green('🍁 Socket.IO initialized successfully'))

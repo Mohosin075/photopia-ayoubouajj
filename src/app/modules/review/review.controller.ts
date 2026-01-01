@@ -35,7 +35,6 @@ const getAllReviews = catchAsync(async (req: Request, res: Response) => {
   const type = req.params.type as 'reviewer' | 'reviewee'
   const paginationOptions = pick(req.query, paginationFields)
   const result = await ReviewServices.getAllReviews(
-    req.user!,
     type,
     paginationOptions,
   )

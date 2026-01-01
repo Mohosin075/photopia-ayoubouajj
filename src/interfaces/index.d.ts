@@ -1,3 +1,4 @@
+import { Server } from 'socket.io'
 import { JwtPayload } from 'jsonwebtoken'
 import 'express-session'
 
@@ -13,6 +14,7 @@ declare global {
       }
     }
   }
+  var io: Server
 }
 
 declare module 'express-session' {
