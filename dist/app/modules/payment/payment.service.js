@@ -38,12 +38,12 @@ const createCheckoutSession = async (user, payload) => {
             cancel_url: `${config_1.default.clientUrl}/payment/cancel`,
             customer_email: user.email,
             metadata: {
-                userId: user.authId,
+                userId: user.userId,
                 ...payload.metadata
             },
         });
         await payment_model_1.Payment.create({
-            userId: user.authId,
+            userId: user.userId,
             userEmail: user.email,
             amount: payload.amount,
             currency: payload.currency || 'USD',

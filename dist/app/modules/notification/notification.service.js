@@ -129,6 +129,26 @@ const sendNotificationEmail = async (notification) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Failed to send email notification: ${error.message}`);
     }
 };
+const sendScheduledNotifications = async () => {
+    try {
+        const pendingNotifications = await notification_model_1.Notification.find({
+            status: notification_interface_1.NotificationStatus.PENDING,
+            scheduledAt: { $lte: new Date() },
+        }).limit(50);
+        console.log(`📧 Processing ${pendingNotifications.length} scheduled notifications...`);
+        for (const notification of pendingNotifications) {
+            try {
+                await sendNotificationEmail(notification);
+            }
+            catch (error) {
+                console.error(`Failed to process notification ${notification._id}:`, error);
+            }
+        }
+    }
+    catch (error) {
+        console.error('Error processing scheduled notifications:', error);
+    }
+};
 const getAllNotifications = async (user, filterables, pagination) => {
     const { searchTerm, ...filterData } = filterables;
     const { page, skip, limit, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(pagination);
@@ -397,4 +417,5 @@ exports.NotificationServices = {
     getNotificationStats,
     getMyNotifications,
     sendTestEmail,
+    sendScheduledNotifications,
 };

@@ -23,7 +23,5 @@ router
     .route('/:userId')
     .get((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ORGANIZER, user_1.USER_ROLES.USER), user_controller_1.UserController.getUserById)
     .delete((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), user_controller_1.UserController.deleteUser)
-    .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), 
-// validateRequest(updateUserSchema),
-user_controller_1.UserController.updateUserStatus);
+    .patch((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(user_validation_1.updateUserStatusSchema), user_controller_1.UserController.updateUserStatus);
 exports.UserRoutes = router;

@@ -8,5 +8,5 @@ const notification_service_1 = require("../app/modules/notification/notification
 // Run every minute to check for scheduled notifications
 node_cron_1.default.schedule('* * * * *', async () => {
     console.log('Checking for scheduled notifications...');
-    await notification_service_1.NotificationService.sendScheduledNotifications();
+    await notification_service_1.NotificationServices.sendScheduledNotifications();
 });

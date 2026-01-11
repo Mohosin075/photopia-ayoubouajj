@@ -172,6 +172,32 @@ const sendNotificationEmail = async (
   }
 }
 
+const sendScheduledNotifications = async (): Promise<void> => {
+  try {
+    const pendingNotifications = await Notification.find({
+      status: NotificationStatus.PENDING,
+      scheduledAt: { $lte: new Date() },
+    }).limit(50)
+
+    console.log(
+      `📧 Processing ${pendingNotifications.length} scheduled notifications...`,
+    )
+
+    for (const notification of pendingNotifications) {
+      try {
+        await sendNotificationEmail(notification)
+      } catch (error: any) {
+        console.error(
+          `Failed to process notification ${notification._id}:`,
+          error,
+        )
+      }
+    }
+  } catch (error) {
+    console.error('Error processing scheduled notifications:', error)
+  }
+}
+
 
 
 const getAllNotifications = async (
@@ -535,4 +561,5 @@ export const NotificationServices = {
   getNotificationStats,
   getMyNotifications,
   sendTestEmail,
+  sendScheduledNotifications,
 }
