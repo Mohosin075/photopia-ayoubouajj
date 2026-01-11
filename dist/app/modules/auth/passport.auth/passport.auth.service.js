@@ -20,7 +20,6 @@ const handleGoogleLogin = async (payload) => {
     if (isUserExist) {
         //return only the token
         const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.role);
-        console.log('Google login tokens:', tokens);
         return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, `Welcome ${isUserExist.name} to our platform.`, isUserExist.role, tokens.accessToken, tokens.refreshToken);
     }
     const session = await user_model_1.User.startSession();

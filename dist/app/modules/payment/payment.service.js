@@ -267,7 +267,7 @@ const getAllPayments = async (user, filterables, pagination) => {
     // Regular users can only see their own payments
     if (user.role === 'user' || user.role === 'organizer') {
         andConditions.push({
-            userId: new mongoose_1.Types.ObjectId(user.authId),
+            userId: new mongoose_1.Types.ObjectId(user.userId),
         });
     }
     const whereConditions = andConditions.length ? { $and: andConditions } : {};

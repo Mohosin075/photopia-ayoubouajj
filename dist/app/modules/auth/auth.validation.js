@@ -66,7 +66,7 @@ const loginZodSchema = zod_1.z.object({
 });
 const verifyAccountZodSchema = zod_1.z.object({
     body: zod_1.z.object({
-        email: zod_1.z.string().refine(value => !value || /^\S+@\S+\.\S+$/.test(value), {
+        email: zod_1.z.string().optional().refine(value => !value || /^\S+@\S+\.\S+$/.test(value), {
             message: 'Invalid email format',
         }),
         phone: zod_1.z
@@ -92,7 +92,7 @@ const resendOtpZodSchema = zod_1.z.object({
             .refine(value => !value || /^\+?[1-9]\d{1,14}$/.test(value), {
             message: 'Invalid phone number format',
         }),
-        authType: zod_1.z.string(zod_1.z.enum(['resetPassword', 'createAccount']).optional()),
+        authType: zod_1.z.enum(['resetPassword', 'createAccount']).optional(),
     }),
 });
 const changePasswordZodSchema = zod_1.z.object({

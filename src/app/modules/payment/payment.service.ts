@@ -323,7 +323,7 @@ const getAllPayments = async (
   // Regular users can only see their own payments
   if (user.role === 'user' || user.role === 'organizer') {
     andConditions.push({
-      userId: new Types.ObjectId(user.authId),
+      userId: new Types.ObjectId(user.userId),
     })
   }
 

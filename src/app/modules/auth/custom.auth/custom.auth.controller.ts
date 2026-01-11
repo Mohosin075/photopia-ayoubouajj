@@ -9,8 +9,6 @@ import { JwtPayload } from 'jsonwebtoken'
 const customLogin = catchAsync(async (req: Request, res: Response) => {
   const { ...loginData } = req.body
 
-  console.log(loginData)
-
   const result = await CustomAuthServices.customLogin(loginData)
   const { status, message, accessToken, refreshToken, role } = result
 
@@ -69,7 +67,6 @@ const forgetPassword = catchAsync(async (req: Request, res: Response) => {
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
   const token = req.headers.authorization
   const { ...resetData } = req.body
-  console.log({ token, resetData })
   const result = await CustomAuthServices.resetPassword(token!, resetData)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -82,7 +79,7 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 const verifyAccount = catchAsync(async (req: Request, res: Response) => {
   const { oneTimeCode, phone, email } = req.body
 
-  const result = await CustomAuthServices.verifyAccount(email, oneTimeCode)
+  const result = await CustomAuthServices.verifyAccount(oneTimeCode, email, phone)
   const { status, message, accessToken, refreshToken, role, token } = result
 
 
@@ -113,11 +110,11 @@ const getRefreshToken = catchAsync(async (req: Request, res: Response) => {
 
 const resendOtp = catchAsync(async (req: Request, res: Response) => {
   const { email, phone, authType } = req.body
-  const result = await CustomAuthServices.resendOtp(email, authType)
+  const result = await CustomAuthServices.resendOtp(authType, email, phone)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: `An OTP has been sent to your ${email || phone}. Please verify your email.`,
+    message: `An OTP has been sent to your ${email || phone}. Please verify your account.`,
   })
 })
 

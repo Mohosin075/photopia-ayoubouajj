@@ -21,7 +21,6 @@ const handleGoogleLogin = async (
   if (isUserExist) {
     //return only the token
     const tokens = AuthHelper.createToken(isUserExist._id, isUserExist.role)
-    console.log('Google login tokens:', tokens)
     return authResponse(
       StatusCodes.OK,
       `Welcome ${isUserExist.name} to our platform.`,
@@ -57,7 +56,7 @@ const handleGoogleLogin = async (
     await session.commitTransaction()
     await session.endSession()
 
-    
+
 
     return authResponse(
       StatusCodes.OK,

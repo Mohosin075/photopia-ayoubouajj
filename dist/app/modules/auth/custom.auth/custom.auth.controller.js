@@ -11,7 +11,6 @@ const http_status_codes_1 = require("http-status-codes");
 const token_service_1 = require("../../token/token.service");
 const customLogin = (0, catchAsync_1.default)(async (req, res) => {
     const { ...loginData } = req.body;
-    console.log(loginData);
     const result = await custom_auth_service_1.CustomAuthServices.customLogin(loginData);
     const { status, message, accessToken, refreshToken, role } = result;
     res.cookie('refreshToken', refreshToken, {
@@ -53,7 +52,6 @@ const forgetPassword = (0, catchAsync_1.default)(async (req, res) => {
 const resetPassword = (0, catchAsync_1.default)(async (req, res) => {
     const token = req.headers.authorization;
     const { ...resetData } = req.body;
-    console.log({ token, resetData });
     const result = await custom_auth_service_1.CustomAuthServices.resetPassword(token, resetData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -64,7 +62,7 @@ const resetPassword = (0, catchAsync_1.default)(async (req, res) => {
 });
 const verifyAccount = (0, catchAsync_1.default)(async (req, res) => {
     const { oneTimeCode, phone, email } = req.body;
-    const result = await custom_auth_service_1.CustomAuthServices.verifyAccount(email, oneTimeCode);
+    const result = await custom_auth_service_1.CustomAuthServices.verifyAccount(oneTimeCode, email, phone);
     const { status, message, accessToken, refreshToken, role, token } = result;
     res.cookie('refreshToken', refreshToken, {
         secure: process.env.NODE_ENV === 'production',
@@ -89,11 +87,11 @@ const getRefreshToken = (0, catchAsync_1.default)(async (req, res) => {
 });
 const resendOtp = (0, catchAsync_1.default)(async (req, res) => {
     const { email, phone, authType } = req.body;
-    const result = await custom_auth_service_1.CustomAuthServices.resendOtp(email, authType);
+    const result = await custom_auth_service_1.CustomAuthServices.resendOtp(authType, email, phone);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
-        message: `An OTP has been sent to your ${email || phone}. Please verify your email.`,
+        message: `An OTP has been sent to your ${email || phone}. Please verify your account.`,
     });
 });
 const changePassword = (0, catchAsync_1.default)(async (req, res) => {

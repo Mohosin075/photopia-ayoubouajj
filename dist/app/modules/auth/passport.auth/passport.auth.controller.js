@@ -8,6 +8,7 @@ const catchAsync_1 = __importDefault(require("../../../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../../../shared/sendResponse"));
 const passport_auth_service_1 = require("./passport.auth.service");
 const common_1 = require("../common");
+const config_1 = __importDefault(require("../../../../config"));
 const login = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const { deviceToken, password } = req.body;
@@ -28,7 +29,7 @@ const login = (0, catchAsync_1.default)(async (req, res) => {
 const googleAuthCallback = (0, catchAsync_1.default)(async (req, res) => {
     const result = await passport_auth_service_1.PassportAuthServices.handleGoogleLogin(req.user);
     const { status, message, accessToken, refreshToken, role } = result;
-    return res.redirect(`https://buddi-script.vercel.app/auth/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`);
+    return res.redirect(`${config_1.default.clientUrl}/auth/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`);
 });
 exports.PassportAuthController = {
     login,

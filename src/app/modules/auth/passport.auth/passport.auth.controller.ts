@@ -5,6 +5,7 @@ import { IUser } from '../../user/user.interface'
 import { ILoginResponse } from '../../../../interfaces/response'
 import { PassportAuthServices } from './passport.auth.service'
 import { AuthCommonServices } from '../common'
+import config from '../../../../config'
 
 const login = catchAsync(async (req: Request, res: Response) => {
   const user = req.user
@@ -38,7 +39,7 @@ const googleAuthCallback = catchAsync(async (req: Request, res: Response) => {
   const { status, message, accessToken, refreshToken, role } = result
 
   return res.redirect(
-    `https://buddi-script.vercel.app/auth/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`,
+    `${config.clientUrl}/auth/login?accessToken=${accessToken}&refreshToken=${refreshToken}&role=user`,
   )
 })
 
