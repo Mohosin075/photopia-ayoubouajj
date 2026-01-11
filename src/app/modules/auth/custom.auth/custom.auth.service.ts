@@ -32,6 +32,7 @@ const createUser = async (payload: IUser) => {
   }
 
   const otp = generateOtp()
+  console.log({otp}, 'create user')
   const otpExpiresIn = new Date(Date.now() + 5 * 60 * 1000)
 
   const authentication = {
@@ -169,7 +170,7 @@ const forgetPassword = async (email?: string, phone?: string) => {
   }
 
   const otp = generateOtp()
-
+console.log({otp}, 'forget password')
   if (phone) {
     //implement this feature using twilio/aws sns
   }
@@ -528,6 +529,7 @@ const resendOtp = async (
   }
 
   const otp = generateOtp()
+  console.log({otp}, 'resent otp')
   const authenticationPayload = {
     oneTimeCode: otp,
     latestRequestAt: new Date(),

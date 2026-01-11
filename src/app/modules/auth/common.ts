@@ -23,6 +23,7 @@ const handleLoginLogic = async (
     //send otp to user
 
     const otp = generateOtp()
+    console.log({otp})
     const otpExpiresIn = new Date(Date.now() + 5 * 60 * 1000)
 
     const authentication = {

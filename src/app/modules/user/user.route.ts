@@ -5,7 +5,6 @@ import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../../enum/user'
 
 import {
-  addUserInterestSchema,
   updateUserSchema,
   updateUserStatusSchema,
 } from './user.validation'
@@ -19,17 +18,6 @@ router.get(
   UserController.getProfile,
 )
 
-router.post(
-  '/interest',
-  auth(
-    USER_ROLES.ADMIN,
-    USER_ROLES.USER,
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ORGANIZER,
-  ),
-  validateRequest(addUserInterestSchema),
-  UserController.addUserInterest,
-)
 
 router.patch(
   '/profile',

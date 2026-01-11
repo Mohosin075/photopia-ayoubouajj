@@ -272,31 +272,6 @@ export const getProfile = async (user: JwtPayload) => {
   return isUserExist
 }
 
-const addUserInterest = async (
-  userId: string,
-  interest: InterestCategory[],
-): Promise<IUser | null> => {
-  const isUserExist = await User.findOne({
-    _id: userId,
-    status: { $nin: [USER_STATUS.DELETED] },
-  })
-  if (!isUserExist) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
-  }
-  const updatedUser = await User.findOneAndUpdate(
-    { _id: userId, status: { $nin: [USER_STATUS.DELETED] } },
-    { $set: { interest } },
-    { new: true },
-  )
-  if (!updatedUser) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      'Failed to update user interest.',
-    )
-  }
-  return updatedUser
-}
-
 export const UserServices = {
   updateProfile,
   createAdmin,
@@ -306,5 +281,4 @@ export const UserServices = {
   updateUserStatus,
   getProfile,
   deleteProfile,
-  addUserInterest,
 }

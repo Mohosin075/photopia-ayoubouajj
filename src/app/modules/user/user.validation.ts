@@ -67,11 +67,6 @@ export const createStaffSchema = z.object({
   }),
 })
 
-export const addUserInterestSchema = z.object({
-  body: z.object({
-    interest: z.array(z.nativeEnum(InterestCategory)).optional(),
-  }),
-})
 
 export const updateUserStatusSchema = z.object({
   body: z.object({
