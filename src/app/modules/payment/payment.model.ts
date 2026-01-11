@@ -57,4 +57,7 @@ const paymentSchema = new Schema<IPayment, PaymentModel>(
   },
 )
 
+paymentSchema.index({ userId: 1 });
+paymentSchema.index({ paymentIntentId: 1 });
+
 export const Payment = model<IPayment, PaymentModel>('Payment', paymentSchema)

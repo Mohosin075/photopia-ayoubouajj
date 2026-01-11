@@ -85,7 +85,7 @@ const validatePromotion = catchAsync(async (req: Request, res: Response) => {
   const { code } = req.body
   const user = req.user as JwtPayload
 
-  const result = await PromotionService.validatePromotion(code, user.authId)
+  const result = await PromotionService.validatePromotion(code, user.userId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -101,7 +101,7 @@ const applyPromotion = catchAsync(async (req: Request, res: Response) => {
 
   const result = await PromotionService.applyPromotion(
     code,
-    user.authId,
+    user.userId,
     amount,
   )
 

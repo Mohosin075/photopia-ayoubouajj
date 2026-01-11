@@ -9,7 +9,7 @@ const createChat = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const otherUser = req.params.id
 
-  const participants = [user?.authId, otherUser]
+  const participants = [user?.userId, otherUser]
   const chat = await ChatService.createChatToDB(participants)
 
   sendResponse(res, {

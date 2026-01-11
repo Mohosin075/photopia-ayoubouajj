@@ -10,15 +10,15 @@ import { paginationHelper } from '../../../helpers/paginationHelper'
 // import { redisClient } from '../../../helpers/redis';
 
 const createReview = async (user: JwtPayload, payload: IReview) => {
-  payload.reviewer = user.authId
+  payload.reviewer = user.userId
 
-  const isUserExist = await User.findById(user.authId)
+  const isUserExist = await User.findById(user.userId)
 
   if (!isUserExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
   }
 
-  const reviewData = { ...payload, reviewer: user.authId }
+  const reviewData = { ...payload, reviewer: user.userId }
 
   const session = await mongoose.startSession()
   try {
@@ -80,7 +80,7 @@ const getAllReviews = async (
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  // const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
+  // const cacheKey = `reviews:${type}:${user.userId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
 
   // const cachedResult = await redisClient.get(cacheKey);
 
@@ -121,7 +121,7 @@ const getReviewsByEvent = async (
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  const cacheKey = `reviews:${type}:${user.authId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
+  const cacheKey = `reviews:${type}:${user.userId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
 
   // const cachedResult = await redisClient.get(cacheKey);
 
@@ -170,7 +170,7 @@ const updateReview = async (
         'Review not found, please try again later.',
       )
     }
-    if (existingReview?.reviewer.toString() !== user.authId) {
+    if (existingReview?.reviewer.toString() !== user.userId) {
       throw new ApiError(
         StatusCodes.UNAUTHORIZED,
         'You are not authorized to update this review.',
@@ -250,7 +250,7 @@ const deleteReview = async (id: string, user: JwtPayload) => {
       )
     }
 
-    if (existingReview.reviewer.toString() !== user.authId) {
+    if (existingReview.reviewer.toString() !== user.userId) {
       throw new ApiError(
         StatusCodes.UNAUTHORIZED,
         'You are not authorized to delete this review.',
@@ -293,7 +293,7 @@ const deleteReview = async (id: string, user: JwtPayload) => {
 
     await session.commitTransaction()
     //clear the cache
-    // await redisClient.del(`reviews:reviewer:${user.authId}:*`);
+    // await redisClient.del(`reviews:reviewer:${user.userId}:*`);
     // await redisClient.del(`reviews:reviewee:${existingReview.reviewee}:*`);
     return 'Review deleted successfully'
   } catch (error) {

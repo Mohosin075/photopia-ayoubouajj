@@ -19,7 +19,7 @@ const createSupport = async (
 
   const data = {
     ...payload,
-    userId: user?.authId,
+    userId: user?.userId,
     status: SUPPORT_STATUS.IN_PROGRESS,
   }
 

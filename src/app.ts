@@ -10,8 +10,13 @@ import globalErrorHandler from './app/middleware/globalErrorHandler'
 import config from './config'
 import webhookApp from './webhook'
 import sendResponse from './shared/sendResponse'
+import morgan from 'morgan'
+import helmet from 'helmet'
 
 const app = express()
+
+// Security headers
+app.use(helmet())
 
 // ⚠️ CRITICAL: Webhook MUST be before body parsers to receive raw body
 app.use(webhookApp)
@@ -57,7 +62,6 @@ app.use(
 app.use(cookieParser())
 
 // Logging enabled for troubleshooting
-import morgan from 'morgan'
 app.use(morgan('dev'))
 
 // -------------------- Static Files --------------------

@@ -7,6 +7,7 @@ import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 import { paymentSearchableFields } from './payment.constants'
 import { Types } from 'mongoose'
+import { User } from '../user/user.model'
 
 import stripe from '../../../config/stripe'
 import config from '../../../config'
@@ -157,7 +158,7 @@ const createPaymentIntent = async (
       amount: Math.round(payload.amount * 100), // Convert to cents
       currency: payload.currency || 'usd',
       metadata: {
-        authId: user.authId,
+        userId: user.userId,
         userEmail: user.email,
         ...payload.metadata
       },
@@ -165,7 +166,7 @@ const createPaymentIntent = async (
 
     // Create payment record
     await Payment.create({
-      userId: user.authId,
+      userId: user.userId,
       userEmail: user.email,
       amount: payload.amount,
       currency: (payload.currency || 'USD').toUpperCase(),
@@ -173,7 +174,7 @@ const createPaymentIntent = async (
       paymentIntentId: paymentIntent.id,
       status: 'pending',
       metadata: {
-        authId: user.authId,
+        userId: user.userId,
         ...payload.metadata
       },
     })
@@ -208,13 +209,13 @@ const createEphemeralKey = async (
         email: user.email,
         name: user.name,
         metadata: {
-          authId: user.authId,
+          userId: user.userId,
         },
       })
       customerId = customer.id
 
-      // TODO: Update user record with stripeCustomerId
-      // await User.findByIdAndUpdate(user.authId, { stripeCustomerId: customer.id })
+      // Update user record with stripeCustomerId
+      await User.findByIdAndUpdate(user.userId, { stripeCustomerId: customer.id })
     }
 
     // Create ephemeral key
@@ -322,7 +323,7 @@ const getAllPayments = async (
   // Regular users can only see their own payments
   if (user.role === 'user' || user.role === 'organizer') {
     andConditions.push({
-      authId: new Types.ObjectId(user.authId),
+      userId: new Types.ObjectId(user.authId),
     })
   }
 
@@ -354,7 +355,7 @@ const getSinglePayment = async (id: string): Promise<IPayment> => {
   }
 
   const result = await Payment.findById(id)
-    .populate('authId', 'name email')
+    .populate('userId', 'name email')
 
   if (!result) {
     throw new ApiError(
@@ -382,7 +383,7 @@ const updatePayment = async (
       runValidators: true,
     },
   )
-    .populate('authId', 'name email')
+    .populate('userId', 'name email')
 
   if (!result) {
     throw new ApiError(
@@ -432,7 +433,7 @@ const refundPayment = async (
       },
       { new: true, runValidators: true },
     )
-      .populate('authId', 'name email')
+      .populate('userId', 'name email')
 
     return result!
   } catch (error: any) {
@@ -451,12 +452,12 @@ const getMyPayments = async (
     paginationHelper.calculatePagination(pagination)
 
   const [result, total] = await Promise.all([
-    Payment.find({ authId: new Types.ObjectId(user.authId) })
+    Payment.find({ userId: new Types.ObjectId(user.userId) })
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
-      .populate('authId', 'name email'),
-    Payment.countDocuments({ authId: new Types.ObjectId(user.authId) }),
+      .populate('userId', 'name email'),
+    Payment.countDocuments({ userId: new Types.ObjectId(user.userId) }),
   ])
 
   return {

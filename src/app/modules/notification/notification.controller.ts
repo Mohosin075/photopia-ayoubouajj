@@ -80,7 +80,7 @@ const updateNotification = catchAsync(async (req: Request, res: Response) => {
   const result = await NotificationServices.updateNotification(
     id,
     req.body,
-    user.role === 'user' ? user.authId : undefined,
+    user.role === 'user' ? user.userId : undefined,
   )
 
   sendResponse(res, {
@@ -95,7 +95,7 @@ const markAsRead = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const user = (req as any).user
 
-  const result = await NotificationServices.markAsRead(id, user.authId)
+  const result = await NotificationServices.markAsRead(id, user.userId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -108,9 +108,9 @@ const markAsRead = catchAsync(async (req: Request, res: Response) => {
 const markAllAsRead = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
 
-  console.log({user})
+  console.log({ user })
 
-  const result = await NotificationServices.markAllAsRead(user.authId)
+  const result = await NotificationServices.markAllAsRead(user.userId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -124,7 +124,7 @@ const archiveNotification = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const user = (req as any).user
 
-  const result = await NotificationServices.archiveNotification(id, user.authId)
+  const result = await NotificationServices.archiveNotification(id, user.userId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -173,26 +173,6 @@ const sendTestEmail = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const createEventNotification = catchAsync(
-  async (req: Request, res: Response) => {
-    const { eventId, type, title, content, metadata } = req.body
-
-    await NotificationServices.createNotificationForEvent(
-      eventId,
-      type,
-      title,
-      content,
-      metadata,
-    )
-
-    sendResponse(res, {
-      statusCode: StatusCodes.OK,
-      success: true,
-      message: 'Event notifications created successfully',
-      data: null,
-    })
-  },
-)
 
 export const NotificationController = {
   createNotification,
@@ -206,5 +186,4 @@ export const NotificationController = {
   deleteNotification,
   getNotificationStats,
   sendTestEmail,
-  createEventNotification,
 }

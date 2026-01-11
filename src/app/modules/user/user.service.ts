@@ -17,7 +17,7 @@ import { Follow } from '../follow/follow.model'
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   console.log({ payload })
   const isUserExist = await User.findOne({
-    _id: user.authId,
+    _id: user.userId,
     status: { $nin: [USER_STATUS.DELETED] },
   })
 
@@ -32,7 +32,7 @@ const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   // }
 
   const updatedProfile = await User.findOneAndUpdate(
-    { _id: user.authId, status: { $nin: [USER_STATUS.DELETED] } },
+    { _id: user.userId, status: { $nin: [USER_STATUS.DELETED] } },
     {
       $set: payload,
     },
@@ -261,7 +261,7 @@ const updateUserStatus = async (userId: string, status: USER_STATUS) => {
 export const getProfile = async (user: JwtPayload) => {
   // --- Fetch user ---
   const isUserExist = await User.findOne({
-    _id: user.authId,
+    _id: user.userId,
     status: { $nin: [USER_STATUS.DELETED] },
   }).select('-authentication -password -__v')
 

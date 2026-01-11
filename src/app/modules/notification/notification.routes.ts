@@ -55,12 +55,6 @@ router.post(
 )
 
 router.post(
-  '/event',
-  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.ORGANIZER),
-  NotificationController.createEventNotification,
-)
-
-router.post(
   '/test-email',
   auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
   validateRequest(NotificationValidations.sendEmail),

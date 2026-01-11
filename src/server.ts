@@ -35,8 +35,8 @@ async function main() {
       console.log(colors.yellow(`♻️  Server is running on:`))
       console.log(colors.cyan(`   - Local:    http://localhost:${port}`))
 
-      const location = geocodeAddress("aqua tower dhaka 1212");
-      console.log("location", location);
+      // const location =await geocodeAddress("aqua tower dhaka 1212");
+      // console.log("location", location);
 
       const interfaces = os.networkInterfaces()
       for (const name of Object.keys(interfaces)) {

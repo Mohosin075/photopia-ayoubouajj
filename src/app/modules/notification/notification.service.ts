@@ -228,7 +228,7 @@ const getAllNotifications = async (
   // User-specific filtering (unless admin)
   if ((user as any).role === 'user') {
     andConditions.push({
-      userId: new Types.ObjectId((user as any).authId as string),
+      userId: new Types.ObjectId((user as any).userId as string),
     })
   }
 
@@ -418,12 +418,12 @@ const deleteNotification = async (id: string): Promise<INotification> => {
 }
 
 const getNotificationStats = async (
-  user: JwtPayload & { authId?: string; role?: string },
+  user: JwtPayload & { userId?: string; role?: string },
 ): Promise<INotificationStats> => {
   const query: any = {}
 
   if (user.role === 'user') {
-    query.userId = user.authId
+    query.userId = user.userId
   }
 
   const [total, unread, byType, byChannel, byStatus] = await Promise.all([
@@ -467,13 +467,13 @@ const getNotificationStats = async (
 }
 
 const getMyNotifications = async (
-  user: JwtPayload & { authId: string },
+  user: JwtPayload & { userId: string },
   pagination: IPaginationOptions,
 ) => {
   const { page, skip, limit, sortBy, sortOrder } =
     paginationHelper.calculatePagination(pagination)
 
-  const query = { userId: user.authId, isArchived: false }
+  const query = { userId: user.userId, isArchived: false }
 
   const [result, total] = await Promise.all([
     Notification.find(query)

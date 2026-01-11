@@ -31,4 +31,8 @@ const messageSchema = new Schema<IMessage, MessageModel>(
   }
 );
 
+messageSchema.index({ chatId: 1, createdAt: -1 });
+messageSchema.index({ sender: 1 });
+messageSchema.index({ chatId: 1, seen: 1 });
+
 export const Message = model<IMessage, MessageModel>('Message', messageSchema);

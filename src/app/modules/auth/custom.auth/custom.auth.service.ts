@@ -527,8 +527,8 @@ const resendOtpToPhoneOrEmail = async (
 }
 
 const deleteAccount = async (user: JwtPayload, password: string) => {
-  const { authId } = user
-  const isUserExist = await User.findById(authId).select('+password')
+  const { userId } = user
+  const isUserExist = await User.findById(userId).select('+password')
   if (!isUserExist) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
@@ -552,7 +552,7 @@ const deleteAccount = async (user: JwtPayload, password: string) => {
     )
   }
 
-  const deletedData = await User.findByIdAndUpdate(authId, {
+  const deletedData = await User.findByIdAndUpdate(userId, {
     $set: { status: USER_STATUS.DELETED },
   })
 
@@ -625,7 +625,7 @@ const changePassword = async (
   newPassword: string,
 ) => {
   // Find the user with password field
-  const isUserExist = await User.findById(user.authId)
+  const isUserExist = await User.findById(user.userId)
     .select('+password')
     .lean()
 
@@ -651,7 +651,7 @@ const changePassword = async (
 
   // Update the password
   await User.findByIdAndUpdate(
-    user.authId,
+    user.userId,
     { password: hashedPassword },
     { new: true },
   )

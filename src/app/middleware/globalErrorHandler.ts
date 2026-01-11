@@ -5,7 +5,7 @@ import { IGenericErrorMessage } from '../../interfaces/error'
 import { ZodError } from 'zod'
 import handleZodError from '../../errors/handleZodError'
 import handleCastError from '../../errors/handleCastError'
-import handleValidationError from '../../errors/handleZodError'
+import handleValidationError from '../../errors/handleValidationError'
 import ApiError from '../../errors/ApiError'
 
 const globalErrorHandler: ErrorRequestHandler = (
@@ -26,7 +26,7 @@ const globalErrorHandler: ErrorRequestHandler = (
   let message = 'Something went wrong!'
   let errorMessages: IGenericErrorMessage[] = []
 
-  if (error?.name === 'validationError') {
+  if (error?.name === 'ValidationError') {
     const simplifiedError = handleValidationError(error)
     statusCode = simplifiedError.statusCode
     message = simplifiedError.errorMessages[0]?.message || message

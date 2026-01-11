@@ -53,14 +53,14 @@ const getMessageFromDB = async (
   // Find messages that will be marked as seen to identify the sender
   const unreadMessages = await Message.find({
     chatId,
-    sender: { $ne: user.authId },
+    sender: { $ne: user.userId },
     seen: false,
   })
 
   if (unreadMessages.length > 0) {
     // Mark messages as seen when chat is opened
     await Message.updateMany(
-      { chatId, sender: { $ne: user.authId }, seen: false },
+      { chatId, sender: { $ne: user.userId }, seen: false },
       { $set: { seen: true } },
     )
 

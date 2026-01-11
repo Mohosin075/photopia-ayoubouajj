@@ -13,7 +13,7 @@ const createToken = (
   rememberMe?: boolean,
 ) => {
   const accessToken = jwtHelper.createToken(
-    { authId, role, name, email, deviceToken },
+    { userId: authId, authId, role, name, email, deviceToken },
     config.jwt.jwt_secret as Secret,
     config.jwt.jwt_expire_in as string,
   )
@@ -24,7 +24,7 @@ const createToken = (
 
 
   const refreshToken = jwtHelper.createToken(
-    { authId, role, name, email, deviceToken },
+    { userId: authId, authId, role, name, email, deviceToken },
     config.jwt.jwt_refresh_secret as Secret,
     refreshExpiry as string,
   )

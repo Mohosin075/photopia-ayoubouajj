@@ -60,7 +60,7 @@ const deleteProfile = catchAsync(async (req: Request, res: Response) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is required')
   }
 
-  const result = await UserServices.deleteProfile(user.authId, password)
+  const result = await UserServices.deleteProfile(user.userId, password)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -106,9 +106,9 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 })
 
 const addUserInterest = catchAsync(async (req: Request, res: Response) => {
-  const { authId } = req.user as JwtPayload
+  const { userId } = req.user as JwtPayload
   const { interest } = req.body
-  const result = await UserServices.addUserInterest(authId, interest)
+  const result = await UserServices.addUserInterest(userId, interest)
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,

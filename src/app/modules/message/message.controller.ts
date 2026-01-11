@@ -17,7 +17,7 @@ const sendMessage = catchAsync(async (req: Request, res: Response) => {
 
   // find the receiver (the participant that is NOT the sender)
   const receiver = chat.participants.find(
-    (p: any) => p._id.toString() !== user.authId.toString(),
+    (p: any) => p._id.toString() !== user.userId.toString(),
   )
 
   if (!receiver)
@@ -29,7 +29,7 @@ const sendMessage = catchAsync(async (req: Request, res: Response) => {
   const data = {
     ...req.body,
     image: payload?.images ? payload.images[0] : null,
-    sender: user.authId,
+    sender: user.userId,
     receiver: receiverId,
   }
 

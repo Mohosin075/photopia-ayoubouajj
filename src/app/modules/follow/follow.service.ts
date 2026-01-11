@@ -12,7 +12,7 @@ export const FollowServices = {
   // Follow a user
   // Follow a user
   async followUser(user: JwtPayload, targetUserId: string) {
-    const followerId = new Types.ObjectId(user.authId)
+    const followerId = new Types.ObjectId(user.userId)
     const followingId = new Types.ObjectId(targetUserId)
 
     // Check if trying to follow self
@@ -91,7 +91,7 @@ export const FollowServices = {
   // Unfollow a user
   // Unfollow a user
   async unfollowUser(user: JwtPayload, targetUserId: string) {
-    const followerId = new Types.ObjectId(user.authId)
+    const followerId = new Types.ObjectId(user.userId)
     const followingId = new Types.ObjectId(targetUserId)
 
     const session = await mongoose.startSession()
@@ -126,7 +126,7 @@ export const FollowServices = {
   // Accept follow request
   // Accept follow request
   async acceptFollowRequest(user: JwtPayload, followerId: string) {
-    const userId = new Types.ObjectId(user.authId)
+    const userId = new Types.ObjectId(user.userId)
     const followerIdObj = new Types.ObjectId(followerId)
 
     const follow = await Follow.findOneAndUpdate(
@@ -149,7 +149,7 @@ export const FollowServices = {
   // Reject follow request
   // Reject follow request
   async rejectFollowRequest(user: JwtPayload, followerId: string) {
-    const userId = new Types.ObjectId(user.authId)
+    const userId = new Types.ObjectId(user.userId)
     const followerIdObj = new Types.ObjectId(followerId)
 
     const follow = await Follow.findOneAndUpdate(
@@ -172,7 +172,7 @@ export const FollowServices = {
   // Block a user
   // Block a user
   async blockUser(user: JwtPayload, targetUserId: string) {
-    const blockerId = new Types.ObjectId(user.authId)
+    const blockerId = new Types.ObjectId(user.userId)
     const blockedId = new Types.ObjectId(targetUserId)
 
     const session = await mongoose.startSession()
@@ -215,7 +215,7 @@ export const FollowServices = {
   // Unblock a user
   // Unblock a user
   async unblockUser(user: JwtPayload, targetUserId: string) {
-    const blockerId = new Types.ObjectId(user.authId)
+    const blockerId = new Types.ObjectId(user.userId)
     const blockedId = new Types.ObjectId(targetUserId)
 
     const result = await Follow.findOneAndDelete({
@@ -243,13 +243,13 @@ export const FollowServices = {
     const query: any =
       type === 'followers'
         ? {
-            following: new Types.ObjectId(userId),
-            status: FollowStatus.ACCEPTED,
-          }
+          following: new Types.ObjectId(userId),
+          status: FollowStatus.ACCEPTED,
+        }
         : {
-            follower: new Types.ObjectId(userId),
-            status: FollowStatus.ACCEPTED,
-          }
+          follower: new Types.ObjectId(userId),
+          status: FollowStatus.ACCEPTED,
+        }
 
     const [data, total] = await Promise.all([
       Follow.find(query)
@@ -311,7 +311,7 @@ export const FollowServices = {
   // Check follow relationship
   // Check follow relationship
   async checkFollowStatus(user: JwtPayload, targetUserId: string) {
-    const currentUserId = new Types.ObjectId(user.authId)
+    const currentUserId = new Types.ObjectId(user.userId)
     const targetUserIdObj = new Types.ObjectId(targetUserId)
 
     const [isFollowing, isFollower, isBlocked, isPending] = await Promise.all([
@@ -359,7 +359,7 @@ export const FollowServices = {
   // Get mutual followers
   // Get mutual followers
   async getMutualFollowers(user: JwtPayload, targetUserId: string) {
-    const currentUserId = new Types.ObjectId(user.authId)
+    const currentUserId = new Types.ObjectId(user.userId)
     const targetUserIdObj = new Types.ObjectId(targetUserId)
 
     const mutual = await Follow.aggregate([
@@ -424,7 +424,7 @@ export const FollowServices = {
     user: JwtPayload,
     paginationOptions: IPaginationOptions,
   ) {
-    const userId = new Types.ObjectId(user.authId)
+    const userId = new Types.ObjectId(user.userId)
     const { page, limit, skip } = paginationHelper.calculatePagination(paginationOptions)
 
     const suggestions = await Follow.aggregate([
