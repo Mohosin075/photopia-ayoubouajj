@@ -5,7 +5,7 @@ import { Types } from 'mongoose'
 import bcrypt from 'bcrypt'
 
 const createToken = (
-  authId: Types.ObjectId,
+  userId: Types.ObjectId,
   role: string,
   name?: string,
   email?: string,
@@ -13,7 +13,7 @@ const createToken = (
   rememberMe?: boolean,
 ) => {
   const accessToken = jwtHelper.createToken(
-    { userId: authId, authId, role, name, email, deviceToken },
+    { userId, authId: userId, role, name, email, deviceToken },
     config.jwt.jwt_secret as Secret,
     config.jwt.jwt_expire_in as string,
   )
@@ -24,7 +24,7 @@ const createToken = (
 
 
   const refreshToken = jwtHelper.createToken(
-    { userId: authId, authId, role, name, email, deviceToken },
+    { userId, authId: userId, role, name, email, deviceToken },
     config.jwt.jwt_refresh_secret as Secret,
     refreshExpiry as string,
   )
@@ -33,15 +33,15 @@ const createToken = (
 }
 
 const tempAccessToken = (
-  authId: Types.ObjectId,
+  userId: Types.ObjectId,
   role: string,
   name?: string,
   email?: string,
   deviceToken?: string,
 ) => {
   const accessToken = jwtHelper.createToken(
-    { authId, role, name, email, deviceToken },
-    'asjdhashd#$uaas98',
+    { userId, authId: userId, role, name, email, deviceToken },
+    config.jwt.jwt_secret as Secret,
     config.jwt.jwt_expire_in as string,
   )
 
@@ -55,4 +55,4 @@ const isPasswordMatched = async (
   return await bcrypt.compare(plainTextPassword, hashedPassword)
 }
 
-export const AuthHelper = { createToken, isPasswordMatched }
+export const AuthHelper = { createToken, tempAccessToken, isPasswordMatched }

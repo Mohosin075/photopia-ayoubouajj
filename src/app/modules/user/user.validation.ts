@@ -72,3 +72,9 @@ export const addUserInterestSchema = z.object({
     interest: z.array(z.nativeEnum(InterestCategory)).optional(),
   }),
 })
+
+export const updateUserStatusSchema = z.object({
+  body: z.object({
+    status: z.nativeEnum(USER_STATUS),
+  }),
+})

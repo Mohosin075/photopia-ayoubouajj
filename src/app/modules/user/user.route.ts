@@ -7,6 +7,7 @@ import { USER_ROLES } from '../../../enum/user'
 import {
   addUserInterestSchema,
   updateUserSchema,
+  updateUserStatusSchema,
 } from './user.validation'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
 
@@ -65,7 +66,7 @@ router
   )
   .patch(
     auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-    // validateRequest(updateUserSchema),
+    validateRequest(updateUserStatusSchema),
     UserController.updateUserStatus,
   )
 
