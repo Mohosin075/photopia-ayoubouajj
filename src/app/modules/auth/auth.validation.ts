@@ -156,9 +156,7 @@ const createUserZodSchema = z.object({
       )
       .optional(),
     address: addressSchema.optional(),
-    // role: z.enum([USER_ROLES.ADMIN, USER_ROLES.USER, ], {
-    //   message: 'Role must be one of admin, user, creator',
-    // }),
+    role: z.enum([USER_ROLES.USER, USER_ROLES.PROFESSIONAL]).optional(),
   }),
 })
 

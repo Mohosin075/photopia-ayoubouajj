@@ -15,6 +15,7 @@ import { jwtHelper } from '../../../../helpers/jwtHelper'
 import { JwtPayload } from 'jsonwebtoken'
 import { IUser } from '../../user/user.interface'
 import { emailHelper } from '../../../../helpers/emailHelper'
+import { ProfessionalProfile } from '../../professionalProfile/professionalProfile.model'
 // import { emailQueue } from '../../../../helpers/bull-mq-producer'
 
 const createUser = async (payload: IUser) => {
@@ -54,11 +55,32 @@ const createUser = async (payload: IUser) => {
 
   emailHelper.sendEmail(createAccount)
 
+  // Extract role from payload (if provided)
+  const { role, ...userData } = payload as any
+
+  // Initialize roles and activeRole based on signup choice
+  const roles = [USER_ROLES.USER]
+  let activeRole = USER_ROLES.USER
+
+  if (role === USER_ROLES.PROFESSIONAL) {
+    roles.push(USER_ROLES.PROFESSIONAL)
+    activeRole = USER_ROLES.PROFESSIONAL
+  }
+
   const user = await User.create({
-    ...payload,
+    ...userData,
+    roles,
+    activeRole,
     password: payload.password,
     authentication,
   })
+
+  // Automatically create ProfessionalProfile if user signed up as professional
+  if (role === USER_ROLES.PROFESSIONAL) {
+    await ProfessionalProfile.create({
+      user: user._id,
+    })
+  }
 
   if (!user) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user.')
