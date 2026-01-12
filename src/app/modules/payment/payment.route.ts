@@ -10,9 +10,7 @@ const router = express.Router()
 router.get(
   '/',
   auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-    USER_ROLES.ORGANIZER,
+    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
   PaymentController.getAllPayments,
@@ -21,9 +19,7 @@ router.get(
 router.get(
   '/my-payments',
   auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-    USER_ROLES.ORGANIZER,
+    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
   PaymentController.getMyPayments,
@@ -32,9 +28,7 @@ router.get(
 router.get(
   '/:id',
   auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-    USER_ROLES.ORGANIZER,
+    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
   PaymentController.getSinglePayment,
@@ -44,9 +38,7 @@ router.get(
 router.post(
   '/create-checkout-session',
   auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-    USER_ROLES.ORGANIZER,
+    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
   validateRequest(PaymentValidations.create),
@@ -56,9 +48,7 @@ router.post(
 router.get(
   '/verify-checkout/:sessionId',
   auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-    USER_ROLES.ORGANIZER,
+    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
   PaymentController.verifyCheckoutSession,
@@ -71,9 +61,7 @@ router.get(
 router.post(
   '/create-payment-intent',
   auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-    USER_ROLES.ORGANIZER,
+    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
   validateRequest(PaymentValidations.create),
@@ -83,9 +71,7 @@ router.post(
 router.post(
   '/ephemeral-key',
   auth(
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-    USER_ROLES.ORGANIZER,
+    USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
   PaymentController.createEphemeralKey,

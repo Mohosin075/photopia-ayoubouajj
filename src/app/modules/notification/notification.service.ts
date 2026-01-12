@@ -1,3 +1,4 @@
+import { USER_ROLES, USER_STATUS } from '../../../enum/user'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../../errors/ApiError'
 import {
@@ -252,7 +253,7 @@ const getAllNotifications = async (
   }
 
   // User-specific filtering (unless admin)
-  if ((user as any).role === 'user') {
+  if ((user as any).activeRole === USER_ROLES.USER || (user as any).activeRole === USER_ROLES.PROFESSIONAL) {
     andConditions.push({
       userId: new Types.ObjectId((user as any).userId as string),
     })
@@ -448,7 +449,7 @@ const getNotificationStats = async (
 ): Promise<INotificationStats> => {
   const query: any = {}
 
-  if (user.role === 'user') {
+  if (user.activeRole === USER_ROLES.USER || user.activeRole === USER_ROLES.PROFESSIONAL) {
     query.userId = user.userId
   }
 

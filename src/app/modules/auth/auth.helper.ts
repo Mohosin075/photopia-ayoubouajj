@@ -7,6 +7,7 @@ import bcrypt from 'bcrypt'
 const createToken = (
   userId: Types.ObjectId,
   role: string,
+  activeRole: string,
   name?: string,
   email?: string,
   deviceToken?: string,
@@ -35,6 +36,7 @@ const createToken = (
 const tempAccessToken = (
   userId: Types.ObjectId,
   role: string,
+  activeRole: string,
   name?: string,
   email?: string,
   deviceToken?: string,

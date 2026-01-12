@@ -51,7 +51,8 @@ passport.use(
     },
     async (req, accessToken, refreshToken, profile, done) => {
       req.body.profile = profile
-      req.body.role = USER_ROLES.USER
+      req.body.roles = [USER_ROLES.USER]
+      req.body.activeRole = USER_ROLES.USER
 
       try {
         return done(null, req.body)
@@ -79,7 +80,7 @@ passport.deserializeUser(async (payload: any, done) => {
 
     if (payload.type === 'db') {
       // Fetch DB user by _id
-      const user = await User.findById(payload.id).select('email name role')
+      const user = await User.findById(payload.id).select('email name roles activeRole')
       return done(null, user || null)
     } else if (payload.type === 'social') {
       // Social-only user, just return stored data

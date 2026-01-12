@@ -26,6 +26,7 @@ export type IAuthResponse = {
     status: number
     message: string
     role?: string
+    activeRole?: string
     token?: string
     accessToken?: string
     refreshToken?: string

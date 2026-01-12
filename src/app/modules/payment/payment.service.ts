@@ -1,3 +1,4 @@
+import { USER_ROLES } from '../../../enum/user'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../../errors/ApiError'
 import { IPaymentFilterables, IPayment } from './payment.interface'
@@ -321,7 +322,7 @@ const getAllPayments = async (
   }
 
   // Regular users can only see their own payments
-  if (user.role === 'user' || user.role === 'organizer') {
+  if (user.activeRole === USER_ROLES.USER || user.activeRole === USER_ROLES.PROFESSIONAL) {
     andConditions.push({
       userId: new Types.ObjectId(user.userId),
     })

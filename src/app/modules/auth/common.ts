@@ -23,7 +23,7 @@ const handleLoginLogic = async (
     //send otp to user
 
     const otp = generateOtp()
-    console.log({otp})
+    console.log({ otp })
     const otpExpiresIn = new Date(Date.now() + 5 * 60 * 1000)
 
     const authentication = {
@@ -128,9 +128,10 @@ const handleLoginLogic = async (
 
   const tokens = AuthHelper.createToken(
     isUserExist._id,
-    isUserExist.role,
-    isUserExist.name,
-    isUserExist.email,
+    isUserExist.roles[0],
+    isUserExist.activeRole,
+    isUserExist.name!,
+    isUserExist.email!,
     payload.deviceToken,
     rememberMe,
   )
@@ -138,7 +139,7 @@ const handleLoginLogic = async (
   return authResponse(
     StatusCodes.OK,
     `Welcome back ${isUserExist.name}`,
-    isUserExist.role,
+    isUserExist.activeRole,
     tokens.accessToken,
     tokens.refreshToken,
   )

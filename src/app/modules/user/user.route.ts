@@ -14,14 +14,20 @@ const router = express.Router()
 
 router.get(
   '/profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.ORGANIZER),
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL),
   UserController.getProfile,
+)
+
+router.patch(
+  '/switch-role',
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
+  UserController.switchRole,
 )
 
 
 router.patch(
   '/profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.ORGANIZER),
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL),
 
   fileAndBodyProcessorUsingDiskStorage(),
 
@@ -45,7 +51,7 @@ router
 router
   .route('/:userId')
   .get(
-    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.ORGANIZER, USER_ROLES.USER),
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER),
     UserController.getUserById,
   )
   .delete(

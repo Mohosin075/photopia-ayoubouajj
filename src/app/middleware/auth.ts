@@ -59,7 +59,7 @@ const auth =
         // SECOND: role check
         if (roles.length > 0) {
           const userRole =
-            verifyUser.role || verifyUser.user?.role || verifyUser.data?.role
+            verifyUser.activeRole || verifyUser.role || verifyUser.user?.role || verifyUser.data?.role
 
           if (!userRole) {
             return next(
@@ -115,7 +115,7 @@ export const tempAuth =
             req.user = verifyUser
 
             // Guard user
-            if (roles.length && !roles.includes(verifyUser.role)) {
+            if (roles.length && !roles.includes(verifyUser.activeRole || verifyUser.role)) {
               throw new ApiError(
                 StatusCodes.FORBIDDEN,
                 "You don't have permission to access this API",

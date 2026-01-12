@@ -51,7 +51,8 @@ export interface IUser {
   address?: IAddress
   location: Point
   password: string
-  role: USER_ROLES
+  roles: USER_ROLES[]
+  activeRole: USER_ROLES
   appId?: string
   provider?: string
   deviceToken?: string

@@ -1,3 +1,4 @@
+import { USER_ROLES } from '../../../enum/user'
 import { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { NotificationServices } from './notification.service'
@@ -80,7 +81,7 @@ const updateNotification = catchAsync(async (req: Request, res: Response) => {
   const result = await NotificationServices.updateNotification(
     id,
     req.body,
-    user.role === 'user' ? user.userId : undefined,
+    user.activeRole === USER_ROLES.USER || user.activeRole === USER_ROLES.PROFESSIONAL ? user.userId : undefined,
   )
 
   sendResponse(res, {

@@ -32,7 +32,7 @@ const createUser = async (payload: IUser) => {
   }
 
   const otp = generateOtp()
-  console.log({otp}, 'create user')
+  console.log({ otp }, 'create user')
   const otpExpiresIn = new Date(Date.now() + 5 * 60 * 1000)
 
   const authentication = {
@@ -118,7 +118,7 @@ const adminLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
     )
   }
 
-  if (isUserExist.role !== USER_ROLES.ADMIN) {
+  if (!isUserExist.roles.includes(USER_ROLES.ADMIN)) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'You are not authorized to login as admin',
@@ -139,7 +139,8 @@ const adminLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
   //tokens
   const tokens = AuthHelper.createToken(
     isUserExist._id,
-    isUserExist.role,
+    isUserExist.roles[0], // fallback to first role if needed, but adminLogin should check roles
+    isUserExist.activeRole,
     isUserExist.name!,
     isUserExist.email!,
   )
@@ -147,7 +148,7 @@ const adminLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
   return authResponse(
     StatusCodes.OK,
     `Welcome back ${isUserExist.name}`,
-    isUserExist.role,
+    isUserExist.activeRole,
     tokens.accessToken,
     tokens.refreshToken,
   )
@@ -170,7 +171,7 @@ const forgetPassword = async (email?: string, phone?: string) => {
   }
 
   const otp = generateOtp()
-console.log({otp}, 'forget password')
+  console.log({ otp }, 'forget password')
   if (phone) {
     //implement this feature using twilio/aws sns
   }
@@ -329,16 +330,17 @@ const verifyAccount = async (
 
     const tokens = AuthHelper.createToken(
       isUserExist._id,
-      isUserExist.role,
-      isUserExist.name,
-      isUserExist.email,
+      isUserExist.roles[0],
+      isUserExist.activeRole,
+      isUserExist.name!,
+      isUserExist.email!,
     )
 
 
     return authResponse(
       StatusCodes.OK,
       `Welcome ${isUserExist.name} to our platform.`,
-      isUserExist.role,
+      isUserExist.activeRole,
       tokens.accessToken,
       tokens.refreshToken,
     )
@@ -396,6 +398,7 @@ const getRefreshToken = async (token: string) => {
     const tokens = AuthHelper.createToken(
       (userId || authId) as any,
       role,
+      decodedToken.activeRole || role,
       decodedToken.name,
       decodedToken.email,
     )
@@ -431,14 +434,15 @@ const socialLogin = async (
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create user.')
     const tokens = AuthHelper.createToken(
       createdUser._id,
-      createdUser.role,
-      createdUser.name,
-      createdUser.email,
+      createdUser.roles[0],
+      createdUser.activeRole,
+      createdUser.name!,
+      createdUser.email!,
     )
     return authResponse(
       StatusCodes.OK,
       `Welcome ${createdUser.name || ''} to our platform.`,
-      createdUser.role,
+      createdUser.activeRole,
       tokens.accessToken,
       tokens.refreshToken,
     )
@@ -451,15 +455,16 @@ const socialLogin = async (
 
     const tokens = AuthHelper.createToken(
       isUserExist._id,
-      isUserExist.role,
-      isUserExist.name,
-      isUserExist.email,
+      isUserExist.roles[0],
+      isUserExist.activeRole,
+      isUserExist.name!,
+      isUserExist.email!,
     )
     //send token to client
     return authResponse(
       StatusCodes.OK,
       `Welcome back ${isUserExist.name || ''}`,
-      isUserExist.role,
+      isUserExist.activeRole,
       tokens.accessToken,
       tokens.refreshToken,
     )
@@ -529,7 +534,7 @@ const resendOtp = async (
   }
 
   const otp = generateOtp()
-  console.log({otp}, 'resent otp')
+  console.log({ otp }, 'resent otp')
   const authenticationPayload = {
     oneTimeCode: otp,
     latestRequestAt: new Date(),

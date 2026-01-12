@@ -272,6 +272,32 @@ export const getProfile = async (user: JwtPayload) => {
   return isUserExist
 }
 
+const switchRole = async (user: JwtPayload, role: USER_ROLES) => {
+  const isUserExist = await User.findById(user.userId)
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  if (!isUserExist.roles.includes(role)) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `User does not have the ${role} role.`,
+    )
+  }
+
+  const result = await User.findByIdAndUpdate(
+    user.userId,
+    { activeRole: role },
+    { new: true },
+  )
+
+  if (!result) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to switch role.')
+  }
+
+  return result
+}
+
 export const UserServices = {
   updateProfile,
   createAdmin,
@@ -281,4 +307,5 @@ export const UserServices = {
   updateUserStatus,
   getProfile,
   deleteProfile,
+  switchRole,
 }

@@ -105,6 +105,16 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const switchRole = catchAsync(async (req: Request, res: Response) => {
+  const { role } = req.body
+  const result = await UserServices.switchRole(req.user!, role)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Role switched successfully',
+    data: result,
+  })
+})
 
 export const UserController = {
   updateProfile,
@@ -113,5 +123,6 @@ export const UserController = {
   getUserById,
   updateUserStatus,
   getProfile,
-  deleteProfile
+  deleteProfile,
+  switchRole,
 }

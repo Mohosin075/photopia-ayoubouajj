@@ -9,12 +9,12 @@ const router = express.Router()
 router.post(
   '/',
   fileAndBodyProcessorUsingDiskStorage(),
-  auth(USER_ROLES.USER, USER_ROLES.ORGANIZER),
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
   MessageController.sendMessage,
 )
 router.get(
   '/:id',
-  auth(USER_ROLES.USER, USER_ROLES.ORGANIZER),
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
   MessageController.getMessage,
 )
 
