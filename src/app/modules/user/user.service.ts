@@ -13,6 +13,7 @@ import { S3Helper } from '../../../helpers/image/s3helper'
 import config from '../../../config'
 import { userFilterableFields } from './user.constants'
 import { Follow } from '../follow/follow.model'
+import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   console.log({ payload })
@@ -278,7 +279,24 @@ const switchRole = async (user: JwtPayload, role: USER_ROLES) => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  if (!isUserExist.roles.includes(role)) {
+  // Special case: User wants to become professional but doesn't have the role yet
+  if (role === USER_ROLES.PROFESSIONAL && !isUserExist.roles.includes(USER_ROLES.PROFESSIONAL)) {
+    // Check if they already have a professional profile
+    const existingProfile = await ProfessionalProfile.findOne({ user: user.userId })
+
+    if (!existingProfile) {
+      // Create empty professional profile (which will add the role)
+      await ProfessionalProfile.create({
+        user: user.userId,
+      })
+    }
+
+    // Add the professional role to the user
+    await User.findByIdAndUpdate(user.userId, {
+      $addToSet: { roles: USER_ROLES.PROFESSIONAL },
+    })
+  } else if (!isUserExist.roles.includes(role)) {
+    // For other roles, they must already have it
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       `User does not have the ${role} role.`,
