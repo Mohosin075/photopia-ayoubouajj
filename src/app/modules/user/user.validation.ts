@@ -46,30 +46,15 @@ export const updateUserSchema = z.object({
     })
 })
 
-export const STAFF_SPECIALTY = z.enum([
-  'Cleaning',
-  'Cooking',
-  'Laundry',
-  'Grocery',
-  'Maintenance',
-])
-
-export const createStaffSchema = z.object({
-  body: z.object({
-    name: z.string({ required_error: 'Name is required' }),
-    email: z.string().email({ message: 'Invalid email address' }),
-    specialties: z
-      .array(STAFF_SPECIALTY, {
-        required_error: 'At least one specialty is required',
-      })
-      .min(1, 'Select at least one specialty'),
-    bio: z.string().optional(),
-  }),
-})
-
 
 export const updateUserStatusSchema = z.object({
   body: z.object({
     status: z.nativeEnum(USER_STATUS),
+  }),
+})
+
+export const switchRoleSchema = z.object({
+  body: z.object({
+    role: z.enum([USER_ROLES.USER, USER_ROLES.PROFESSIONAL]),
   }),
 })

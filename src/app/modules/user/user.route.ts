@@ -5,6 +5,7 @@ import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../../enum/user'
 
 import {
+  switchRoleSchema,
   updateUserSchema,
   updateUserStatusSchema,
 } from './user.validation'
@@ -12,16 +13,17 @@ import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processRe
 
 const router = express.Router()
 
+router.patch(
+  '/switch-role',
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
+  validateRequest(switchRoleSchema),
+  UserController.switchRole,
+)
+
 router.get(
   '/profile',
   auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL),
   UserController.getProfile,
-)
-
-router.patch(
-  '/switch-role',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
-  UserController.switchRole,
 )
 
 
