@@ -28,7 +28,7 @@ const createService = async (payload: IService & { providerId: string }) => {
     const images = (payload as any).images
     if (images.length > 0) {
       payload.coverMedia = images[0]
-      payload.gallery = images.slice(1)
+      payload.gallery = images
     }
     delete (payload as any).images
   }
@@ -125,11 +125,8 @@ const getAllServices = async (
 }
 
 const getSingleService = async (id: string) => {
-  // Increment views count
-  await Service.findByIdAndUpdate(id, { $inc: { viewsCount: 1 } })
-
   const result = await Service.findById(id)
-    .populate('provider', 'name email profileImage ratingAverage totalBookings')
+    .populate('provider', 'name email profileImage')
 
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
@@ -256,49 +253,6 @@ const getServicesByProvider = async (
   }
 }
 
-const updateServiceMetrics = async (
-  id: string,
-  metrics: Partial<{
-    ratingAverage: number
-    ratingCount: number
-    totalBookings: number
-    favoritesCount: number
-    viewsCount: number
-  }>
-) => {
-  const service = await Service.findById(id)
-
-  if (!service) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Service not found')
-  }
-
-  const result = await Service.findByIdAndUpdate(
-    id,
-    { $set: metrics },
-    { new: true, runValidators: true }
-  )
-
-  return result
-}
-
-const incrementMetric = async (
-  id: string,
-  metric: 'totalBookings' | 'favoritesCount' | 'viewsCount',
-  increment: number = 1
-) => {
-  const result = await Service.findByIdAndUpdate(
-    id,
-    { $inc: { [metric]: increment } },
-    { new: true }
-  )
-
-  if (!result) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'Service not found')
-  }
-
-  return result
-}
-
 const toggleServiceStatus = async (id: string, status: string) => {
   const service = await Service.findById(id)
 
@@ -322,7 +276,5 @@ export const ServiceServices = {
   updateService,
   deleteService,
   getServicesByProvider,
-  updateServiceMetrics,
-  incrementMetric,
   toggleServiceStatus,
 }

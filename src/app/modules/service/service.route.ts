@@ -6,7 +6,6 @@ import validateRequest from '../../middleware/validateRequest'
 import {
   createServiceSchema,
   updateServiceSchema,
-  updateServiceMetricsSchema,
   filterServiceSchema,
   toggleServiceStatusSchema,
 } from './service.validation'
@@ -55,21 +54,6 @@ router.patch(
   auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(toggleServiceStatusSchema),
   ServiceController.toggleServiceStatus
-)
-
-// --- Mixed / Action Routes ---
-router.patch(
-  '/:id/favorite',
-  auth(...Object.values(USER_ROLES)),
-  ServiceController.incrementFavorite
-)
-
-// --- Admin Only Routes ---
-router.patch(
-  '/:id/metrics',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  validateRequest(updateServiceMetricsSchema),
-  ServiceController.updateServiceMetrics
 )
 
 export const ServiceRoutes = router

@@ -6,7 +6,6 @@ import {
   SERVICE_LOCATION_TYPE,
   SERVICE_PRICING_TYPE,
   SERVICE_STATUS,
-  SERVICE_VISIBILITY_LEVEL,
 } from '../../../enum/service'
 
 const locationSchema = new Schema({
@@ -104,15 +103,9 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       enum: Object.values(SERVICE_PRICING_TYPE),
       required: true,
     },
-    minDurationHours: {
-      type: Number,
-      min: SERVICE_CONSTANTS.VALIDATION.DURATION_MIN,
-      max: SERVICE_CONSTANTS.VALIDATION.DURATION_MAX,
-    },
-    maxDurationHours: {
-      type: Number,
-      min: SERVICE_CONSTANTS.VALIDATION.DURATION_MIN,
-      max: SERVICE_CONSTANTS.VALIDATION.DURATION_MAX,
+    duration: {
+      type: String,
+      required: true,
     },
     location: {
       type: locationSchema,
@@ -125,12 +118,6 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: [String],
       default: [],
     },
-    visibilityLevel: {
-      type: String,
-      enum: Object.values(SERVICE_VISIBILITY_LEVEL),
-      required: true,
-      default: SERVICE_VISIBILITY_LEVEL.FREE,
-    },
     status: {
       type: String,
       enum: Object.values(SERVICE_STATUS),
@@ -140,32 +127,6 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     isVerified: {
       type: Boolean,
       default: SERVICE_CONSTANTS.DEFAULT_VALUES.IS_VERIFIED,
-    },
-    ratingAverage: {
-      type: Number,
-      min: SERVICE_CONSTANTS.VALIDATION.RATING_MIN,
-      max: SERVICE_CONSTANTS.VALIDATION.RATING_MAX,
-      default: SERVICE_CONSTANTS.DEFAULT_VALUES.RATING_AVERAGE,
-    },
-    ratingCount: {
-      type: Number,
-      min: 0,
-      default: SERVICE_CONSTANTS.DEFAULT_VALUES.RATING_COUNT,
-    },
-    totalBookings: {
-      type: Number,
-      min: 0,
-      default: SERVICE_CONSTANTS.DEFAULT_VALUES.TOTAL_BOOKINGS,
-    },
-    favoritesCount: {
-      type: Number,
-      min: 0,
-      default: SERVICE_CONSTANTS.DEFAULT_VALUES.FAVORITES_COUNT,
-    },
-    viewsCount: {
-      type: Number,
-      min: 0,
-      default: SERVICE_CONSTANTS.DEFAULT_VALUES.VIEWS_COUNT,
     },
     serviceType: {
       type: String,
@@ -193,8 +154,6 @@ serviceSchema.index({ 'location.type': 1 })
 serviceSchema.index({ 'location.city': 1, 'location.country': 1 })
 serviceSchema.index({ status: 1 })
 serviceSchema.index({ isActive: 1 })
-serviceSchema.index({ ratingAverage: -1 })
-serviceSchema.index({ totalBookings: -1 })
 serviceSchema.index({ price: 1 })
 serviceSchema.index({ title: 'text', description: 'text', tags: 'text' })
 

@@ -134,33 +134,6 @@ const getMyServices = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const updateServiceMetrics = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const metrics = req.body
-
-  const result = await ServiceServices.updateServiceMetrics(id, metrics)
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Service metrics updated successfully',
-    data: result,
-  })
-})
-
-const incrementFavorite = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-
-  const result = await ServiceServices.incrementMetric(id, 'favoritesCount')
-
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Favorite count incremented',
-    data: result,
-  })
-})
-
 const toggleServiceStatus = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { status } = req.body
@@ -183,7 +156,5 @@ export const ServiceController = {
   deleteService,
   getServicesByProvider,
   getMyServices,
-  updateServiceMetrics,
-  incrementFavorite,
   toggleServiceStatus,
 }

@@ -5,13 +5,11 @@ import {
   SERVICE_LOCATION_TYPE,
   SERVICE_PRICING_TYPE,
   SERVICE_STATUS,
-  SERVICE_VISIBILITY_LEVEL,
 } from '../../../enum/service'
 
 // Convert enums to arrays for Zod
 const pricingTypeValues = Object.values(SERVICE_PRICING_TYPE) as [string, ...string[]]
 const locationTypeValues = Object.values(SERVICE_LOCATION_TYPE) as [string, ...string[]]
-const visibilityLevelValues = Object.values(SERVICE_VISIBILITY_LEVEL) as [string, ...string[]]
 const statusValues = Object.values(SERVICE_STATUS) as [string, ...string[]]
 const serviceTypeValues = Object.values(SERVICE_TYPE) as [string, ...string[]]
 
@@ -47,18 +45,10 @@ export const createServiceSchema = z.object({
       .max(SERVICE_CONSTANTS.VALIDATION.PRICE_MAX),
     currency: z.string().length(3).default('EUR'),
     pricingType: z.enum(pricingTypeValues),
-    minDurationHours: z.number()
-      .min(SERVICE_CONSTANTS.VALIDATION.DURATION_MIN)
-      .max(SERVICE_CONSTANTS.VALIDATION.DURATION_MAX)
-      .optional(),
-    maxDurationHours: z.number()
-      .min(SERVICE_CONSTANTS.VALIDATION.DURATION_MIN)
-      .max(SERVICE_CONSTANTS.VALIDATION.DURATION_MAX)
-      .optional(),
+    duration: z.string().min(1).max(100),
     location: locationSchema,
     coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),
-    visibilityLevel: z.enum(visibilityLevelValues).default(SERVICE_VISIBILITY_LEVEL.FREE),
     status: z.enum(statusValues).default(SERVICE_STATUS.ACTIVE),
     serviceType: z.enum(serviceTypeValues),
   }),
@@ -84,35 +74,14 @@ export const updateServiceSchema = z.object({
       .optional(),
     currency: z.string().length(3).optional(),
     pricingType: z.enum(pricingTypeValues).optional(),
-    minDurationHours: z.number()
-      .min(SERVICE_CONSTANTS.VALIDATION.DURATION_MIN)
-      .max(SERVICE_CONSTANTS.VALIDATION.DURATION_MAX)
-      .optional(),
-    maxDurationHours: z.number()
-      .min(SERVICE_CONSTANTS.VALIDATION.DURATION_MIN)
-      .max(SERVICE_CONSTANTS.VALIDATION.DURATION_MAX)
-      .optional(),
+    duration: z.string().min(1).max(100).optional(),
     location: locationSchema.partial().optional(),
     coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),
-    visibilityLevel: z.enum(visibilityLevelValues).optional(),
     status: z.enum(statusValues).optional(),
     isVerified: z.boolean().optional(),
     serviceType: z.enum(serviceTypeValues).optional(),
     isActive: z.boolean().optional(),
-  }),
-})
-
-export const updateServiceMetricsSchema = z.object({
-  body: z.object({
-    ratingAverage: z.number()
-      .min(SERVICE_CONSTANTS.VALIDATION.RATING_MIN)
-      .max(SERVICE_CONSTANTS.VALIDATION.RATING_MAX)
-      .optional(),
-    ratingCount: z.number().min(0).optional(),
-    totalBookings: z.number().min(0).optional(),
-    favoritesCount: z.number().min(0).optional(),
-    viewsCount: z.number().min(0).optional(),
   }),
 })
 
@@ -134,7 +103,6 @@ export const filterServiceSchema = z.object({
     'location.type': z.enum(locationTypeValues).optional(),
     'location.country': z.string().optional(),
     'location.city': z.string().optional(),
-    visibilityLevel: z.enum(visibilityLevelValues).optional(),
     status: z.enum(statusValues).optional(),
     isVerified: z.enum(['true', 'false']).optional(),
     providerId: z.string().optional(),

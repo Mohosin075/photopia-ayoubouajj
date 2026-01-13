@@ -3,7 +3,6 @@ import {
   SERVICE_LOCATION_TYPE,
   SERVICE_PRICING_TYPE,
   SERVICE_STATUS,
-  SERVICE_VISIBILITY_LEVEL,
 } from '../../../enum/service'
 
 export interface ILocation {
@@ -31,11 +30,9 @@ export interface IServiceFilterables {
   'location.type'?: SERVICE_LOCATION_TYPE | string
   'location.country'?: string
   'location.city'?: string
-  visibilityLevel?: SERVICE_VISIBILITY_LEVEL | string
   status?: SERVICE_STATUS | string
   isVerified?: boolean | string
   providerId?: string
-  ratingAverage?: number
   serviceType?: string
   isActive?: boolean | string
 }
@@ -52,19 +49,12 @@ export interface IService {
   price: number
   currency: string
   pricingType: SERVICE_PRICING_TYPE
-  minDurationHours?: number
-  maxDurationHours?: number
+  duration: string
   location: ILocation
   coverMedia?: string
   gallery?: string[]
-  visibilityLevel: SERVICE_VISIBILITY_LEVEL
   status: SERVICE_STATUS
   isVerified: boolean
-  ratingAverage: number
-  ratingCount: number
-  totalBookings: number
-  favoritesCount: number
-  viewsCount: number
   serviceType: string
   isActive: boolean
   createdAt: Date
