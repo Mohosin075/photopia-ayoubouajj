@@ -1,6 +1,6 @@
 import { Schema, model } from 'mongoose'
 import { ICategory, CategoryModel } from './category.interface'
-import { CATEGORY_TAG } from '../../../enum/user'
+import { SERVICE_TYPE } from '../../../enum/user'
 
 const categorySchema = new Schema<ICategory, CategoryModel>(
     {
@@ -17,10 +17,10 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
         image: {
             type: String,
         },
-        tags: {
-            type: [String],
-            enum: CATEGORY_TAG,
-            default: [],
+        serviceType: {
+            type: String,
+            enum: Object.values(SERVICE_TYPE),
+            required: true,
         },
         isActive: {
             type: Boolean,
@@ -35,6 +35,6 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
 )
 
 categorySchema.index({ name: 1 })
-categorySchema.index({ tags: 1 })
+categorySchema.index({ serviceType: 1 })
 
 export const Category = model<ICategory, CategoryModel>('Category', categorySchema)

@@ -16,17 +16,15 @@ export enum USER_STATUS {
   DELETED = 'deleted',
 }
 
-export enum CATEGORY_TAG {
+export enum SERVICE_TYPE {
   PHOTOGRAPHY = 'photography',
-  ART = 'art',
-  TRAVEL = 'travel',
-  FOOD = 'food',
-  MUSIC = 'music',
-  FASHION = 'fashion',
-  LIFESTYLE = 'lifestyle',
-  HEALTH = 'health',
-  BEAUTY = 'beauty',
-  SPORTS = 'sports',
+  VIDEOGRAPHY = 'videography',
+  VIDEO_EDITING = 'video_editing',
+  PHOTO_EDITING = 'photo_editing',
+  GRAPHIC_DESIGN = 'graphic_design',
+  DRONE_PHOTOGRAPHY = 'drone_photography',
+  EVENT_COVERAGE = 'event_coverage',
+  STUDIO_RENTAL = 'studio_rental',
 }
 
 export enum InterestCategory {
