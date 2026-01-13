@@ -1,0 +1,22 @@
+export enum SERVICE_STATUS {
+    ACTIVE = 'ACTIVE',
+    PAUSED = 'PAUSED',
+    ARCHIVED = 'ARCHIVED',
+}
+
+export enum SERVICE_PRICING_TYPE {
+    FIXED = 'FIXED',
+    HOURLY = 'HOURLY',
+    PACKAGE = 'PACKAGE',
+}
+
+export enum SERVICE_VISIBILITY_LEVEL {
+    FREE = 'FREE',
+    PREMIUM = 'PREMIUM',
+    STUDIO = 'STUDIO',
+}
+
+export enum SERVICE_LOCATION_TYPE {
+    ONSITE = 'ONSITE',
+    REMOTE = 'REMOTE',
+}
