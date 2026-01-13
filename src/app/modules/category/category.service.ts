@@ -14,6 +14,11 @@ const createCategory = async (payload: ICategory) => {
             'Category with this name already exists',
         )
     }
+    // Map images field from upload middleware to image field
+    if ((payload as any).images) {
+        payload.image = (payload as any).images[0]
+        delete (payload as any).images
+    }
 
     const result = await Category.create(payload)
 
@@ -106,6 +111,12 @@ const updateCategory = async (
                 'Category with this name already exists',
             )
         }
+    }
+
+    // Map images field from upload middleware to image field
+    if ((payload as any).images) {
+        payload.image = (payload as any).images[0]
+        delete (payload as any).images
     }
 
     const result = await Category.findByIdAndUpdate(id, payload, {

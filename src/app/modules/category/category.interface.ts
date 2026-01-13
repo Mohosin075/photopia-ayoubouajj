@@ -10,7 +10,8 @@ export interface ICategory {
     _id: Types.ObjectId
     name: string
     description?: string
-    icon?: string
+    image?: string
+    tags?: string[]
     isActive: boolean
     createdAt: Date
     updatedAt: Date

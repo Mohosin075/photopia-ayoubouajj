@@ -13,8 +13,12 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
             type: String,
             trim: true,
         },
-        icon: {
+        image: {
             type: String,
+        },
+        tags: {
+            type: [String],
+            default: [],
         },
         isActive: {
             type: Boolean,
@@ -29,5 +33,6 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
 )
 
 categorySchema.index({ name: 1 })
+categorySchema.index({ tags: 1 })
 
 export const Category = model<ICategory, CategoryModel>('Category', categorySchema)

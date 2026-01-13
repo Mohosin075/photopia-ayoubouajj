@@ -6,7 +6,8 @@ export const createCategorySchema = z.object({
             required_error: 'Category name is required',
         }),
         description: z.string().optional(),
-        icon: z.string().optional(),
+        image: z.string().optional(),
+        tags: z.array(z.string()).optional(),
         isActive: z.boolean().optional(),
     }),
 })
@@ -15,7 +16,8 @@ export const updateCategorySchema = z.object({
     body: z.object({
         name: z.string().optional(),
         description: z.string().optional(),
-        icon: z.string().optional(),
+        image: z.string().optional(),
+        tags: z.array(z.string()).optional(),
         isActive: z.boolean().optional(),
     }),
 })
