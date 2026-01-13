@@ -1,6 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../../../errors/ApiError'
 import { IUser, IUserFilterables } from './user.interface'
+import { Secret } from 'jsonwebtoken'
 import { User } from './user.model'
 import { Types } from 'mongoose'
 
@@ -14,6 +15,7 @@ import config from '../../../config'
 import { userFilterableFields } from './user.constants'
 import { Follow } from '../follow/follow.model'
 import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
+import { jwtHelper } from '../../../helpers/jwtHelper'
 
 const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
   console.log({ payload })
@@ -313,7 +315,35 @@ const switchRole = async (user: JwtPayload, role: USER_ROLES) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to switch role.')
   }
 
-  return result
+  // Generate new tokens with updated activeRole
+
+  const accessToken = jwtHelper.createToken(
+    {
+      userId: result._id.toString(),
+      authId: result._id.toString(),
+      role: result.roles[0],
+      activeRole: result.activeRole,
+    },
+    config.jwt.jwt_secret as Secret,
+    config.jwt.jwt_expire_in as string,
+  )
+
+  const refreshToken = jwtHelper.createToken(
+    {
+      userId: result._id.toString(),
+      authId: result._id.toString(),
+      role: result.roles[0],
+      activeRole: result.activeRole,
+    },
+    config.jwt.jwt_refresh_secret as Secret,
+    config.jwt.jwt_refresh_expire_in as string,
+  )
+
+  return {
+    // user: result,
+    accessToken,
+    refreshToken,
+  }
 }
 
 export const UserServices = {

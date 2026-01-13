@@ -38,6 +38,7 @@ const auth =
             token,
             config.jwt.jwt_secret as Secret,
           )
+          console.log({verifyUser})
           // Ensure userId is present even for older tokens
           if (!verifyUser.userId && verifyUser.authId) {
             verifyUser.userId = verifyUser.authId

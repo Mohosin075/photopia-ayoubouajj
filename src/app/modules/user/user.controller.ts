@@ -108,11 +108,22 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 const switchRole = catchAsync(async (req: Request, res: Response) => {
   const { role } = req.body
   const result = await UserServices.switchRole(req.user!, role)
+
+  // Set refresh token in cookie
+  res.cookie('refreshToken', result.refreshToken, {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+  })
+
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Role switched successfully',
-    data: result,
+    message: 'Role switched successfully. Please use the new token.',
+    data: {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    },
   })
 })
 

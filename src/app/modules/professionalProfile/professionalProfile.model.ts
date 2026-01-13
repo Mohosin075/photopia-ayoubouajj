@@ -13,6 +13,7 @@ const ProfessionalProfileSchema = new Schema<IProfessionalProfile>(
         specialties: { type: [String] },
         experience: { type: String },
         portfolio: { type: [String] },
+        language: { type: [String] },
         socialLinks: {
             instagram: String,
             twitter: String,

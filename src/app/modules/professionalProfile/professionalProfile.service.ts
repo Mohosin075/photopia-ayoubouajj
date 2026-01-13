@@ -35,7 +35,7 @@ const createProfile = async (
 }
 
 const getProfile = async (userId: string) => {
-    const profile = await ProfessionalProfile.findOne({ user: userId }).populate('user', 'name email profile')
+    const profile = await ProfessionalProfile.findOne({ user: userId }).populate('user')
     if (!profile) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Professional profile not found')
     }
