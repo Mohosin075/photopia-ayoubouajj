@@ -12,6 +12,7 @@ import { ChatRoutes } from '../app/modules/chat/chat.routes'
 import { ReviewRoutes } from '../app/modules/review/review.route'
 import { FollowRoutes } from '../app/modules/follow/follow.route'
 import { ProfessionalProfileRoutes } from '../app/modules/professionalProfile/professionalProfile.route'
+import { CategoryRoutes } from '../app/modules/category/category.route'
 
 const router = express.Router()
 
@@ -29,6 +30,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/review', route: ReviewRoutes },
   { path: '/follow', route: FollowRoutes },
   { path: '/professional-profile', route: ProfessionalProfileRoutes },
+  { path: '/category', route: CategoryRoutes },
 ]
 
 apiRoutes.forEach(route => {
