@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose'
 import { ICategory, CategoryModel } from './category.interface'
+import { CATEGORY_TAG } from '../../../enum/user'
 
 const categorySchema = new Schema<ICategory, CategoryModel>(
     {
@@ -18,6 +19,7 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
         },
         tags: {
             type: [String],
+            enum: CATEGORY_TAG,
             default: [],
         },
         isActive: {

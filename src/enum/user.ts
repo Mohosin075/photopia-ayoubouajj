@@ -16,6 +16,19 @@ export enum USER_STATUS {
   DELETED = 'deleted',
 }
 
+export enum CATEGORY_TAG {
+  PHOTOGRAPHY = 'photography',
+  ART = 'art',
+  TRAVEL = 'travel',
+  FOOD = 'food',
+  MUSIC = 'music',
+  FASHION = 'fashion',
+  LIFESTYLE = 'lifestyle',
+  HEALTH = 'health',
+  BEAUTY = 'beauty',
+  SPORTS = 'sports',
+}
+
 export enum InterestCategory {
   LIVE_MUSIC = 'live_music',
   NIGHTLIFE = 'nightlife',
