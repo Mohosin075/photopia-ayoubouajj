@@ -10,7 +10,6 @@ import { NotificationRoutes } from '../app/modules/notification/notification.rou
 import { MessageRoutes } from '../app/modules/message/message.routes'
 import { ChatRoutes } from '../app/modules/chat/chat.routes'
 import { ReviewRoutes } from '../app/modules/review/review.route'
-import { FollowRoutes } from '../app/modules/follow/follow.route'
 import { ProfessionalProfileRoutes } from '../app/modules/professionalProfile/professionalProfile.route'
 import { CategoryRoutes } from '../app/modules/category/category.route'
 import { ServiceRoutes } from '../app/modules/service/service.route'
@@ -30,7 +29,6 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/message', route: MessageRoutes },
   { path: '/chat', route: ChatRoutes },
   { path: '/review', route: ReviewRoutes },
-  { path: '/follow', route: FollowRoutes },
   { path: '/professional-profile', route: ProfessionalProfileRoutes },
   { path: '/category', route: CategoryRoutes },
   { path: '/service', route: ServiceRoutes },
