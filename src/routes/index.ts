@@ -14,6 +14,7 @@ import { FollowRoutes } from '../app/modules/follow/follow.route'
 import { ProfessionalProfileRoutes } from '../app/modules/professionalProfile/professionalProfile.route'
 import { CategoryRoutes } from '../app/modules/category/category.route'
 import { ServiceRoutes } from '../app/modules/service/service.route'
+import { FavouriteRoutes } from '../app/modules/favourite/favourite.route'
 
 const router = express.Router()
 
@@ -32,8 +33,9 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/follow', route: FollowRoutes },
   { path: '/professional-profile', route: ProfessionalProfileRoutes },
   { path: '/category', route: CategoryRoutes },
-,
-  { path: '/service', route: ServiceRoutes }]
+  { path: '/service', route: ServiceRoutes },
+  { path: '/favourite', route: FavouriteRoutes },
+]
 
 apiRoutes.forEach(route => {
   router.use(route.path, route.route)
