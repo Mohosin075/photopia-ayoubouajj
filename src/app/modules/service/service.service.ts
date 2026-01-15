@@ -33,7 +33,10 @@ const createService = async (payload: IService & { providerId: string }) => {
     delete (payload as any).images
   }
 
-  const result = await Service.create(payload)
+  const result = (await Service.create(payload)).populate([
+    { path: 'providerId', select: 'name email profile' },
+    { path: 'category', select: 'name image' },
+  ])
 
   if (!result) {
     throw new ApiError(
@@ -105,7 +108,8 @@ const getAllServices = async (
   const [result, total] = await Promise.all([
     Service.find(whereConditions)
       .select(SERVICE_LIST_PROJECTION)
-      .populate('providerId', 'name email profileImage')
+      .populate('providerId', 'name email profile')
+      .populate('category', 'name image')
       .skip(skip)
       .limit(limit)
       .sort(sortConditions)
@@ -126,7 +130,8 @@ const getAllServices = async (
 
 const getSingleService = async (id: string) => {
   const result = await Service.findById(id)
-    .populate('providerId', 'name email profileImage')
+    .populate('providerId', 'name email profile')
+    .populate('category', 'name image')
 
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
@@ -187,7 +192,9 @@ const updateService = async (
   const result = await Service.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
-  }).populate('providerId', 'name email profileImage')
+  })
+    .populate('providerId', 'name email profile')
+    .populate('category', 'name image')
 
   return result
 }
@@ -234,7 +241,8 @@ const getServicesByProvider = async (
   const [result, total] = await Promise.all([
     Service.find(whereConditions)
       .select(SERVICE_LIST_PROJECTION)
-      .populate('providerId', 'name email profileImage')
+      .populate('providerId', 'name email profile')
+      .populate('category', 'name image')
       .skip(skip)
       .limit(limit)
       .sort(sortConditions)

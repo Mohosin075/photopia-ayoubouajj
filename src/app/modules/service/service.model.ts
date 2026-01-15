@@ -73,6 +73,10 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       ref: 'Category',
       required: true,
     },
+    subCategory: {
+      type: String,
+      trim: true,
+    },
     tags: {
       type: [String],
       default: [],

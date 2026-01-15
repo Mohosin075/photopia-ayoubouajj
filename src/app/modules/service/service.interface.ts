@@ -43,6 +43,7 @@ export interface IService {
   title: string
   description: string
   category: Types.ObjectId
+  subCategory?: string
   tags?: string[]
   equipment?: string[]
   price: number
