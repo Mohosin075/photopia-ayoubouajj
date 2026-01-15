@@ -10,7 +10,7 @@ import { SERVICE_CONSTANTS, serviceFilterableFields, serviceSearchableFields, SE
 import { User } from '../user/user.model'
 
 const createService = async (payload: IService & { providerId: string }) => {
-  // Check if provider already has a service with same title
+  // Check if providerId already has a service with same title
   const existingService = await Service.findOne({
     providerId: payload.providerId,
     title: payload.title,
@@ -105,7 +105,7 @@ const getAllServices = async (
   const [result, total] = await Promise.all([
     Service.find(whereConditions)
       .select(SERVICE_LIST_PROJECTION)
-      .populate('provider', 'name email profileImage')
+      .populate('providerId', 'name email profileImage')
       .skip(skip)
       .limit(limit)
       .sort(sortConditions)
@@ -126,7 +126,7 @@ const getAllServices = async (
 
 const getSingleService = async (id: string) => {
   const result = await Service.findById(id)
-    .populate('provider', 'name email profileImage')
+    .populate('providerId', 'name email profileImage')
 
   if (!result) {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
@@ -146,7 +146,7 @@ const updateService = async (
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
   }
 
-  // Check if user is authorized (provider or admin)
+  // Check if user is authorized (providerId or admin)
   if (userId && service.providerId.toString() !== userId) {
     const user = await User.findById(userId)
     if (!user || !user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
@@ -187,7 +187,7 @@ const updateService = async (
   const result = await Service.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
-  }).populate('provider', 'name email profileImage')
+  }).populate('providerId', 'name email profileImage')
 
   return result
 }
@@ -199,7 +199,7 @@ const deleteService = async (id: string, userId?: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
   }
 
-  // Check if user is authorized (provider or admin)
+  // Check if user is authorized (providerId or admin)
   if (userId && service.providerId.toString() !== userId) {
     const user = await User.findById(userId)
     if (!user || !user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
@@ -234,7 +234,7 @@ const getServicesByProvider = async (
   const [result, total] = await Promise.all([
     Service.find(whereConditions)
       .select(SERVICE_LIST_PROJECTION)
-      .populate('provider', 'name email profileImage')
+      .populate('providerId', 'name email profileImage')
       .skip(skip)
       .limit(limit)
       .sort(sortConditions)

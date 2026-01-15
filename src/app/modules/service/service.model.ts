@@ -12,11 +12,10 @@ const locationSchema = new Schema({
   type: {
     type: String,
     enum: Object.values(SERVICE_LOCATION_TYPE),
-    required: true,
+    default: SERVICE_LOCATION_TYPE.ONSITE
   },
   country: {
     type: String,
-    required: true,
     trim: true,
   },
   city: {
@@ -70,13 +69,9 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       maxlength: SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MAX_LENGTH,
     },
     category: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
       required: true,
-      trim: true,
-    },
-    subCategory: {
-      type: String,
-      trim: true,
     },
     tags: {
       type: [String],
@@ -157,12 +152,5 @@ serviceSchema.index({ isActive: 1 })
 serviceSchema.index({ price: 1 })
 serviceSchema.index({ title: 'text', description: 'text', tags: 'text' })
 
-// Virtual for provider information
-serviceSchema.virtual('provider', {
-  ref: 'User',
-  localField: 'providerId',
-  foreignField: '_id',
-  justOne: true,
-})
 
 export const Service = model<IService, ServiceModel>('Service', serviceSchema)

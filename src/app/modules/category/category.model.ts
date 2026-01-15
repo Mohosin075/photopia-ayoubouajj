@@ -7,7 +7,6 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
         name: {
             type: String,
             required: true,
-            unique: true,
             trim: true,
         },
         description: {

@@ -42,8 +42,7 @@ export interface IService {
   providerId: Types.ObjectId
   title: string
   description: string
-  category: string
-  subCategory?: string
+  category: Types.ObjectId
   tags?: string[]
   equipment?: string[]
   price: number
