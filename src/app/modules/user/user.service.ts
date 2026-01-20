@@ -13,7 +13,6 @@ import { IPaginationOptions } from '../../../interfaces/pagination'
 import { S3Helper } from '../../../helpers/image/s3helper'
 import config from '../../../config'
 import { userFilterableFields } from './user.constants'
-import { Follow } from '../follow/follow.model'
 import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
 import { jwtHelper } from '../../../helpers/jwtHelper'
 
@@ -220,23 +219,8 @@ const getUserById = async (userId: string): Promise<any> => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-  // Fetch user data and stats in parallel for performance
-  const [user, followersCount, followingCount] = await Promise.all([
-    User.findOne({
-      _id: userId,
-      status: { $nin: [USER_STATUS.DELETED] },
-    }).select('-password -authentication -__v'),
-    Follow.countDocuments({ following: userId }),
-    Follow.countDocuments({ follower: userId }),
-  ])
 
-  return {
-    ...user?.toObject(),
-    stats: {
-      followers: followersCount,
-      following: followingCount,
-    },
-  }
+  return isUserExist
 }
 
 const updateUserStatus = async (userId: string, status: USER_STATUS) => {

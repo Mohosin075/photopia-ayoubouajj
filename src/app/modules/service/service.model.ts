@@ -127,11 +127,6 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: Boolean,
       default: SERVICE_CONSTANTS.DEFAULT_VALUES.IS_VERIFIED,
     },
-    serviceType: {
-      type: String,
-      enum: Object.values(SERVICE_TYPE),
-      required: true,
-    },
     isActive: {
       type: Boolean,
       default: SERVICE_CONSTANTS.DEFAULT_VALUES.IS_ACTIVE,

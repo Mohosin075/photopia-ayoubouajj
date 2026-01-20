@@ -55,7 +55,6 @@ export interface IService {
   gallery?: string[]
   status: SERVICE_STATUS
   isVerified: boolean
-  serviceType: string
   isActive: boolean
   createdAt: Date
   updatedAt: Date

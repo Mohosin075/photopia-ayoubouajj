@@ -11,7 +11,6 @@ import {
 const pricingTypeValues = Object.values(SERVICE_PRICING_TYPE) as [string, ...string[]]
 const locationTypeValues = Object.values(SERVICE_LOCATION_TYPE) as [string, ...string[]]
 const statusValues = Object.values(SERVICE_STATUS) as [string, ...string[]]
-const serviceTypeValues = Object.values(SERVICE_TYPE) as [string, ...string[]]
 
 const locationSchema = z.object({
   type: z.enum(locationTypeValues),
@@ -50,7 +49,6 @@ export const createServiceSchema = z.object({
     coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),
     status: z.enum(statusValues).default(SERVICE_STATUS.ACTIVE),
-    serviceType: z.enum(serviceTypeValues),
   }),
 })
 
@@ -80,7 +78,6 @@ export const updateServiceSchema = z.object({
     gallery: z.array(z.string().url()).optional(),
     status: z.enum(statusValues).optional(),
     isVerified: z.boolean().optional(),
-    serviceType: z.enum(serviceTypeValues).optional(),
     isActive: z.boolean().optional(),
   }),
 })
@@ -106,7 +103,6 @@ export const filterServiceSchema = z.object({
     status: z.enum(statusValues).optional(),
     isVerified: z.enum(['true', 'false']).optional(),
     providerId: z.string().optional(),
-    serviceType: z.enum(serviceTypeValues).optional(),
     isActive: z.enum(['true', 'false']).optional(),
   }),
 })
