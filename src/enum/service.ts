@@ -5,7 +5,7 @@ export enum SERVICE_STATUS {
 }
 
 export enum SERVICE_PRICING_TYPE {
-    FIXED = 'FIXED',
+    DAILY = 'DAILY',
     HOURLY = 'HOURLY',
     PACKAGE = 'PACKAGE',
 }

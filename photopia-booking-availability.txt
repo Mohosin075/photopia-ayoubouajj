@@ -1,0 +1,1232 @@
+📞 FOR YOUR CLIENT MEETING
+Say this:
+
+"Based on your proposal and Figma designs, here's our booking, availability, and pricing system:
+
+Booking Flow: Clients select dates/times from provider calendars, pay 50% deposit
+
+Availability: Providers block dates, set working hours, weekend rates (+20%)
+
+Pricing: Hourly/Daily/Service models with your commission structure (5% from providers, 10% from users)
+
+Revenue: Booking commissions + €16/€99 subscriptions
+
+Timeline: 8 weeks for MVP with basic booking, 12 weeks for full feature set
+
+All models integrate with your existing User and Service schemas."
+
+
+
+
+
+// booking.interface.ts
+import { Document, Types } from 'mongoose'
+
+export interface IBooking extends Document {
+  bookingNumber: string
+  clientId: Types.ObjectId
+  providerId: Types.ObjectId
+  serviceId: Types.ObjectId
+  
+  // Booking Details
+  bookingDate: Date
+  startTime: string // "10:00"
+  endTime: string   // "14:00"
+  durationHours: number
+  timezone: string
+  
+  // Location
+  eventLocation: {
+    address: string
+    city: string
+    country: string
+    coordinates?: {
+      lat: number
+      lng: number
+    }
+    distanceFromProviderKm: number
+    notes?: string
+  }
+  
+  // Pricing & Payment
+  pricingDetails: {
+    pricingType: string // 'hourly' | 'daily' | 'package'
+    baseRate: number
+    isWeekend: boolean
+    travelFee?: number
+    subtotal: number
+    platformCommissionClient: number // 0.10 for 10%
+    platformCommissionProvider: number // 0.05 for 5%
+    clientTotal: number
+    providerEarnings: number
+    currency: string
+  }
+  
+  // Payment Status
+  paymentStatus: 'pending' | 'deposit_paid' | 'fully_paid' | 'refunded' | 'cancelled'
+  depositAmount: number
+  depositPercentage: number // 50%
+  balanceAmount: number
+  stripePaymentId?: string
+  stripeClientSecret?: string
+  
+  // Status
+  status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
+  cancellationReason?: string
+  cancellationFee?: number
+  
+  // Client Details
+  clientName: string
+  clientEmail: string
+  clientPhone?: string
+  eventType?: string
+  specialRequests?: string
+  
+  // Timestamps
+  bookedAt: Date
+  confirmedAt?: Date
+  cancelledAt?: Date
+  completedAt?: Date
+  
+  // Reviews
+  review?: {
+    rating: number
+    comment: string
+    createdAt: Date
+  }
+}
+
+export type BookingModel = Model<IBooking>
+
+
+
+
+// booking.model.ts
+import { Schema, model } from 'mongoose'
+import { IBooking, BookingModel } from './booking.interface'
+
+export const bookingSchema = new Schema<IBooking, BookingModel>(
+  {
+    bookingNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      default: () => `BK-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+    },
+    
+    clientId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    
+    providerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    
+    serviceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Service',
+      required: true
+    },
+    
+    // Booking Details
+    bookingDate: {
+      type: Date,
+      required: true
+    },
+    
+    startTime: {
+      type: String,
+      required: true,
+      match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/ // HH:MM format
+    },
+    
+    endTime: {
+      type: String,
+      required: true,
+      match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+    },
+    
+    durationHours: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    
+    timezone: {
+      type: String,
+      default: 'Europe/Paris'
+    },
+    
+    // Location
+    eventLocation: {
+      address: {
+        type: String,
+        required: true
+      },
+      city: {
+        type: String,
+        required: true
+      },
+      country: {
+        type: String,
+        required: true
+      },
+      coordinates: {
+        lat: {
+          type: Number,
+          min: -90,
+          max: 90
+        },
+        lng: {
+          type: Number,
+          min: -180,
+          max: 180
+        }
+      },
+      distanceFromProviderKm: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      notes: {
+        type: String
+      }
+    },
+    
+    // Pricing & Payment
+    pricingDetails: {
+      pricingType: {
+        type: String,
+        enum: ['hourly', 'daily', 'package'],
+        required: true
+      },
+      baseRate: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      isWeekend: {
+        type: Boolean,
+        default: false
+      },
+      travelFee: {
+        type: Number,
+        default: 0,
+        min: 0
+      },
+      subtotal: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      platformCommissionClient: {
+        type: Number,
+        default: 0.10, // 10%
+        min: 0,
+        max: 1
+      },
+      platformCommissionProvider: {
+        type: Number,
+        default: 0.05, // 5%
+        min: 0,
+        max: 1
+      },
+      clientTotal: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      providerEarnings: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      currency: {
+        type: String,
+        default: 'EUR',
+        uppercase: true
+      }
+    },
+    
+    // Payment Status
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'deposit_paid', 'fully_paid', 'refunded', 'cancelled'],
+      default: 'pending'
+    },
+    
+    depositAmount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    
+    depositPercentage: {
+      type: Number,
+      default: 0.5, // 50%
+      min: 0,
+      max: 1
+    },
+    
+    balanceAmount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    
+    stripePaymentId: {
+      type: String
+    },
+    
+    stripeClientSecret: {
+      type: String
+    },
+    
+    // Status
+    status: {
+      type: String,
+      enum: ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'],
+      default: 'pending'
+    },
+    
+    cancellationReason: {
+      type: String
+    },
+    
+    cancellationFee: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    
+    // Client Details
+    clientName: {
+      type: String,
+      required: true
+    },
+    
+    clientEmail: {
+      type: String,
+      required: true
+    },
+    
+    clientPhone: {
+      type: String
+    },
+    
+    eventType: {
+      type: String
+    },
+    
+    specialRequests: {
+      type: String
+    },
+    
+    // Reviews
+    review: {
+      rating: {
+        type: Number,
+        min: 1,
+        max: 5
+      },
+      comment: {
+        type: String,
+        maxlength: 500
+      },
+      createdAt: {
+        type: Date
+      }
+    }
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+)
+
+// Indexes for better query performance
+bookingSchema.index({ clientId: 1, status: 1 })
+bookingSchema.index({ providerId: 1, status: 1 })
+bookingSchema.index({ bookingDate: 1, status: 1 })
+bookingSchema.index({ bookingNumber: 1 }, { unique: true })
+bookingSchema.index({ 'eventLocation.city': 1 })
+bookingSchema.index({ status: 1, paymentStatus: 1 })
+bookingSchema.index({ createdAt: -1 })
+bookingSchema.index({ bookingDate: 1, startTime: 1 })
+
+// Virtual for booking end datetime
+bookingSchema.virtual('endDateTime').get(function() {
+  const endDate = new Date(this.bookingDate)
+  const [hours, minutes] = this.endTime.split(':').map(Number)
+  endDate.setHours(hours, minutes, 0, 0)
+  return endDate
+})
+
+// Virtual for booking start datetime
+bookingSchema.virtual('startDateTime').get(function() {
+  const startDate = new Date(this.bookingDate)
+  const [hours, minutes] = this.startTime.split(':').map(Number)
+  startDate.setHours(hours, minutes, 0, 0)
+  return startDate
+})
+
+// Pre-save hook to calculate balance
+bookingSchema.pre('save', function(next) {
+  if (this.isModified('pricingDetails')) {
+    this.balanceAmount = this.pricingDetails.clientTotal - this.depositAmount
+  }
+  next()
+})
+
+export const Booking = model<IBooking, BookingModel>('Booking', bookingSchema)
+
+
+
+
+// availability.interface.ts
+import { Document, Types } from 'mongoose'
+
+export interface IAvailability extends Document {
+  providerId: Types.ObjectId
+  serviceId?: Types.ObjectId // Optional: If availability varies per service
+  
+  // Default Weekly Schedule
+  defaultSchedule: {
+    [day: string]: {
+      start: string // "09:00"
+      end: string   // "18:00"
+      isActive: boolean
+      maxBookings?: number
+    }
+  }
+  
+  // Custom Dates (Overrides)
+  customDates: Array<{
+    date: Date
+    type: 'blocked' | 'special_hours' | 'unavailable'
+    start?: string
+    end?: string
+    maxBookings?: number
+    note?: string
+    rateMultiplier?: number // 1.5 = 50% increase
+  }>
+  
+  // Recurring Rules
+  recurringRules: Array<{
+    type: 'block_weekly' | 'block_monthly' | 'special_hours_weekly'
+    dayOfWeek?: number // 0-6 for Sunday-Saturday
+    weekOfMonth?: number // 1-5
+    start?: string
+    end?: string
+    maxBookings?: number
+    active: boolean
+  }>
+  
+  // Buffer & Constraints
+  bufferMinutes: number // Between bookings
+  advanceNoticeHours: number // Minimum notice for booking
+  maxBookingsPerDay: number
+  maxBookingsPerWeek: number
+  
+  // Auto-block settings
+  autoBlockAfterBooking: boolean
+  autoBlockDuration: number // minutes
+  
+  // Calendar Sync
+  googleCalendarSync?: {
+    calendarId?: string
+    lastSynced?: Date
+    syncEnabled: boolean
+  }
+  
+  // Timestamps
+  updatedAt: Date
+}
+
+export type AvailabilityModel = Model<IAvailability>
+
+
+
+// availability.model.ts
+import { Schema, model } from 'mongoose'
+import { IAvailability, AvailabilityModel } from './availability.interface'
+
+const customDateSchema = new Schema({
+  date: {
+    type: Date,
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['blocked', 'special_hours', 'unavailable'],
+    required: true
+  },
+  start: {
+    type: String,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  end: {
+    type: String,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  maxBookings: {
+    type: Number,
+    min: 1
+  },
+  note: {
+    type: String
+  },
+  rateMultiplier: {
+    type: Number,
+    min: 0.5,
+    max: 3
+  }
+})
+
+const recurringRuleSchema = new Schema({
+  type: {
+    type: String,
+    enum: ['block_weekly', 'block_monthly', 'special_hours_weekly'],
+    required: true
+  },
+  dayOfWeek: {
+    type: Number,
+    min: 0,
+    max: 6
+  },
+  weekOfMonth: {
+    type: Number,
+    min: 1,
+    max: 5
+  },
+  start: {
+    type: String,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  end: {
+    type: String,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  maxBookings: {
+    type: Number,
+    min: 1
+  },
+  active: {
+    type: Boolean,
+    default: true
+  }
+})
+
+const defaultScheduleSchema = new Schema({
+  start: {
+    type: String,
+    required: true,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  end: {
+    type: String,
+    required: true,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  maxBookings: {
+    type: Number,
+    default: 1,
+    min: 1
+  }
+})
+
+export const availabilitySchema = new Schema<IAvailability, AvailabilityModel>(
+  {
+    providerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
+    },
+    
+    serviceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Service',
+      index: true
+    },
+    
+    // Default Weekly Schedule
+    defaultSchedule: {
+      monday: {
+        type: defaultScheduleSchema,
+        default: { start: '09:00', end: '18:00', isActive: true, maxBookings: 1 }
+      },
+      tuesday: {
+        type: defaultScheduleSchema,
+        default: { start: '09:00', end: '18:00', isActive: true, maxBookings: 1 }
+      },
+      wednesday: {
+        type: defaultScheduleSchema,
+        default: { start: '09:00', end: '18:00', isActive: true, maxBookings: 1 }
+      },
+      thursday: {
+        type: defaultScheduleSchema,
+        default: { start: '09:00', end: '18:00', isActive: true, maxBookings: 1 }
+      },
+      friday: {
+        type: defaultScheduleSchema,
+        default: { start: '09:00', end: '18:00', isActive: true, maxBookings: 1 }
+      },
+      saturday: {
+        type: defaultScheduleSchema,
+        default: { start: '10:00', end: '16:00', isActive: true, maxBookings: 1 }
+      },
+      sunday: {
+        type: defaultScheduleSchema,
+        default: { start: '10:00', end: '16:00', isActive: false, maxBookings: 1 }
+      }
+    },
+    
+    // Custom Dates
+    customDates: {
+      type: [customDateSchema],
+      default: []
+    },
+    
+    // Recurring Rules
+    recurringRules: {
+      type: [recurringRuleSchema],
+      default: []
+    },
+    
+    // Buffer & Constraints
+    bufferMinutes: {
+      type: Number,
+      default: 15,
+      min: 0,
+      max: 120
+    },
+    
+    advanceNoticeHours: {
+      type: Number,
+      default: 24,
+      min: 1,
+      max: 720 // 30 days
+    },
+    
+    maxBookingsPerDay: {
+      type: Number,
+      default: 3,
+      min: 1
+    },
+    
+    maxBookingsPerWeek: {
+      type: Number,
+      default: 10,
+      min: 1
+    },
+    
+    // Auto-block settings
+    autoBlockAfterBooking: {
+      type: Boolean,
+      default: true
+    },
+    
+    autoBlockDuration: {
+      type: Number,
+      default: 30, // minutes
+      min: 0,
+      max: 240
+    },
+    
+    // Calendar Sync
+    googleCalendarSync: {
+      calendarId: String,
+      lastSynced: Date,
+      syncEnabled: {
+        type: Boolean,
+        default: false
+      }
+    }
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+)
+
+// Indexes
+availabilitySchema.index({ providerId: 1, serviceId: 1 })
+availabilitySchema.index({ 'customDates.date': 1 })
+availabilitySchema.index({ providerId: 1, 'customDates.date': 1 })
+
+// Virtual for next available date
+availabilitySchema.virtual('nextAvailableDate').get(function() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  
+  // Check next 30 days
+  for (let i = 0; i < 30; i++) {
+    const checkDate = new Date(today)
+    checkDate.setDate(today.getDate() + i)
+    
+    const dayOfWeek = checkDate.getDay()
+    const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek]
+    
+    const daySchedule = this.defaultSchedule[dayName]
+    
+    if (daySchedule && daySchedule.isActive) {
+      // Check if not in custom blocked dates
+      const isBlocked = this.customDates.some(
+        cd => cd.date.toDateString() === checkDate.toDateString() && 
+              cd.type === 'blocked'
+      )
+      
+      if (!isBlocked) {
+        return checkDate
+      }
+    }
+  }
+  
+  return null
+})
+
+export const Availability = model<IAvailability, AvailabilityModel>('Availability', availabilitySchema)
+
+
+
+// service-pricing.interface.ts (Add to your existing service.interface.ts)
+export interface IServicePricing {
+  // Basic pricing (existing in your Service model)
+  price: number
+  currency: string
+  pricingType: string // 'hourly', 'daily', 'package'
+  duration: string
+  
+  // Extended pricing fields (add these)
+  pricingModel?: {
+    type: 'hourly' | 'daily' | 'package'
+    // Hourly Pricing
+    weekdayHourlyRate?: number
+    weekendHourlyRate?: number
+    // Daily Pricing
+    dailyRate?: number
+    dailyHours?: number // Default 8 hours
+    // Package Pricing
+    packages?: Array<{
+      name: string
+      price: number
+      duration: number // in hours
+      description?: string
+      includes?: string[]
+    }>
+  }
+  
+  // Dynamic Pricing Rules
+  pricingRules?: Array<{
+    ruleType: 'peak_hour' | 'weekend' | 'holiday' | 'seasonal' | 'duration_discount'
+    condition: {
+      // For peak hour
+      startHour?: number // 17 for 5 PM
+      endHour?: number   // 20 for 8 PM
+      // For weekend
+      daysOfWeek?: number[] // [0,6] for Sunday, Saturday
+      // For holiday
+      specificDates?: Date[]
+      // For seasonal
+      startDate?: Date
+      endDate?: Date
+      // For duration discount
+      minDuration?: number // hours
+      maxDuration?: number // hours
+    }
+    modifierType: 'percentage' | 'fixed' | 'multiplier'
+    modifierValue: number // +20 for 20% increase, -50 for €50 discount, 1.2 for 20% multiplier
+    priority: number // Lower number = higher priority
+  }>
+  
+  // Travel Fees
+  travelFeePerKm?: number
+  allowOutsideRadius?: boolean
+  maxTravelFee?: number
+  
+  // Deposit & Cancellation
+  depositPercentage?: number // Default 50%
+  cancellationPolicy?: {
+    freeCancellationHours: number // 24
+    partialRefundHours: number   // 12
+    noRefundHours: number        // 2
+  }
+}
+
+
+// In your service.model.ts, add these fields:
+
+const servicePricingSchema = new Schema({
+  type: {
+    type: String,
+    enum: ['hourly', 'daily', 'package']
+  },
+  weekdayHourlyRate: {
+    type: Number,
+    min: 0
+  },
+  weekendHourlyRate: {
+    type: Number,
+    min: 0
+  },
+  dailyRate: {
+    type: Number,
+    min: 0
+  },
+  dailyHours: {
+    type: Number,
+    default: 8,
+    min: 1
+  },
+  packages: [{
+    name: {
+      type: String,
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    duration: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    description: String,
+    includes: [String]
+  }]
+})
+
+const pricingRuleSchema = new Schema({
+  ruleType: {
+    type: String,
+    enum: ['peak_hour', 'weekend', 'holiday', 'seasonal', 'duration_discount'],
+    required: true
+  },
+  condition: {
+    startHour: Number,
+    endHour: Number,
+    daysOfWeek: [Number],
+    specificDates: [Date],
+    startDate: Date,
+    endDate: Date,
+    minDuration: Number,
+    maxDuration: Number
+  },
+  modifierType: {
+    type: String,
+    enum: ['percentage', 'fixed', 'multiplier'],
+    required: true
+  },
+  modifierValue: {
+    type: Number,
+    required: true
+  },
+  priority: {
+    type: Number,
+    default: 10
+  }
+})
+
+// Add to your serviceSchema:
+const serviceSchema = new Schema<IService, ServiceModel>({
+  // ... existing fields ...
+  
+  // Extended Pricing
+  pricingModel: {
+    type: servicePricingSchema
+  },
+  
+  pricingRules: {
+    type: [pricingRuleSchema],
+    default: []
+  },
+  
+  travelFeePerKm: {
+    type: Number,
+    default: 1.5,
+    min: 0
+  },
+  
+  allowOutsideRadius: {
+    type: Boolean,
+    default: true
+  },
+  
+  maxTravelFee: {
+    type: Number,
+    default: 100,
+    min: 0
+  },
+  
+  depositPercentage: {
+    type: Number,
+    default: 0.5,
+    min: 0,
+    max: 1
+  },
+  
+  cancellationPolicy: {
+    freeCancellationHours: {
+      type: Number,
+      default: 24
+    },
+    partialRefundHours: {
+      type: Number,
+      default: 12
+    },
+    noRefundHours: {
+      type: Number,
+      default: 2
+    }
+  }
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+})
+
+
+
+// timeslot.interface.ts
+import { Document, Types } from 'mongoose'
+
+export interface ITimeSlot extends Document {
+  providerId: Types.ObjectId
+  serviceId: Types.ObjectId
+  date: Date
+  startTime: string
+  endTime: string
+  duration: number // in minutes
+  status: 'available' | 'booked' | 'blocked' | 'pending'
+  price?: number
+  isWeekend: boolean
+  isPeakHour: boolean
+  maxParticipants?: number
+  currentBookings: number
+  
+  // For quick querying
+  startDateTime: Date
+  endDateTime: Date
+}
+
+export type TimeSlotModel = Model<ITimeSlot>
+
+
+
+
+ FINAL SUMMARY: Booking, Availability & Pricing System
+🎯 BASED ON YOUR CLIENT QUOTATION & FIGMA
+1. BOOKING SYSTEM
+From Figma "Select Date & Time" screens:
+
+text
+CLIENT FLOW:
+1. Views available dates (Fri Dec 20, Sat Dec 21, etc.)
+2. Selects time slot (09:00, 10:00, 11:00, etc.)
+3. OR selects time range (From 10:00 To 18:00)
+4. Can choose "Full Day" option
+5. Clicks "Continue" to proceed
+Implementation:
+
+typescript
+// Core Booking Model Structure:
+Booking {
+  bookingNumber: "BK-2025-001",
+  client: User._id,
+  provider: User._id,
+  service: Service._id,
+  date: Date("2025-12-20"),
+  startTime: "10:00",
+  endTime: "14:00",
+  duration: 4, // hours
+  status: "confirmed",
+  paymentStatus: "deposit_paid",
+  
+  // From your proposal commission structure:
+  pricingDetails: {
+    basePrice: 600, // 4 hours × €150
+    travelFee: 25,  // If outside 25km radius
+    clientCommission: 0.10, // 10% from user
+    providerCommission: 0.05, // 5% from provider
+    clientTotal: 687.50, // €625 × 1.10
+    providerEarnings: 593.75, // €625 × 0.95
+  }
+}
+2. AVAILABILITY SYSTEM
+From Figma "Calendar & Availability" screens:
+
+text
+PROVIDER DASHBOARD:
+1. Calendar view (Week/Month/Year tabs)
+2. "Block Days" functionality
+3. Default Rate: $100/hour
+4. Weekend Rate: $120/hour (+20%)
+5. Time slots: 09:00 AM - 18:00 PM
+Implementation:
+
+typescript
+// Core Availability Model Structure:
+Availability {
+  provider: User._id,
+  blockedDates: [Date("2025-12-25")], // Christmas
+  defaultRates: {
+    hourly: 100,
+    weekendHourly: 120,
+  },
+  workingHours: {
+    start: "09:00",
+    end: "18:00",
+  },
+  serviceRadius: 25, // miles/km from Figma
+  allowOutsideRadius: true,
+  
+  // From your proposal requirements:
+  bufferMinutes: 15,
+  advanceNoticeHours: 24,
+}
+3. PRICING SYSTEM
+From Figma "Create Listing" screens:
+
+text
+LISTING CREATION:
+1. Pricing Model dropdown: [By Hour, By Day, By Service]
+2. Weekday Hourly Rate: $150
+3. Weekend Hourly Rate: $180
+4. Basic Package: $500, Standard: $1200, Premium: $2500
+5. Service Radius: 25 miles
+6. ✓ Accept orders outside radius
+Implementation:
+
+typescript
+// Service Model Updates (add to existing):
+Service {
+  // Existing fields...
+  
+  // NEW from Figma:
+  pricingModel: "hourly", // hourly/daily/service
+  weekdayRate: 150,
+  weekendRate: 180,
+  duration: "2-4 hours",
+  packages: [
+    {name: "Basic", price: 500},
+    {name: "Standard", price: 1200},
+    {name: "Premium", price: 2500}
+  ],
+  serviceRadius: 25,
+  allowOutsideRadius: true,
+  travelFeePerKm: 2.5,
+  
+  // From your proposal commission rates:
+  platformCommissions: {
+    provider: 0.05,  // 5%
+    client: 0.10,    // 10%
+  }
+}
+💰 PRICE CALCULATION EXAMPLE
+Scenario: Client books 4 hours on Saturday, 5km outside service radius.
+
+text
+1. Base Price: 4 hours × €180 (weekend rate) = €720
+2. Travel Fee: 5km × €2.5/km = €12.50
+3. Subtotal: €732.50
+
+4. Client Commission (10%): +€73.25
+   → Client Pays: €805.75
+
+5. Provider Commission (5%): -€36.63
+   → Provider Earns: €695.87
+
+6. Platform Revenue: €109.88 (€73.25 + €36.63)
+📅 AVAILABILITY CHECKING PROCESS
+javascript
+// How system checks availability:
+1. User selects date (e.g., Dec 20)
+2. System checks:
+   - Is date in provider's blockedDates? → If yes, unavailable
+   - What are working hours for that day? → e.g., 09:00-18:00
+   - Are there existing bookings? → Remove booked slots
+   - Apply buffer minutes between bookings → 15 minutes
+3. Return available time slots: ["09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00"]
+👥 USER ROLES & PERMISSIONS
+From your proposal requirements:
+
+Client Role:
+text
+- Browse Pinterest-style feed
+- Search with filters (location, budget, equipment)
+- Book services
+- Message providers (real-time)
+- Manage favorites
+- View booking history
+Provider Role:
+text
+- Create listings with pricing
+- Set availability (block dates, set hours)
+- View calendar with bookings
+- Manage earnings (see commissions)
+- Upgrade subscription (Premium €16, Studio €99)
+- View statistics
+Admin Role:
+text
+- Moderate users/content
+- Manage commissions (3-5% provider, 6-15% user)
+- Configure platform settings
+- View analytics
+💳 PAYMENT & COMMISSION FLOW
+From your proposal:
+
+text
+1. Client books → Pays 50% deposit
+2. Platform holds payment
+3. After service completion:
+   - Provider gets: subtotal × 0.95 (minus 5%)
+   - Platform keeps: subtotal × 0.15 (10% from client + 5% from provider)
+4. Subscription revenue:
+   - Premium: €16/month per provider
+   - Studio: €99/month per verified studio
+📱 MOBILE APP FEATURES
+From your proposal & Figma:
+
+Client App Bottom Navigation:
+text
+Home (Pinterest feed) | Search | Favorites | Messaging | Profile
+Provider App Bottom Navigation:
+text
+Profile | Calendar | Transactions | Messaging | Statistics | Settings
+Key Screens from Figma:
+text
+1. Select Date & Time → Time slot selection
+2. Create Listing → Pricing setup
+3. Calendar & Availability → Provider scheduling
+4. Set Availability → Time/date blocking
+🔄 BOOKING STATUS FLOW
+text
+1. PENDING
+   ↓ (Client pays 50% deposit)
+2. CONFIRMED
+   ↓ (Day of service)
+3. IN_PROGRESS
+   ↓ (Service completed)
+4. COMPLETED
+   ↓ (Client pays remaining 50%)
+5. PAID
+⚙️ CONFIGURABLE SETTINGS
+From your proposal & Figma:
+
+Platform-wide:
+text
+- Commission rates (3-5% provider, 6-15% user)
+- Subscription prices (€16/€99)
+- Service radius default (25 miles)
+- Buffer time between bookings (15 minutes)
+- Advance notice required (24 hours)
+Per Provider:
+text
+- Working hours (09:00-18:00 weekdays, 10:00-16:00 weekends)
+- Blocked dates
+- Weekend premium (+20% default)
+- Service radius
+- Travel fee per km/mile
+🚀 IMPLEMENTATION PRIORITY
+Phase 1 (Weeks 1-4): Basic Booking
+text
+✓ Update Service model with Figma pricing fields
+✓ Create Booking model (basic)
+✓ Create Availability model (block dates only)
+✓ Implement date/time selection (from Figma screens)
+Phase 2 (Weeks 5-8): Enhanced Features
+text
+✓ Add commission calculation (5%/10%)
+✓ Implement travel fees (outside radius)
+✓ Add subscription tiers (Premium/Studio)
+✓ Provider calendar view
+Phase 3 (Weeks 9-12): Advanced
+text
+✓ Real-time availability updates
+✓ Multiple pricing models (hourly/daily/package)
+✓ Advanced filtering (equipment, budget, location)
+✓ Admin dashboard for commissions
+📊 DATABASE RELATIONSHIPS
+text
+User (your existing)
+  ├── hasOne → ProfessionalProfile (your existing)
+  ├── hasMany → Service (updated with pricing)
+  ├── hasOne → Availability (sets working hours)
+  ├── hasOne → Subscription (Premium/Studio)
+  └── hasMany → Booking (as client or provider)
+
+Service (your existing + pricing)
+  ├── belongsTo → User (provider)
+  ├── hasMany → Booking
+  └── hasOne → Availability (optional per-service)
+
+Booking (new)
+  ├── belongsTo → User (client)
+  ├── belongsTo → User (provider)
+  └── belongsTo → Service
+✅ WHAT'S READY FROM YOUR EXISTING CODE
+Already Have:
+text
+✓ User model (with roles)
+✓ Service model (needs pricing fields added)
+✓ ProfessionalProfile model
+Need to Add:
+text
+1. Booking model (for bookings)
+2. Availability model (for provider schedules)
+3. Subscription model (for €16/€99 tiers)
+4. Update Service model (add pricing fields from Figma)
+5. Price calculator service
+🎯 FINAL RECOMMENDATION
+Start with this exact implementation order:
+
+Week 1-2:
+Update Service Model - Add Figma pricing fields (hourly/daily/service rates, packages, radius)
+
+Create Booking Model - Basic structure with date/time, client, provider references
+
+Week 3-4:
+Create Availability Model - Block dates, working hours, weekend rates
+
+Implement Booking API - POST /api/bookings with price calculation
+
+Week 5-6:
+Add Commission Logic - Apply 5% provider + 10% client commissions
+
+Create Calendar View - Provider dashboard matching Figma
+
+Week 7-8:
+Add Subscription Model - €16 Premium, €99 Studio tiers
+
+Implement Search Filters - Location, budget, equipment from proposal
+
+📞 FOR YOUR CLIENT MEETING
+Say this:
+
+"Based on your proposal and Figma designs, here's our booking, availability, and pricing system:
+
+Booking Flow: Clients select dates/times from provider calendars, pay 50% deposit
+
+Availability: Providers block dates, set working hours, weekend rates (+20%)
+
+Pricing: Hourly/Daily/Service models with your commission structure (5% from providers, 10% from users)
+
+Revenue: Booking commissions + €16/€99 subscriptions
+
+Timeline: 8 weeks for MVP with basic booking, 12 weeks for full feature set
+
+All models integrate with your existing User and Service schemas."
+

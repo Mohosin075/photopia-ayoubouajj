@@ -32,8 +32,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/professional-profile', route: ProfessionalProfileRoutes },
   { path: '/category', route: CategoryRoutes },
   { path: '/service', route: ServiceRoutes },
-  { path: '/favourite', route: FavouriteRoutes },
-]
+  { path: '/favourite', route: FavouriteRoutes }]
 
 apiRoutes.forEach(route => {
   router.use(route.path, route.route)
