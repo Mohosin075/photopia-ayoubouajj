@@ -49,6 +49,46 @@ export interface IService {
   price: number
   currency: string
   pricingType: SERVICE_PRICING_TYPE
+  // Extended pricing fields
+  pricingModel?: {
+    type: SERVICE_PRICING_TYPE
+    weekdayHourlyRate?: number
+    weekendHourlyRate?: number
+    dailyRate?: number
+    dailyHours?: number
+    packages?: Array<{
+      name: string
+      price: number
+      duration: number
+      description?: string
+      includes?: string[]
+    }>
+  }
+  pricingRules?: Array<{
+    ruleType: string
+    condition: {
+      startHour?: number
+      endHour?: number
+      daysOfWeek?: number[]
+      specificDates?: Date[]
+      startDate?: Date
+      endDate?: Date
+      minDuration?: number
+      maxDuration?: number
+    }
+    modifierType: string
+    modifierValue: number
+    priority: number
+  }>
+  travelFeePerKm?: number
+  allowOutsideRadius?: boolean
+  maxTravelFee?: number
+  depositPercentage?: number
+  cancellationPolicy?: {
+    freeCancellationHours: number
+    partialRefundHours: number
+    noRefundHours: number
+  }
   duration: string
   location: ILocation
   coverMedia?: string

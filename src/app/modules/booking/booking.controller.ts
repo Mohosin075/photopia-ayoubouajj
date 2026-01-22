@@ -1,0 +1,82 @@
+import { Request, Response } from 'express'
+import httpStatus from 'http-status-codes'
+import catchAsync from '../../../shared/catchAsync'
+import sendResponse from '../../../shared/sendResponse'
+import { BookingService } from './booking.service'
+import ApiError from '../../../errors/ApiError'
+import { JwtPayload } from 'jsonwebtoken'
+
+const createBooking = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+  
+  const bookingData = {
+    ...req.body,
+    clientId: user.userId
+  }
+
+  const result = await BookingService.createBooking(bookingData)
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Booking created successfully',
+    data: result,
+  })
+})
+
+const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const { status } = req.body
+  const user = req.user as JwtPayload
+  if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+
+  const result = await BookingService.updateBookingStatus(id, status, user.userId)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Booking status updated successfully',
+    data: result,
+  })
+})
+
+const getMyBookings = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+
+  const result = await BookingService.getMyBookings(user.userId, user.role)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Bookings retrieved successfully',
+    data: result,
+  })
+})
+
+const calculatePrice = catchAsync(async (req: Request, res: Response) => {
+  const { serviceId, startTime, endTime, date, distanceFromProviderKm } = req.body
+  
+  const result = await BookingService.calculatePrice(
+    serviceId,
+    startTime,
+    endTime,
+    new Date(date),
+    distanceFromProviderKm || 0
+  )
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Price calculated successfully',
+    data: result,
+  })
+})
+
+export const BookingController = {
+  createBooking,
+  updateBookingStatus,
+  getMyBookings,
+  calculatePrice
+}

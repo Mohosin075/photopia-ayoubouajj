@@ -14,14 +14,36 @@ import { ProfessionalProfileRoutes } from '../app/modules/professionalProfile/pr
 import { CategoryRoutes } from '../app/modules/category/category.route'
 import { ServiceRoutes } from '../app/modules/service/service.route'
 import { FavouriteRoutes } from '../app/modules/favourite/favourite.route'
+import { AvailabilityRoutes } from '../app/modules/availability/availability.route'
+import { BookingRoutes } from '../app/modules/booking/booking.route';
 
 const router = express.Router()
 
 const apiRoutes: { path: string; route: Router }[] = [
-  { path: '/user', route: UserRoutes },
-  { path: '/auth', route: AuthRoutes },
-  { path: '/notifications', route: NotificationRoutes },
-  { path: '/public', route: PublicRoutes },
+  {
+    path: '/auth',
+    route: AuthRoutes,
+  },
+  {
+    path: '/users',
+    route: UserRoutes,
+  },
+  {
+    path: '/professional-profiles',
+    route: ProfessionalProfileRoutes,
+  },
+  {
+    path: '/services',
+    route: ServiceRoutes,
+  },
+  {
+    path: '/availability',
+    route: AvailabilityRoutes,
+  },
+  {
+    path: '/booking',
+    route: BookingRoutes,
+  },
   { path: '/support', route: SupportRoutes },
   { path: '/upload', route: UploadRoutes },
   { path: '/promotion', route: PromotionRoutes },
@@ -29,10 +51,9 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/message', route: MessageRoutes },
   { path: '/chat', route: ChatRoutes },
   { path: '/review', route: ReviewRoutes },
-  { path: '/professional-profile', route: ProfessionalProfileRoutes },
   { path: '/category', route: CategoryRoutes },
-  { path: '/service', route: ServiceRoutes },
-  { path: '/favourite', route: FavouriteRoutes }]
+  { path: '/favourite', route: FavouriteRoutes }
+]
 
 apiRoutes.forEach(route => {
   router.use(route.path, route.route)

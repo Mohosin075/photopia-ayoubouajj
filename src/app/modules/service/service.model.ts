@@ -47,6 +47,77 @@ const locationSchema = new Schema({
   },
 })
 
+const servicePricingSchema = new Schema({
+  type: {
+    type: String,
+    enum: Object.values(SERVICE_PRICING_TYPE)
+  },
+  weekdayHourlyRate: {
+    type: Number,
+    min: 0
+  },
+  weekendHourlyRate: {
+    type: Number,
+    min: 0
+  },
+  dailyRate: {
+    type: Number,
+    min: 0
+  },
+  dailyHours: {
+    type: Number,
+    default: 8,
+    min: 1
+  },
+  packages: [{
+    name: {
+      type: String,
+      required: true
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    duration: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    description: String,
+    includes: [String]
+  }]
+})
+
+const pricingRuleSchema = new Schema({
+  ruleType: {
+    type: String,
+    required: true
+  },
+  condition: {
+    startHour: Number,
+    endHour: Number,
+    daysOfWeek: [Number],
+    specificDates: [Date],
+    startDate: Date,
+    endDate: Date,
+    minDuration: Number,
+    maxDuration: Number
+  },
+  modifierType: {
+    type: String,
+    required: true
+  },
+  modifierValue: {
+    type: Number,
+    required: true
+  },
+  priority: {
+    type: Number,
+    default: 10
+  }
+})
+
 const serviceSchema = new Schema<IService, ServiceModel>(
   {
     providerId: {
@@ -101,6 +172,47 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: String,
       enum: Object.values(SERVICE_PRICING_TYPE),
       required: true,
+    },
+    pricingModel: {
+      type: servicePricingSchema
+    },
+    pricingRules: {
+      type: [pricingRuleSchema],
+      default: []
+    },
+    travelFeePerKm: {
+      type: Number,
+      default: 1.5,
+      min: 0
+    },
+    allowOutsideRadius: {
+      type: Boolean,
+      default: true
+    },
+    maxTravelFee: {
+      type: Number,
+      default: 100,
+      min: 0
+    },
+    depositPercentage: {
+      type: Number,
+      default: 0.5,
+      min: 0,
+      max: 1
+    },
+    cancellationPolicy: {
+      freeCancellationHours: {
+        type: Number,
+        default: 24
+      },
+      partialRefundHours: {
+        type: Number,
+        default: 12
+      },
+      noRefundHours: {
+        type: Number,
+        default: 2
+      }
     },
     duration: {
       type: String,
