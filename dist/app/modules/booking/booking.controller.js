@@ -53,7 +53,7 @@ const getMyBookings = (0, catchAsync_1.default)(async (req, res) => {
 });
 const calculatePrice = (0, catchAsync_1.default)(async (req, res) => {
     const { serviceId, startTime, endTime, date, distanceFromProviderKm } = req.body;
-    const result = await booking_service_1.BookingService.calculatePrice(serviceId, startTime, endTime, new Date(date), new Date(date), distanceFromProviderKm || 0, undefined // Overrides not currently fetched in this standalone calculation
+    const result = await booking_service_1.BookingService.calculatePrice(serviceId, startTime, endTime, new Date(date), distanceFromProviderKm || 0, undefined // Overrides not currently fetched in this standalone calculation
     );
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
