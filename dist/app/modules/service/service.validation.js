@@ -1,0 +1,100 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.filterServiceSchema = exports.toggleServiceStatusSchema = exports.updateServiceSchema = exports.createServiceSchema = void 0;
+const zod_1 = require("zod");
+const service_constants_1 = require("./service.constants");
+const service_1 = require("../../../enum/service");
+// Convert enums to arrays for Zod
+const pricingTypeValues = Object.values(service_1.SERVICE_PRICING_TYPE);
+const locationTypeValues = Object.values(service_1.SERVICE_LOCATION_TYPE);
+const statusValues = Object.values(service_1.SERVICE_STATUS);
+const locationSchema = zod_1.z.object({
+    type: zod_1.z.enum(locationTypeValues),
+    country: zod_1.z.string().min(2).max(100),
+    city: zod_1.z.string().min(2).max(100),
+    address: zod_1.z.string().optional(),
+    coordinates: zod_1.z.object({
+        lat: zod_1.z.number().min(-90).max(90).optional(),
+        lng: zod_1.z.number().min(-180).max(180).optional(),
+    }).optional(),
+    serviceRadiusKm: zod_1.z.number()
+        .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.SERVICE_RADIUS_MIN)
+        .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.SERVICE_RADIUS_MAX)
+        .optional(),
+});
+exports.createServiceSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        title: zod_1.z.string()
+            .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.TITLE_MIN_LENGTH)
+            .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.TITLE_MAX_LENGTH),
+        description: zod_1.z.string()
+            .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MIN_LENGTH)
+            .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MAX_LENGTH),
+        category: zod_1.z.string().min(2).max(50),
+        subCategory: zod_1.z.string().optional(),
+        tags: zod_1.z.array(zod_1.z.string().min(1).max(30)).optional(),
+        equipment: zod_1.z.array(zod_1.z.string().min(1).max(50)).optional(),
+        price: zod_1.z.number()
+            .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.PRICE_MIN)
+            .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.PRICE_MAX),
+        currency: zod_1.z.string().length(3).default('EUR'),
+        pricingType: zod_1.z.enum(pricingTypeValues),
+        duration: zod_1.z.string().min(1).max(100),
+        location: locationSchema,
+        coverMedia: zod_1.z.string().url().optional(),
+        gallery: zod_1.z.array(zod_1.z.string().url()).optional(),
+        status: zod_1.z.enum(statusValues).default(service_1.SERVICE_STATUS.ACTIVE),
+    }),
+});
+exports.updateServiceSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        title: zod_1.z.string()
+            .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.TITLE_MIN_LENGTH)
+            .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.TITLE_MAX_LENGTH)
+            .optional(),
+        description: zod_1.z.string()
+            .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MIN_LENGTH)
+            .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MAX_LENGTH)
+            .optional(),
+        category: zod_1.z.string().min(2).max(50).optional(),
+        subCategory: zod_1.z.string().optional(),
+        tags: zod_1.z.array(zod_1.z.string().min(1).max(30)).optional(),
+        equipment: zod_1.z.array(zod_1.z.string().min(1).max(50)).optional(),
+        price: zod_1.z.number()
+            .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.PRICE_MIN)
+            .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.PRICE_MAX)
+            .optional(),
+        currency: zod_1.z.string().length(3).optional(),
+        pricingType: zod_1.z.enum(pricingTypeValues).optional(),
+        duration: zod_1.z.string().min(1).max(100).optional(),
+        location: locationSchema.partial().optional(),
+        coverMedia: zod_1.z.string().url().optional(),
+        gallery: zod_1.z.array(zod_1.z.string().url()).optional(),
+        status: zod_1.z.enum(statusValues).optional(),
+        isVerified: zod_1.z.boolean().optional(),
+        isActive: zod_1.z.boolean().optional(),
+    }),
+});
+exports.toggleServiceStatusSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        status: zod_1.z.enum(statusValues),
+    }),
+});
+exports.filterServiceSchema = zod_1.z.object({
+    query: zod_1.z.object({
+        searchTerm: zod_1.z.string().optional(),
+        category: zod_1.z.string().optional(),
+        subCategory: zod_1.z.string().optional(),
+        tags: zod_1.z.string().optional(),
+        pricingType: zod_1.z.enum(pricingTypeValues).optional(),
+        minPrice: zod_1.z.string().optional(),
+        maxPrice: zod_1.z.string().optional(),
+        'location.type': zod_1.z.enum(locationTypeValues).optional(),
+        'location.country': zod_1.z.string().optional(),
+        'location.city': zod_1.z.string().optional(),
+        status: zod_1.z.enum(statusValues).optional(),
+        isVerified: zod_1.z.enum(['true', 'false']).optional(),
+        providerId: zod_1.z.string().optional(),
+        isActive: zod_1.z.enum(['true', 'false']).optional(),
+    }),
+});

@@ -17,7 +17,7 @@ export const createBookingValidationSchema = z.object({
         lat: z.number(),
         lng: z.number()
       }).optional(),
-      distanceFromProviderKm: z.number().min(0).optional(),
+      distanceFromProviderKm: z.number().min(0, { message: 'Distance must be a positive number' }),
       notes: z.string().optional()
     }),
     clientName: z.string({ required_error: 'Client name is required' }),
