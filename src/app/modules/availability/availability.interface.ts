@@ -19,6 +19,7 @@ export interface IAvailability extends Document {
     maxBookings?: number
     note?: string
     rateMultiplier?: number
+    priceOverride?: number
   }>
   recurringRules: Array<{
     type: 'block_weekly' | 'block_monthly' | 'special_hours_weekly'

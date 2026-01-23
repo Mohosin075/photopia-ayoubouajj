@@ -13,7 +13,8 @@ const calculatePrice = async (
   startTime: string,
   endTime: string,
   date: Date,
-  distanceFromProviderKm: number
+  distanceFromProviderKm: number,
+  overrides?: { priceOverride?: number; rateMultiplier?: number }
 ) => {
   const service = await Service.findById(serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
@@ -37,6 +38,13 @@ const calculatePrice = async (
   // Fallback if specific hourly rates are 0
   if (service.pricingType === SERVICE_PRICING_TYPE.HOURLY && (!baseRate || baseRate === 0)) {
      baseRate = service.price
+  }
+
+  // Apply Overrides
+  if (overrides?.priceOverride !== undefined) {
+    baseRate = overrides.priceOverride
+  } else if (overrides?.rateMultiplier !== undefined) {
+    baseRate = baseRate * overrides.rateMultiplier
   }
 
   // Calculate subtotal
@@ -145,7 +153,8 @@ const createBooking = async (payload: IBooking): Promise<IBooking> => {
     payload.startTime,
     payload.endTime,
     bookingDate,
-    payload.eventLocation.distanceFromProviderKm
+    payload.eventLocation.distanceFromProviderKm,
+    availabilityCheck.pricing
   )
 
   payload.pricingDetails = pricing

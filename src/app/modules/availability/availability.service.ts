@@ -32,7 +32,12 @@ const getProviderAvailability = async (
 const checkAvailabilityForDate = async (
   providerId: string,
   date: Date
-): Promise<{ isAvailable: boolean; reason?: string; workingHours?: { start: string; end: string } }> => {
+): Promise<{ 
+  isAvailable: boolean; 
+  reason?: string; 
+  workingHours?: { start: string; end: string };
+  pricing?: { priceOverride?: number; rateMultiplier?: number };
+}> => {
   const availability = await Availability.findOne({ providerId })
   
   if (!availability) {
@@ -50,13 +55,15 @@ const checkAvailabilityForDate = async (
     if (customDate.type === 'blocked' || customDate.type === 'unavailable') {
       return { isAvailable: false, reason: 'Date is specifically blocked by provider' }
     }
-    if (customDate.type === 'special_hours' && customDate.start && customDate.end) {
       return { 
         isAvailable: true, 
-        workingHours: { start: customDate.start, end: customDate.end } 
+        workingHours: { start: customDate.start || '09:00', end: customDate.end || '17:00' }, // Fallback if missing
+        pricing: {
+          priceOverride: customDate.priceOverride,
+          rateMultiplier: customDate.rateMultiplier
+        }
       }
     }
-  }
 
   // 2. Check recurring rules
   // Sort rules needed? Assuming order doesn't matter much for now or 'block' takes precedence
@@ -92,6 +99,7 @@ const checkAvailabilityForDate = async (
        }
     }
   }
+
 
   // 3. Check default schedule
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']

@@ -16,7 +16,8 @@ const customDateSchema = zod_1.z.object({
     end: timeStringSchema.optional(),
     maxBookings: zod_1.z.number().min(1).optional(),
     note: zod_1.z.string().optional(),
-    rateMultiplier: zod_1.z.number().min(0.5).max(3).optional()
+    rateMultiplier: zod_1.z.number().min(0.5).max(3).optional(),
+    priceOverride: zod_1.z.number().min(0).optional()
 });
 const recurringRuleSchema = zod_1.z.object({
     type: zod_1.z.enum(['block_weekly', 'block_monthly', 'special_hours_weekly']),

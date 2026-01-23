@@ -32,12 +32,14 @@ const checkAvailabilityForDate = async (providerId, date) => {
         if (customDate.type === 'blocked' || customDate.type === 'unavailable') {
             return { isAvailable: false, reason: 'Date is specifically blocked by provider' };
         }
-        if (customDate.type === 'special_hours' && customDate.start && customDate.end) {
-            return {
-                isAvailable: true,
-                workingHours: { start: customDate.start, end: customDate.end }
-            };
-        }
+        return {
+            isAvailable: true,
+            workingHours: { start: customDate.start || '09:00', end: customDate.end || '17:00' }, // Fallback if missing
+            pricing: {
+                priceOverride: customDate.priceOverride,
+                rateMultiplier: customDate.rateMultiplier
+            }
+        };
     }
     // 2. Check recurring rules
     // Sort rules needed? Assuming order doesn't matter much for now or 'block' takes precedence

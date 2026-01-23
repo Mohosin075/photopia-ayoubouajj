@@ -16,7 +16,8 @@ const customDateSchema = z.object({
   end: timeStringSchema.optional(),
   maxBookings: z.number().min(1).optional(),
   note: z.string().optional(),
-  rateMultiplier: z.number().min(0.5).max(3).optional()
+  rateMultiplier: z.number().min(0.5).max(3).optional(),
+  priceOverride: z.number().min(0).optional()
 })
 
 const recurringRuleSchema = z.object({

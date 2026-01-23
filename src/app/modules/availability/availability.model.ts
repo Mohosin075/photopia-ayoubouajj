@@ -27,9 +27,11 @@ const customDateSchema = new Schema({
     type: String
   },
   rateMultiplier: {
-    type: Number,
-    min: 0.5,
     max: 3
+  },
+  priceOverride: {
+    type: Number,
+    min: 0
   }
 })
 

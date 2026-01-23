@@ -10,7 +10,7 @@ const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const availability_service_1 = require("../availability/availability.service");
 const service_model_1 = require("../service/service.model");
 const service_1 = require("../../../enum/service");
-const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromProviderKm) => {
+const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromProviderKm, overrides) => {
     var _a, _b, _c, _d, _e, _f;
     const service = await service_model_1.Service.findById(serviceId);
     if (!service)
@@ -33,6 +33,13 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
     // Fallback if specific hourly rates are 0
     if (service.pricingType === service_1.SERVICE_PRICING_TYPE.HOURLY && (!baseRate || baseRate === 0)) {
         baseRate = service.price;
+    }
+    // Apply Overrides
+    if ((overrides === null || overrides === void 0 ? void 0 : overrides.priceOverride) !== undefined) {
+        baseRate = overrides.priceOverride;
+    }
+    else if ((overrides === null || overrides === void 0 ? void 0 : overrides.rateMultiplier) !== undefined) {
+        baseRate = baseRate * overrides.rateMultiplier;
     }
     // Calculate subtotal
     let subtotal = 0;
@@ -118,7 +125,7 @@ const createBooking = async (payload) => {
         throw new ApiError_1.default(http_status_codes_1.default.CONFLICT, 'Time slot overlaps with an existing booking');
     }
     // 3. Calculate Price
-    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm);
+    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm, availabilityCheck.pricing);
     payload.pricingDetails = pricing;
     payload.durationHours = pricing.durationHours;
     payload.depositAmount = pricing.clientTotal * 0.5; // 50% deposit

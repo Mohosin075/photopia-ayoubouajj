@@ -63,7 +63,8 @@ const calculatePrice = catchAsync(async (req: Request, res: Response) => {
     startTime,
     endTime,
     new Date(date),
-    distanceFromProviderKm || 0
+    distanceFromProviderKm || 0,
+    undefined // Overrides not currently fetched in this standalone calculation
   )
 
   sendResponse(res, {
