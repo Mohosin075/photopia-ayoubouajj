@@ -155,20 +155,58 @@ const updateBookingStatus = async (bookingId, status, userId) => {
     await booking.save();
     return booking;
 };
-const getMyBookings = async (userId, role) => {
-    let query = {};
+const paginationHelper_1 = require("../../../helpers/paginationHelper");
+const getMyBookings = async (userId, role, filters, options) => {
+    const { searchTerm, ...filterData } = filters;
+    const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(options);
+    const andConditions = [];
+    // Role-based filter
     if (role === 'professional') {
-        query.providerId = userId;
+        andConditions.push({ providerId: userId });
     }
     else {
-        query.clientId = userId;
+        andConditions.push({ clientId: userId });
     }
-    const bookings = await booking_model_1.Booking.find(query)
+    // Search Logic (e.g., by Booking Number or Service Title - requires lookup usually, but let's stick to direct fields or bookingNumber)
+    if (searchTerm) {
+        andConditions.push({
+            $or: [
+                { bookingNumber: { $regex: searchTerm, $options: 'i' } },
+                { clientName: { $regex: searchTerm, $options: 'i' } },
+                // { 'service.title': { $regex: searchTerm, $options: 'i' } } // Requires aggregate/lookup for efficient search usually
+            ]
+        });
+    }
+    // Filter Logic
+    if (Object.keys(filterData).length) {
+        andConditions.push({
+            $and: Object.entries(filterData).map(([field, value]) => ({
+                [field]: value
+            }))
+        });
+    }
+    // Sorting
+    const sortConditions = {};
+    if (sortBy && sortOrder) {
+        sortConditions[sortBy] = sortOrder;
+    }
+    const whereConditions = andConditions.length > 0 ? { $and: andConditions } : {};
+    const result = await booking_model_1.Booking.find(whereConditions)
         .populate('serviceId')
         .populate('providerId', 'name email')
         .populate('clientId', 'name email')
-        .sort({ createdAt: -1 });
-    return bookings;
+        .sort(sortConditions)
+        .skip(skip)
+        .limit(limit);
+    const total = await booking_model_1.Booking.countDocuments(whereConditions);
+    return {
+        meta: {
+            page,
+            limit,
+            total,
+        },
+        data: result,
+    };
 };
 exports.BookingService = {
     createBooking,

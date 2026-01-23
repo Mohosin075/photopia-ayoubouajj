@@ -5,6 +5,7 @@ import sendResponse from '../../../shared/sendResponse'
 import { BookingService } from './booking.service'
 import ApiError from '../../../errors/ApiError'
 import { JwtPayload } from 'jsonwebtoken'
+import pick from '../../../shared/pick'
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
@@ -45,13 +46,17 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
 
-  const result = await BookingService.getMyBookings(user.userId, user.role)
+  const filters = pick(req.query, ['searchTerm', 'status', 'bookingDate', 'serviceId'])
+  const options = pick(req.query, ['page', 'limit', 'sortBy', 'sortOrder'])
+
+  const result = await BookingService.getMyBookings(user.userId, user.role, filters, options)
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Bookings retrieved successfully',
-    data: result,
+    meta: result.meta,
+    data: result.data,
   })
 })
 

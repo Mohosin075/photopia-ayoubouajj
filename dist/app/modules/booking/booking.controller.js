@@ -9,6 +9,7 @@ const catchAsync_1 = __importDefault(require("../../../shared/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const booking_service_1 = require("./booking.service");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
+const pick_1 = __importDefault(require("../../../shared/pick"));
 const createBooking = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     if (!user)
@@ -43,12 +44,15 @@ const getMyBookings = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     if (!user)
         throw new ApiError_1.default(http_status_codes_1.default.UNAUTHORIZED, 'User not found');
-    const result = await booking_service_1.BookingService.getMyBookings(user.userId, user.role);
+    const filters = (0, pick_1.default)(req.query, ['searchTerm', 'status', 'bookingDate', 'serviceId']);
+    const options = (0, pick_1.default)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
+    const result = await booking_service_1.BookingService.getMyBookings(user.userId, user.role, filters, options);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
         message: 'Bookings retrieved successfully',
-        data: result,
+        meta: result.meta,
+        data: result.data,
     });
 });
 const calculatePrice = (0, catchAsync_1.default)(async (req, res) => {

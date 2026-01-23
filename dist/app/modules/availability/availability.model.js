@@ -28,6 +28,8 @@ const customDateSchema = new mongoose_1.Schema({
         type: String
     },
     rateMultiplier: {
+        type: Number,
+        min: 0.5,
         max: 3
     },
     priceOverride: {

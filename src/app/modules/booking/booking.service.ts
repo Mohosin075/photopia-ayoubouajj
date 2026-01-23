@@ -192,19 +192,76 @@ const updateBookingStatus = async (
   return booking
 }
 
-const getMyBookings = async (userId: string, role: string): Promise<IBooking[]> => {
-  let query: any = {}
+import { paginationHelper } from '../../../helpers/paginationHelper'
+import { SortOrder } from 'mongoose'
+
+const getMyBookings = async (
+  userId: string, 
+  role: string,
+  filters: { searchTerm?: string; status?: string; bookingDate?: string; serviceId?: string },
+  options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+): Promise<{
+  meta: { page: number; limit: number; total: number };
+  data: IBooking[];
+}> => {
+  const { searchTerm, ...filterData } = filters
+  const { page, limit, skip, sortBy, sortOrder } = paginationHelper.calculatePagination(options)
+
+  const andConditions = []
+
+  // Role-based filter
   if (role === 'professional') {
-    query.providerId = userId
+    andConditions.push({ providerId: userId })
   } else {
-    query.clientId = userId
+    andConditions.push({ clientId: userId })
   }
-  const bookings = await Booking.find(query)
+
+  // Search Logic (e.g., by Booking Number or Service Title - requires lookup usually, but let's stick to direct fields or bookingNumber)
+  if (searchTerm) {
+    andConditions.push({
+      $or: [
+        { bookingNumber: { $regex: searchTerm, $options: 'i' } },
+        { clientName: { $regex: searchTerm, $options: 'i' } },
+        // { 'service.title': { $regex: searchTerm, $options: 'i' } } // Requires aggregate/lookup for efficient search usually
+      ]
+    })
+  }
+
+  // Filter Logic
+  if (Object.keys(filterData).length) {
+    andConditions.push({
+      $and: Object.entries(filterData).map(([field, value]) => ({
+        [field]: value
+      }))
+    })
+  }
+
+  // Sorting
+  const sortConditions: { [key: string]: SortOrder } = {}
+  if (sortBy && sortOrder) {
+    sortConditions[sortBy] = sortOrder
+  }
+
+  const whereConditions = andConditions.length > 0 ? { $and: andConditions } : {}
+
+  const result = await Booking.find(whereConditions)
     .populate('serviceId')
     .populate('providerId', 'name email')
     .populate('clientId', 'name email')
-    .sort({ createdAt: -1 })
-  return bookings
+    .sort(sortConditions)
+    .skip(skip)
+    .limit(limit)
+
+  const total = await Booking.countDocuments(whereConditions)
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: result,
+  }
 }
 
 export const BookingService = {
