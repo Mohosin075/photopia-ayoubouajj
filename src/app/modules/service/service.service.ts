@@ -50,8 +50,15 @@ const createService = async (payload: IService & { providerId: string }) => {
 }
 
 const buildWhereConditions = (filters: IServiceFilterables) => {
-  const { searchTerm, minPrice, maxPrice, isVerified, isActive, ...filterData } = filters
+  const { searchTerm, minPrice, maxPrice, isVerified, isActive, status, ...filterData } = filters
   const conditions: any = {}
+
+  // Exclude DELETED services by default unless explicitly filtering for them
+  if (status !== undefined) {
+    conditions.status = status
+  } else {
+    conditions.status = { $ne: SERVICE_STATUS.DELETED }
+  }
 
   // Text search optimization or partial regex match
   if (searchTerm) {
@@ -134,7 +141,7 @@ const getSingleService = async (id: string) => {
     .populate('providerId', 'name email profile')
     .populate('category', 'name image')
 
-  if (!result) {
+  if (!result || result.status === SERVICE_STATUS.DELETED) {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
   }
 
@@ -207,6 +214,11 @@ const deleteService = async (id: string, userId?: string) => {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
   }
 
+  // Check if already deleted
+  if (service.status === SERVICE_STATUS.DELETED) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Service is already deleted')
+  }
+
   // Check if user is authorized (providerId or admin)
   if (userId && service.providerId.toString() !== userId) {
     const user = await User.findById(userId)
@@ -215,7 +227,12 @@ const deleteService = async (id: string, userId?: string) => {
     }
   }
 
-  const result = await Service.findByIdAndDelete(id)
+  // Soft delete: set status to DELETED
+  const result = await Service.findByIdAndUpdate(
+    id,
+    { status: SERVICE_STATUS.DELETED },
+    { new: true }
+  )
 
   return result
 }

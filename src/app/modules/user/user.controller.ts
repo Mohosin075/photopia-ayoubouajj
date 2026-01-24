@@ -120,7 +120,6 @@ const switchRole = catchAsync(async (req: Request, res: Response) => {
     success: true,
     message: 'Role switched successfully. Please use the new token.',
     data: {
-      user: result.user,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     },

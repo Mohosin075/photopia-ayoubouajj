@@ -4,9 +4,10 @@ import catchAsync from '../../../shared/catchAsync'
 import sendResponse from '../../../shared/sendResponse'
 import { AvailabilityService } from './availability.service'
 import ApiError from '../../../errors/ApiError'
+import { JwtPayload } from 'jsonwebtoken'
 
 const createOrUpdateAvailability = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user
+  const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
   const result = await AvailabilityService.createOrUpdateAvailability(user.userId, req.body)
 
@@ -19,7 +20,7 @@ const createOrUpdateAvailability = catchAsync(async (req: Request, res: Response
 })
 
 const getMyAvailability = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user
+  const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
   const result = await AvailabilityService.getProviderAvailability(user.userId)
 

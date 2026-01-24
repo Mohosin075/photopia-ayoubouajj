@@ -39,8 +39,15 @@ const createService = async (payload) => {
     return result;
 };
 const buildWhereConditions = (filters) => {
-    const { searchTerm, minPrice, maxPrice, isVerified, isActive, ...filterData } = filters;
+    const { searchTerm, minPrice, maxPrice, isVerified, isActive, isDeleted, ...filterData } = filters;
     const conditions = {};
+    // Exclude soft-deleted services by default unless explicitly filtering for them
+    if (isDeleted !== undefined) {
+        conditions.isDeleted = isDeleted === 'true' || isDeleted === true;
+    }
+    else {
+        conditions.isDeleted = false;
+    }
     // Text search optimization or partial regex match
     if (searchTerm) {
         conditions.$or = service_constants_1.serviceSearchableFields.map(field => ({
@@ -111,7 +118,7 @@ const getSingleService = async (id) => {
     const result = await service_model_1.Service.findById(id)
         .populate('providerId', 'name email profile')
         .populate('category', 'name image');
-    if (!result) {
+    if (!result || result.isDeleted) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, service_constants_1.SERVICE_CONSTANTS.MESSAGES.NOT_FOUND);
     }
     return result;
@@ -166,6 +173,10 @@ const deleteService = async (id, userId) => {
     if (!service) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, service_constants_1.SERVICE_CONSTANTS.MESSAGES.NOT_FOUND);
     }
+    // Check if already deleted
+    if (service.isDeleted) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Service is already deleted');
+    }
     // Check if user is authorized (providerId or admin)
     if (userId && service.providerId.toString() !== userId) {
         const user = await user_model_1.User.findById(userId);
@@ -173,7 +184,8 @@ const deleteService = async (id, userId) => {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, service_constants_1.SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED);
         }
     }
-    const result = await service_model_1.Service.findByIdAndDelete(id);
+    // Soft delete: set isDeleted to true
+    const result = await service_model_1.Service.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
     return result;
 };
 const getServicesByProvider = async (providerId, filters, paginationOptions) => {
