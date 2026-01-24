@@ -46,7 +46,7 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
 
-  const filters = pick(req.query, ['searchTerm', 'status', 'bookingDate', 'serviceId'])
+  const filters = pick(req.query, ['searchTerm', 'status', 'bookingDate', 'serviceId', 'filterType'])
   const options = pick(req.query, ['page', 'limit', 'sortBy', 'sortOrder'])
 
   const result = await BookingService.getMyBookings(user.userId, user.role, filters, options)
@@ -80,9 +80,25 @@ const calculatePrice = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+
+const getSingleBooking = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const user = req.user as JwtPayload
+
+  const result = await BookingService.getSingleBooking(id)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Booking retrieved successfully',
+    data: result,
+  })
+})
+
 export const BookingController = {
   createBooking,
   updateBookingStatus,
   getMyBookings,
-  calculatePrice
+  calculatePrice,
+  getSingleBooking
 }

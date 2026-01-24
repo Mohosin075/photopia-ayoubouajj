@@ -198,13 +198,13 @@ import { SortOrder } from 'mongoose'
 const getMyBookings = async (
   userId: string, 
   role: string,
-  filters: { searchTerm?: string; status?: string; bookingDate?: string; serviceId?: string },
+  filters: { searchTerm?: string; status?: string; bookingDate?: string; serviceId?: string; filterType?: string },
   options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
 ): Promise<{
   meta: { page: number; limit: number; total: number };
   data: IBooking[];
 }> => {
-  const { searchTerm, ...filterData } = filters
+  const { searchTerm, filterType, ...filterData } = filters
   const { page, limit, skip, sortBy, sortOrder } = paginationHelper.calculatePagination(options)
 
   const andConditions = []
@@ -225,6 +225,33 @@ const getMyBookings = async (
         // { 'service.title': { $regex: searchTerm, $options: 'i' } } // Requires aggregate/lookup for efficient search usually
       ]
     })
+  }
+
+  // Filter Type Logic
+  if (filterType) {
+    const now = new Date()
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+
+    if (filterType === 'today') {
+      andConditions.push({
+        bookingDate: {
+          $gte: startOfToday,
+          $lt: endOfToday,
+        },
+      })
+    } else if (filterType === 'upcoming') {
+      andConditions.push({
+        bookingDate: {
+          $gte: endOfToday,
+        },
+        status: 'confirmed',
+      })
+    } else if (filterType === 'pending') {
+      andConditions.push({
+        status: 'pending',
+      })
+    }
   }
 
   // Filter Logic
@@ -264,9 +291,17 @@ const getMyBookings = async (
   }
 }
 
+
+const getSingleBooking = async (bookingId: string): Promise<IBooking | null> => {
+  const booking = await Booking.findById(bookingId)
+  if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
+  return booking
+}
+
 export const BookingService = {
   createBooking,
   updateBookingStatus,
   getMyBookings,
-  calculatePrice
+  calculatePrice,
+  getSingleBooking
 }
