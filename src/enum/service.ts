@@ -1,8 +1,11 @@
 export enum SERVICE_STATUS {
+    DRAFT = 'DRAFT',
     ACTIVE = 'ACTIVE',
-    PAUSED = 'PAUSED',
+    INACTIVE = 'INACTIVE',
     ARCHIVED = 'ARCHIVED',
+    DELETED = 'DELETED',
 }
+
 
 export enum SERVICE_PRICING_TYPE {
     DAILY = 'DAILY',

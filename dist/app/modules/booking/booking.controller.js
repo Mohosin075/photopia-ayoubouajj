@@ -44,7 +44,7 @@ const getMyBookings = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     if (!user)
         throw new ApiError_1.default(http_status_codes_1.default.UNAUTHORIZED, 'User not found');
-    const filters = (0, pick_1.default)(req.query, ['searchTerm', 'status', 'bookingDate', 'serviceId']);
+    const filters = (0, pick_1.default)(req.query, ['searchTerm', 'status', 'bookingDate', 'serviceId', 'filterType']);
     const options = (0, pick_1.default)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
     const result = await booking_service_1.BookingService.getMyBookings(user.userId, user.role, filters, options);
     (0, sendResponse_1.default)(res, {
@@ -66,9 +66,21 @@ const calculatePrice = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getSingleBooking = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+    const result = await booking_service_1.BookingService.getSingleBooking(id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: 'Booking retrieved successfully',
+        data: result,
+    });
+});
 exports.BookingController = {
     createBooking,
     updateBookingStatus,
     getMyBookings,
-    calculatePrice
+    calculatePrice,
+    getSingleBooking
 };

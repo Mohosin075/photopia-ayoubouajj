@@ -30,7 +30,7 @@ export interface IServiceFilterables {
   'location.type'?: SERVICE_LOCATION_TYPE | string
   'location.country'?: string
   'location.city'?: string
-  status?: SERVICE_STATUS | string
+  status?: SERVICE_STATUS
   isVerified?: boolean | string
   providerId?: string
   serviceType?: string

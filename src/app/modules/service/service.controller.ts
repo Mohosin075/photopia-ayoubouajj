@@ -8,6 +8,8 @@ import pick from '../../../shared/pick'
 import { ServiceServices } from './service.service'
 import { SERVICE_CONSTANTS, serviceFilterableFields } from './service.constants'
 import { JwtPayload } from 'jsonwebtoken'
+import { IServiceFilterables } from './service.interface'
+import { SERVICE_STATUS } from '../../../enum/service'
 
 const createService = catchAsync(async (req: Request, res: Response) => {
   const serviceData = req.body
@@ -36,7 +38,7 @@ const createService = catchAsync(async (req: Request, res: Response) => {
 
 const getAllServices = catchAsync(async (req: Request, res: Response) => {
   const paginationOptions = pick(req.query, paginationFields)
-  const filters = pick(req.query, serviceFilterableFields)
+  const filters = pick(req.query, serviceFilterableFields) as IServiceFilterables
   const result = await ServiceServices.getAllServices(filters, paginationOptions)
 
   sendResponse(res, {
@@ -95,7 +97,7 @@ const getServicesByProvider = catchAsync(async (req: Request, res: Response) => 
 
   const result = await ServiceServices.getServicesByProvider(
     providerId,
-    filters,
+    filters as IServiceFilterables,
     paginationOptions
   )
 
@@ -110,7 +112,7 @@ const getServicesByProvider = catchAsync(async (req: Request, res: Response) => 
 const getMyServices = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.user as JwtPayload
   const paginationOptions = pick(req.query, paginationFields)
-  const filters = pick(req.query, serviceFilterableFields)
+  const filters = pick(req.query, serviceFilterableFields) as IServiceFilterables
 
   if (!userId) {
     return sendResponse(res, {
@@ -138,7 +140,7 @@ const toggleServiceStatus = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { status } = req.body
 
-  const result = await ServiceServices.toggleServiceStatus(id, status)
+  const result = await ServiceServices.toggleServiceStatus(id, status as SERVICE_STATUS)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

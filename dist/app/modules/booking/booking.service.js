@@ -157,7 +157,7 @@ const updateBookingStatus = async (bookingId, status, userId) => {
 };
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
 const getMyBookings = async (userId, role, filters, options) => {
-    const { searchTerm, ...filterData } = filters;
+    const { searchTerm, filterType, ...filterData } = filters;
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(options);
     const andConditions = [];
     // Role-based filter
@@ -176,6 +176,33 @@ const getMyBookings = async (userId, role, filters, options) => {
                 // { 'service.title': { $regex: searchTerm, $options: 'i' } } // Requires aggregate/lookup for efficient search usually
             ]
         });
+    }
+    // Filter Type Logic
+    if (filterType) {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        if (filterType === 'today') {
+            andConditions.push({
+                bookingDate: {
+                    $gte: startOfToday,
+                    $lt: endOfToday,
+                },
+            });
+        }
+        else if (filterType === 'upcoming') {
+            andConditions.push({
+                bookingDate: {
+                    $gte: endOfToday,
+                },
+                status: 'confirmed',
+            });
+        }
+        else if (filterType === 'pending') {
+            andConditions.push({
+                status: 'pending',
+            });
+        }
     }
     // Filter Logic
     if (Object.keys(filterData).length) {
@@ -208,9 +235,16 @@ const getMyBookings = async (userId, role, filters, options) => {
         data: result,
     };
 };
+const getSingleBooking = async (bookingId) => {
+    const booking = await booking_model_1.Booking.findById(bookingId);
+    if (!booking)
+        throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Booking not found');
+    return booking;
+};
 exports.BookingService = {
     createBooking,
     updateBookingStatus,
     getMyBookings,
-    calculatePrice
+    calculatePrice,
+    getSingleBooking
 };

@@ -8,6 +8,7 @@ import { paginationHelper } from '../../../helpers/paginationHelper'
 import { Types } from 'mongoose'
 import { SERVICE_CONSTANTS, serviceFilterableFields, serviceSearchableFields, SERVICE_LIST_PROJECTION } from './service.constants'
 import { User } from '../user/user.model'
+import { SERVICE_STATUS } from '../../../enum/service'
 
 const createService = async (payload: IService & { providerId: string }) => {
   // Check if providerId already has a service with same title
@@ -261,7 +262,7 @@ const getServicesByProvider = async (
   }
 }
 
-const toggleServiceStatus = async (id: string, status: string) => {
+const toggleServiceStatus = async (id: string, status: SERVICE_STATUS) => {
   const service = await Service.findById(id)
 
   if (!service) {
