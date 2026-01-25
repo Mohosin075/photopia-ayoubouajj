@@ -11,6 +11,7 @@ const service_model_1 = require("./service.model");
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
 const service_constants_1 = require("./service.constants");
 const user_model_1 = require("../user/user.model");
+const service_1 = require("../../../enum/service");
 const createService = async (payload) => {
     // Check if providerId already has a service with same title
     const existingService = await service_model_1.Service.findOne({
@@ -39,14 +40,14 @@ const createService = async (payload) => {
     return result;
 };
 const buildWhereConditions = (filters) => {
-    const { searchTerm, minPrice, maxPrice, isVerified, isActive, isDeleted, ...filterData } = filters;
+    const { searchTerm, minPrice, maxPrice, isVerified, isActive, status, ...filterData } = filters;
     const conditions = {};
-    // Exclude soft-deleted services by default unless explicitly filtering for them
-    if (isDeleted !== undefined) {
-        conditions.isDeleted = isDeleted === 'true' || isDeleted === true;
+    // Exclude DELETED services by default unless explicitly filtering for them
+    if (status !== undefined) {
+        conditions.status = status;
     }
     else {
-        conditions.isDeleted = false;
+        conditions.status = { $ne: service_1.SERVICE_STATUS.DELETED };
     }
     // Text search optimization or partial regex match
     if (searchTerm) {
@@ -118,7 +119,7 @@ const getSingleService = async (id) => {
     const result = await service_model_1.Service.findById(id)
         .populate('providerId', 'name email profile')
         .populate('category', 'name image');
-    if (!result || result.isDeleted) {
+    if (!result || result.status === service_1.SERVICE_STATUS.DELETED) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, service_constants_1.SERVICE_CONSTANTS.MESSAGES.NOT_FOUND);
     }
     return result;
@@ -174,7 +175,7 @@ const deleteService = async (id, userId) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, service_constants_1.SERVICE_CONSTANTS.MESSAGES.NOT_FOUND);
     }
     // Check if already deleted
-    if (service.isDeleted) {
+    if (service.status === service_1.SERVICE_STATUS.DELETED) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Service is already deleted');
     }
     // Check if user is authorized (providerId or admin)
@@ -184,8 +185,8 @@ const deleteService = async (id, userId) => {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, service_constants_1.SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED);
         }
     }
-    // Soft delete: set isDeleted to true
-    const result = await service_model_1.Service.findByIdAndUpdate(id, { isDeleted: true }, { new: true });
+    // Soft delete: set status to DELETED
+    const result = await service_model_1.Service.findByIdAndUpdate(id, { status: service_1.SERVICE_STATUS.DELETED }, { new: true });
     return result;
 };
 const getServicesByProvider = async (providerId, filters, paginationOptions) => {

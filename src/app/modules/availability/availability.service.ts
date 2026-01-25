@@ -3,6 +3,7 @@ import { Availability } from './availability.model'
 import { IAvailability } from './availability.interface'
 import ApiError from '../../../errors/ApiError'
 import { Types } from 'mongoose'
+import { Booking } from '../booking/booking.model'
 
 const createOrUpdateAvailability = async (
   providerId: string,
@@ -116,8 +117,120 @@ const checkAvailabilityForDate = async (
   }
 }
 
+const getAvailableTimeSlots = async (
+  providerId: string,
+  date: Date,
+  serviceDuration: number
+): Promise<string[]> => {
+  const availability = await Availability.findOne({ providerId })
+  
+  if (!availability) {
+    return []
+  }
+
+  // First check if the date is available
+  const dateCheck = await checkAvailabilityForDate(providerId, date)
+  if (!dateCheck.isAvailable || !dateCheck.workingHours) {
+    return []
+  }
+
+  const { start, end } = dateCheck.workingHours
+  const bufferMinutes = availability.bufferMinutes || 0
+  const totalSlotDuration = serviceDuration + bufferMinutes
+
+  // Generate time slots
+  const slots: string[] = []
+  const [startHour, startMinute] = start.split(':').map(Number)
+  const [endHour, endMinute] = end.split(':').map(Number)
+  
+  const startMinutes = startHour * 60 + startMinute
+  const endMinutes = endHour * 60 + endMinute
+  
+  for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += totalSlotDuration) {
+    const hour = Math.floor(minutes / 60)
+    const minute = minutes % 60
+    const timeSlot = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
+    slots.push(timeSlot)
+  }
+
+
+  // Filter out booked slots
+  const targetDate = new Date(date)
+  targetDate.setHours(0, 0, 0, 0)
+  const nextDay = new Date(targetDate)
+  nextDay.setDate(nextDay.getDate() + 1)
+
+  const existingBookings = await Booking.find({
+    providerId: new Types.ObjectId(providerId),
+    bookingDate: {
+      $gte: targetDate,
+      $lt: nextDay
+    },
+    status: { $nin: ['cancelled', 'completed'] }
+  }).select('startTime endTime')
+
+  // Filter out slots that conflict with existing bookings
+  const availableSlots = slots.filter(slot => {
+    const [slotHour, slotMinute] = slot.split(':').map(Number)
+    const slotStartMinutes = slotHour * 60 + slotMinute
+    const slotEndMinutes = slotStartMinutes + serviceDuration
+
+    return !existingBookings.some((booking: { startTime: string; endTime: string }) => {
+      const [bookingStartHour, bookingStartMinute] = booking.startTime.split(':').map(Number)
+      const [bookingEndHour, bookingEndMinute] = booking.endTime.split(':').map(Number)
+      const bookingStartMinutes = bookingStartHour * 60 + bookingStartMinute
+      const bookingEndMinutes = bookingEndHour * 60 + bookingEndMinute
+
+      // Check for overlap
+      return (
+        (slotStartMinutes >= bookingStartMinutes && slotStartMinutes < bookingEndMinutes) ||
+        (slotEndMinutes > bookingStartMinutes && slotEndMinutes <= bookingEndMinutes) ||
+        (slotStartMinutes <= bookingStartMinutes && slotEndMinutes >= bookingEndMinutes)
+      )
+    })
+  })
+
+  return availableSlots
+}
+
+const getMonthCalendar = async (
+  providerId: string,
+  month: number,
+  year: number
+): Promise<{
+  date: string;
+  isAvailable: boolean;
+  reason?: string;
+  hasSpecialPricing?: boolean;
+}[]> => {
+  const availability = await Availability.findOne({ providerId })
+  
+  if (!availability) {
+    return []
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const calendar = []
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(year, month - 1, day)
+    const dateCheck = await checkAvailabilityForDate(providerId, date)
+    
+    calendar.push({
+      date: date.toISOString().split('T')[0],
+      isAvailable: dateCheck.isAvailable,
+      reason: dateCheck.reason,
+      hasSpecialPricing: !!(dateCheck.pricing?.priceOverride || dateCheck.pricing?.rateMultiplier)
+    })
+  }
+
+  return calendar
+}
+
 export const AvailabilityService = {
   createOrUpdateAvailability,
   getProviderAvailability,
   checkAvailabilityForDate,
+  getAvailableTimeSlots,
+  getMonthCalendar,
 }

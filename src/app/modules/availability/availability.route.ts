@@ -25,4 +25,22 @@ router.get(
   AvailabilityController.getProviderAvailability
 )
 
+// Public endpoint to check if a specific date is available
+router.get(
+  '/check/:providerId',
+  AvailabilityController.checkDateAvailability
+)
+
+// Public endpoint to get available time slots for a specific date
+router.get(
+  '/slots/:providerId',
+  AvailabilityController.getTimeSlots
+)
+
+// Public endpoint to get month calendar overview
+router.get(
+  '/calendar/:providerId',
+  AvailabilityController.getMonthCalendar
+)
+
 export const AvailabilityRoutes = router

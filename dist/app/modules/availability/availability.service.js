@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AvailabilityService = void 0;
 const availability_model_1 = require("./availability.model");
+const mongoose_1 = require("mongoose");
 const createOrUpdateAvailability = async (providerId, payload) => {
     const isExist = await availability_model_1.Availability.findOne({ providerId });
     if (isExist) {
@@ -85,8 +86,88 @@ const checkAvailabilityForDate = async (providerId, date) => {
         workingHours: { start: daySchedule.start, end: daySchedule.end }
     };
 };
+const getAvailableTimeSlots = async (providerId, date, serviceDuration) => {
+    const availability = await availability_model_1.Availability.findOne({ providerId });
+    if (!availability) {
+        return [];
+    }
+    // First check if the date is available
+    const dateCheck = await checkAvailabilityForDate(providerId, date);
+    if (!dateCheck.isAvailable || !dateCheck.workingHours) {
+        return [];
+    }
+    const { start, end } = dateCheck.workingHours;
+    const bufferMinutes = availability.bufferMinutes || 0;
+    const totalSlotDuration = serviceDuration + bufferMinutes;
+    // Generate time slots
+    const slots = [];
+    const [startHour, startMinute] = start.split(':').map(Number);
+    const [endHour, endMinute] = end.split(':').map(Number);
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+    for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += totalSlotDuration) {
+        const hour = Math.floor(minutes / 60);
+        const minute = minutes % 60;
+        const timeSlot = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        slots.push(timeSlot);
+    }
+    // Import Booking model to check for conflicts
+    const { Booking } = require('../booking/booking.model');
+    // Filter out booked slots
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const existingBookings = await Booking.find({
+        providerId: new mongoose_1.Types.ObjectId(providerId),
+        bookingDate: {
+            $gte: targetDate,
+            $lt: nextDay
+        },
+        status: { $nin: ['cancelled', 'completed'] }
+    }).select('startTime endTime');
+    // Filter out slots that conflict with existing bookings
+    const availableSlots = slots.filter(slot => {
+        const [slotHour, slotMinute] = slot.split(':').map(Number);
+        const slotStartMinutes = slotHour * 60 + slotMinute;
+        const slotEndMinutes = slotStartMinutes + serviceDuration;
+        return !existingBookings.some((booking) => {
+            const [bookingStartHour, bookingStartMinute] = booking.startTime.split(':').map(Number);
+            const [bookingEndHour, bookingEndMinute] = booking.endTime.split(':').map(Number);
+            const bookingStartMinutes = bookingStartHour * 60 + bookingStartMinute;
+            const bookingEndMinutes = bookingEndHour * 60 + bookingEndMinute;
+            // Check for overlap
+            return ((slotStartMinutes >= bookingStartMinutes && slotStartMinutes < bookingEndMinutes) ||
+                (slotEndMinutes > bookingStartMinutes && slotEndMinutes <= bookingEndMinutes) ||
+                (slotStartMinutes <= bookingStartMinutes && slotEndMinutes >= bookingEndMinutes));
+        });
+    });
+    return availableSlots;
+};
+const getMonthCalendar = async (providerId, month, year) => {
+    var _a, _b;
+    const availability = await availability_model_1.Availability.findOne({ providerId });
+    if (!availability) {
+        return [];
+    }
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const calendar = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day);
+        const dateCheck = await checkAvailabilityForDate(providerId, date);
+        calendar.push({
+            date: date.toISOString().split('T')[0],
+            isAvailable: dateCheck.isAvailable,
+            reason: dateCheck.reason,
+            hasSpecialPricing: !!(((_a = dateCheck.pricing) === null || _a === void 0 ? void 0 : _a.priceOverride) || ((_b = dateCheck.pricing) === null || _b === void 0 ? void 0 : _b.rateMultiplier))
+        });
+    }
+    return calendar;
+};
 exports.AvailabilityService = {
     createOrUpdateAvailability,
     getProviderAvailability,
     checkAvailabilityForDate,
+    getAvailableTimeSlots,
+    getMonthCalendar,
 };

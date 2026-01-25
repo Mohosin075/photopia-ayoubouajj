@@ -235,10 +235,6 @@ const serviceSchema = new mongoose_1.Schema({
         type: Boolean,
         default: service_constants_1.SERVICE_CONSTANTS.DEFAULT_VALUES.IS_ACTIVE,
     },
-    isDeleted: {
-        type: Boolean,
-        default: false,
-    },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
@@ -253,7 +249,6 @@ serviceSchema.index({ 'location.type': 1 });
 serviceSchema.index({ 'location.city': 1, 'location.country': 1 });
 serviceSchema.index({ status: 1 });
 serviceSchema.index({ isActive: 1 });
-serviceSchema.index({ isDeleted: 1 });
 serviceSchema.index({ price: 1 });
 serviceSchema.index({ title: 'text', description: 'text', tags: 'text' });
 exports.Service = (0, mongoose_1.model)('Service', serviceSchema);

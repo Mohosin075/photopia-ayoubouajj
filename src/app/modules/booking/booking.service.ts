@@ -109,6 +109,8 @@ const createBooking = async (payload: IBooking): Promise<IBooking> => {
     bookingDate
   )
 
+  console.log('Availability Check:', availabilityCheck)
+
   if (!availabilityCheck.isAvailable) {
     throw new ApiError(httpStatus.BAD_REQUEST, `Provider is not available: ${availabilityCheck.reason}`)
   }

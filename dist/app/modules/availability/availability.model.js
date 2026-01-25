@@ -98,11 +98,12 @@ const availabilitySchema = new mongoose_1.Schema({
         required: true,
         index: true
     },
-    serviceId: {
-        type: mongoose_1.Schema.Types.ObjectId,
-        ref: 'Service',
-        index: true
-    },
+    // not using serviceId for now because one provider can have multiple services and each service can have different availability
+    // serviceId: {
+    //   type: Schema.Types.ObjectId,
+    //   ref: 'Service',
+    //   index: true
+    // },
     defaultSchedule: {
         monday: {
             type: defaultScheduleSchema,
