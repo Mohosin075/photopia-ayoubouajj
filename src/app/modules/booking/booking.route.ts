@@ -22,6 +22,12 @@ router.post(
 )
 
 router.get(
+  '/my-bookings',
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN),
+  BookingController.getMyBookings
+)
+
+router.get(
   '/:id',
   auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN),
   BookingController.getSingleBooking
@@ -34,11 +40,7 @@ router.patch(
   BookingController.updateBookingStatus
 )
 
-router.get(
-  '/my-bookings',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN),
-  BookingController.getMyBookings
-)
+
 
 
 export const BookingRoutes = router
