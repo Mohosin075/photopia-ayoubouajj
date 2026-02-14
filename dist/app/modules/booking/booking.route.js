@@ -16,7 +16,7 @@ router.post('/calculate-price',
 // Public or auth depending on requirement. Allowing public for now or user.
 // auth(USER_ROLES.USER),
 booking_controller_1.BookingController.calculatePrice);
+router.get('/my-bookings', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.ADMIN), booking_controller_1.BookingController.getMyBookings);
 router.get('/:id', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.ADMIN), booking_controller_1.BookingController.getSingleBooking);
 router.patch('/:id/status', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(booking_validation_1.updateBookingStatusSchema), booking_controller_1.BookingController.updateBookingStatus);
-router.get('/my-bookings', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.ADMIN), booking_controller_1.BookingController.getMyBookings);
 exports.BookingRoutes = router;

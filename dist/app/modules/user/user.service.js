@@ -36,34 +36,46 @@ const updateProfile = async (user, payload) => {
     return 'Profile updated successfully.';
 };
 const createAdmin = async () => {
-    const admin = {
-        email: config_1.default.super_admin.email,
-        name: config_1.default.super_admin.name,
-        password: config_1.default.super_admin.password,
-        role: user_1.USER_ROLES.SUPER_ADMIN,
-        status: user_1.USER_STATUS.ACTIVE,
-        verified: true,
-        authentication: {
-            oneTimeCode: null,
-            restrictionLeftAt: null,
-            expiresAt: null,
-            latestRequestAt: new Date(),
-            authType: 'createAccount',
-        },
-    };
+    var _a, _b;
+    const email = (_a = config_1.default.super_admin.email) === null || _a === void 0 ? void 0 : _a.toLowerCase().trim();
+    const name = (_b = config_1.default.super_admin.name) === null || _b === void 0 ? void 0 : _b.trim();
+    const password = config_1.default.super_admin.password;
+    if (!email || !password) {
+        console.warn('⚠️ SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set. Skipping admin creation.');
+        return null;
+    }
     const isAdminExist = await user_model_1.User.findOne({
-        email: admin.email,
+        email,
         status: { $nin: [user_1.USER_STATUS.DELETED] },
     });
     if (isAdminExist) {
         console.log('Admin account already exist, skipping creation.🦥');
         return isAdminExist;
     }
-    const result = await user_model_1.User.create([admin]);
+    const admin = {
+        email,
+        name: name || 'Super Admin',
+        password,
+        roles: [user_1.USER_ROLES.SUPER_ADMIN],
+        activeRole: user_1.USER_ROLES.SUPER_ADMIN,
+        status: user_1.USER_STATUS.ACTIVE,
+        verified: true,
+        authentication: {
+            oneTimeCode: '',
+            restrictionLeftAt: null,
+            expiresAt: null,
+            latestRequestAt: new Date(),
+            authType: 'createAccount',
+            resetPassword: false,
+            wrongLoginAttempts: 0,
+        },
+    };
+    // Use single-document create to trigger pre-save hooks (for password hashing)
+    const result = await user_model_1.User.create(admin);
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Failed to create admin');
     }
-    return result[0];
+    return result.toObject();
 };
 const getAllUsers = async (paginationOptions, filterables = {}) => {
     const { searchTerm, ...filterData } = filterables;

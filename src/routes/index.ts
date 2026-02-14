@@ -44,6 +44,7 @@ const apiRoutes: { path: string; route: Router }[] = [
     route: BookingRoutes,
   },
   { path: '/support', route: SupportRoutes },
+  { path: '/notifications', route: NotificationRoutes },
   { path: '/upload', route: UploadRoutes },
   { path: '/payment', route: PaymentRoutes },
   { path: '/message', route: MessageRoutes },

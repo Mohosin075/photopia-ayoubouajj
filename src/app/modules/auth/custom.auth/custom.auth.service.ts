@@ -140,7 +140,7 @@ const adminLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
     )
   }
 
-  if (!isUserExist.roles.includes(USER_ROLES.ADMIN)) {
+  if (!isUserExist.roles.includes(USER_ROLES.ADMIN) && !isUserExist.roles.includes(USER_ROLES.SUPER_ADMIN)) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'You are not authorized to login as admin',

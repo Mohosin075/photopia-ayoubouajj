@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AvailabilityService = void 0;
 const availability_model_1 = require("./availability.model");
 const mongoose_1 = require("mongoose");
+const booking_model_1 = require("../booking/booking.model");
 const createOrUpdateAvailability = async (providerId, payload) => {
     const isExist = await availability_model_1.Availability.findOne({ providerId });
     if (isExist) {
@@ -27,63 +28,89 @@ const checkAvailabilityForDate = async (providerId, date) => {
         return { isAvailable: false, reason: 'Provider has not set availability' };
     }
     const targetDate = new Date(date);
+    let workingHours;
+    let pricing;
+    let maxBookings = availability.maxBookingsPerDay;
     // 1. Check specific custom dates (overrides everything)
     const customDate = availability.customDates.find((cd) => new Date(cd.date).toDateString() === targetDate.toDateString());
     if (customDate) {
         if (customDate.type === 'blocked' || customDate.type === 'unavailable') {
             return { isAvailable: false, reason: 'Date is specifically blocked by provider' };
         }
-        return {
-            isAvailable: true,
-            workingHours: { start: customDate.start || '09:00', end: customDate.end || '17:00' }, // Fallback if missing
-            pricing: {
-                priceOverride: customDate.priceOverride,
-                rateMultiplier: customDate.rateMultiplier
-            }
+        workingHours = { start: customDate.start || '09:00', end: customDate.end || '17:00' };
+        pricing = {
+            priceOverride: customDate.priceOverride,
+            rateMultiplier: customDate.rateMultiplier
         };
+        if (customDate.maxBookings)
+            maxBookings = customDate.maxBookings;
     }
-    // 2. Check recurring rules
-    // Sort rules needed? Assuming order doesn't matter much for now or 'block' takes precedence
-    if (availability.recurringRules && availability.recurringRules.length > 0) {
-        for (const rule of availability.recurringRules) {
-            if (!rule.active)
-                continue;
-            // Weekday check
-            if (rule.type === 'block_weekly' || rule.type === 'special_hours_weekly') {
-                if (rule.dayOfWeek !== undefined && rule.dayOfWeek === targetDate.getDay()) {
-                    if (rule.type === 'block_weekly') {
-                        return { isAvailable: false, reason: 'Date matches a recurring block rule' };
-                    }
-                    if (rule.type === 'special_hours_weekly' && rule.start && rule.end) {
-                        return {
-                            isAvailable: true,
-                            workingHours: { start: rule.start, end: rule.end }
-                        };
+    else {
+        // 2. Check recurring rules
+        let ruleMatched = false;
+        if (availability.recurringRules && availability.recurringRules.length > 0) {
+            for (const rule of availability.recurringRules) {
+                if (!rule.active)
+                    continue;
+                // Weekday check
+                if (rule.type === 'block_weekly' || rule.type === 'special_hours_weekly') {
+                    if (rule.dayOfWeek !== undefined && rule.dayOfWeek === targetDate.getDay()) {
+                        if (rule.type === 'block_weekly') {
+                            return { isAvailable: false, reason: 'Date matches a recurring block rule' };
+                        }
+                        if (rule.type === 'special_hours_weekly' && rule.start && rule.end) {
+                            workingHours = { start: rule.start, end: rule.end };
+                            if (rule.maxBookings)
+                                maxBookings = rule.maxBookings;
+                            ruleMatched = true;
+                            break;
+                        }
                     }
                 }
-            }
-            // Monthly check (e.g., 2nd week of month)
-            if (rule.type === 'block_monthly') {
-                // Calculate week of month
-                const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-                const dayOfMonth = targetDate.getDate();
-                const weekOfMonth = Math.ceil((dayOfMonth + firstDayOfMonth.getDay()) / 7);
-                if (rule.weekOfMonth !== undefined && rule.weekOfMonth === weekOfMonth) {
-                    return { isAvailable: false, reason: 'Date matches a recurring monthly block rule' };
+                // Monthly check
+                if (rule.type === 'block_monthly') {
+                    const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+                    const dayOfMonth = targetDate.getDate();
+                    const weekOfMonth = Math.ceil((dayOfMonth + firstDayOfMonth.getDay()) / 7);
+                    if (rule.weekOfMonth !== undefined && rule.weekOfMonth === weekOfMonth) {
+                        return { isAvailable: false, reason: 'Date matches a recurring monthly block rule' };
+                    }
                 }
             }
         }
+        if (!ruleMatched) {
+            // 3. Check default schedule
+            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+            const dayName = days[targetDate.getDay()];
+            const daySchedule = availability.defaultSchedule[dayName];
+            if (!daySchedule || !daySchedule.isActive) {
+                return { isAvailable: false, reason: 'Day is not a working day in default schedule' };
+            }
+            workingHours = { start: daySchedule.start, end: daySchedule.end };
+            if (daySchedule.maxBookings)
+                maxBookings = daySchedule.maxBookings;
+        }
     }
-    // 3. Check default schedule
-    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-    const dayName = days[targetDate.getDay()];
-    const daySchedule = availability.defaultSchedule[dayName];
-    if (!daySchedule || !daySchedule.isActive) {
-        return { isAvailable: false, reason: 'Day is not a working day in default schedule' };
+    // Final step: Check if fully booked for the day
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    const bookingCount = await booking_model_1.Booking.countDocuments({
+        providerId: new mongoose_1.Types.ObjectId(providerId),
+        bookingDate: {
+            $gte: startOfDay,
+            $lte: endOfDay
+        },
+        status: { $nin: ['cancelled', 'completed'] }
+    });
+    if (bookingCount >= maxBookings) {
+        return { isAvailable: false, reason: 'Fully booked for this date' };
     }
     return {
         isAvailable: true,
-        workingHours: { start: daySchedule.start, end: daySchedule.end }
+        workingHours,
+        pricing
     };
 };
 const getAvailableTimeSlots = async (providerId, date, serviceDuration) => {
@@ -111,14 +138,12 @@ const getAvailableTimeSlots = async (providerId, date, serviceDuration) => {
         const timeSlot = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
         slots.push(timeSlot);
     }
-    // Import Booking model to check for conflicts
-    const { Booking } = require('../booking/booking.model');
     // Filter out booked slots
     const targetDate = new Date(date);
     targetDate.setHours(0, 0, 0, 0);
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
-    const existingBookings = await Booking.find({
+    const existingBookings = await booking_model_1.Booking.find({
         providerId: new mongoose_1.Types.ObjectId(providerId),
         bookingDate: {
             $gte: targetDate,

@@ -31,6 +31,15 @@ const auth = (...roles) => async (req, res, next) => {
             if (!verifyUser.userId && verifyUser.authId) {
                 verifyUser.userId = verifyUser.authId;
             }
+            // Normalize role fields for compatibility across token versions
+            if (verifyUser.activeRole && !verifyUser.role) {
+                ;
+                verifyUser.role = verifyUser.activeRole;
+            }
+            if (verifyUser.role && !verifyUser.activeRole) {
+                ;
+                verifyUser.activeRole = verifyUser.role;
+            }
         }
         catch (error) {
             if (error.name === 'TokenExpiredError') {
@@ -42,10 +51,14 @@ const auth = (...roles) => async (req, res, next) => {
         req.user = verifyUser;
         // SECOND: role check
         if (roles.length > 0) {
-            const userRole = verifyUser.activeRole || verifyUser.role || ((_a = verifyUser.user) === null || _a === void 0 ? void 0 : _a.role) || ((_b = verifyUser.data) === null || _b === void 0 ? void 0 : _b.role);
+            const userRole = verifyUser.activeRole ||
+                verifyUser.role ||
+                ((_a = verifyUser.user) === null || _a === void 0 ? void 0 : _a.role) ||
+                ((_b = verifyUser.data) === null || _b === void 0 ? void 0 : _b.role);
             if (!userRole) {
                 return next(new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'User role missing in token'));
             }
+            console.log({ userRole });
             if (!roles.includes(userRole)) {
                 return next(new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this API"));
             }

@@ -128,7 +128,6 @@ const handleLoginLogic = async (
 
   const tokens = AuthHelper.createToken(
     isUserExist._id,
-    isUserExist.roles[0],
     isUserExist.activeRole,
     isUserExist.name!,
     isUserExist.email!,
@@ -161,6 +160,7 @@ export const authResponse = (
     status,
     message,
     ...(role && { role }),
+    ...(role && { activeRole: role }),
     ...(accessToken && { accessToken }),
     ...(refreshToken && { refreshToken }),
     ...(token && { token }),

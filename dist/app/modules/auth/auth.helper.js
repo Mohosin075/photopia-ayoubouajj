@@ -7,12 +7,12 @@ exports.AuthHelper = void 0;
 const jwtHelper_1 = require("../../../helpers/jwtHelper");
 const config_1 = __importDefault(require("../../../config"));
 const bcrypt_1 = __importDefault(require("bcrypt"));
-const createToken = (userId, role, activeRole, name, email, deviceToken, rememberMe) => {
-    const accessToken = jwtHelper_1.jwtHelper.createToken({ userId, authId: userId, role, name, email, deviceToken }, config_1.default.jwt.jwt_secret, config_1.default.jwt.jwt_expire_in);
+const createToken = (userId, activeRole, name, email, deviceToken, rememberMe) => {
+    const accessToken = jwtHelper_1.jwtHelper.createToken({ userId, authId: userId, activeRole, name, email, deviceToken }, config_1.default.jwt.jwt_secret, config_1.default.jwt.jwt_expire_in);
     const refreshExpiry = rememberMe
         ? config_1.default.jwt.jwt_refresh_expire_long
         : config_1.default.jwt.jwt_refresh_expire_in;
-    const refreshToken = jwtHelper_1.jwtHelper.createToken({ userId, authId: userId, role, name, email, deviceToken }, config_1.default.jwt.jwt_refresh_secret, refreshExpiry);
+    const refreshToken = jwtHelper_1.jwtHelper.createToken({ userId, authId: userId, activeRole, name, email, deviceToken }, config_1.default.jwt.jwt_refresh_secret, refreshExpiry);
     return { accessToken, refreshToken };
 };
 const tempAccessToken = (userId, role, activeRole, name, email, deviceToken) => {

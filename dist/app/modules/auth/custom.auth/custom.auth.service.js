@@ -143,7 +143,7 @@ const adminLogin = async (payload) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email ? 'email' : 'phone'}`);
     }
-    if (!isUserExist.roles.includes(user_1.USER_ROLES.ADMIN)) {
+    if (!isUserExist.roles.includes(user_1.USER_ROLES.ADMIN) && !isUserExist.roles.includes(user_1.USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You are not authorized to login as admin');
     }
     const isPasswordMatch = await auth_helper_1.AuthHelper.isPasswordMatched(payload.password, isUserExist.password);

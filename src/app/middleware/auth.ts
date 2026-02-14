@@ -43,6 +43,13 @@ const auth =
           if (!verifyUser.userId && verifyUser.authId) {
             verifyUser.userId = verifyUser.authId
           }
+          // Normalize role fields for compatibility across token versions
+          if ((verifyUser as any).activeRole && !(verifyUser as any).role) {
+            ;(verifyUser as any).role = (verifyUser as any).activeRole
+          }
+          if ((verifyUser as any).role && !(verifyUser as any).activeRole) {
+            ;(verifyUser as any).activeRole = (verifyUser as any).role
+          }
         } catch (error: any) {
           if (error.name === 'TokenExpiredError') {
             return next(
@@ -60,13 +67,18 @@ const auth =
         // SECOND: role check
         if (roles.length > 0) {
           const userRole =
-            verifyUser.activeRole || verifyUser.role || verifyUser.user?.role || verifyUser.data?.role
+            verifyUser.activeRole ||
+            verifyUser.role ||
+            (verifyUser as any).user?.role ||
+            (verifyUser as any).data?.role
 
           if (!userRole) {
             return next(
               new ApiError(StatusCodes.FORBIDDEN, 'User role missing in token'),
             )
           }
+
+          console.log({userRole})
 
           if (!roles.includes(userRole)) {
             return next(

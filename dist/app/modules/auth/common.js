@@ -83,7 +83,7 @@ const handleLoginLogic = async (payload, isUserExist) => {
         },
     }, { new: true });
     const rememberMe = payload.rememberMe || false;
-    const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.roles[0], isUserExist.activeRole, isUserExist.name, isUserExist.email, payload.deviceToken, rememberMe);
+    const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.activeRole, isUserExist.name, isUserExist.email, payload.deviceToken, rememberMe);
     return (0, exports.authResponse)(http_status_codes_1.StatusCodes.OK, `Welcome back ${isUserExist.name}`, isUserExist.activeRole, tokens.accessToken, tokens.refreshToken);
 };
 exports.AuthCommonServices = {
@@ -94,6 +94,7 @@ const authResponse = (status, message, role, accessToken, refreshToken, token) =
         status,
         message,
         ...(role && { role }),
+        ...(role && { activeRole: role }),
         ...(accessToken && { accessToken }),
         ...(refreshToken && { refreshToken }),
         ...(token && { token }),

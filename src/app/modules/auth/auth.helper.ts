@@ -6,7 +6,6 @@ import bcrypt from 'bcrypt'
 
 const createToken = (
   userId: Types.ObjectId,
-  role: string,
   activeRole: string,
   name?: string,
   email?: string,
@@ -14,7 +13,7 @@ const createToken = (
   rememberMe?: boolean,
 ) => {
   const accessToken = jwtHelper.createToken(
-    { userId, authId: userId, role, name, email, deviceToken },
+    { userId, authId: userId, activeRole, name, email, deviceToken },
     config.jwt.jwt_secret as Secret,
     config.jwt.jwt_expire_in as string,
   )
@@ -25,7 +24,7 @@ const createToken = (
 
 
   const refreshToken = jwtHelper.createToken(
-    { userId, authId: userId, role, name, email, deviceToken },
+    { userId, authId: userId, activeRole, name, email, deviceToken },
     config.jwt.jwt_refresh_secret as Secret,
     refreshExpiry as string,
   )

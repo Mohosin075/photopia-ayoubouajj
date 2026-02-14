@@ -49,24 +49,17 @@ const updateProfile = async (user: JwtPayload, payload: Partial<IUser>) => {
 }
 
 const createAdmin = async (): Promise<Partial<IUser> | null> => {
-  const admin = {
-    email: config.super_admin.email,
-    name: config.super_admin.name,
-    password: config.super_admin.password,
-    role: USER_ROLES.SUPER_ADMIN,
-    status: USER_STATUS.ACTIVE,
-    verified: true,
-    authentication: {
-      oneTimeCode: null,
-      restrictionLeftAt: null,
-      expiresAt: null,
-      latestRequestAt: new Date(),
-      authType: 'createAccount',
-    },
+  const email = config.super_admin.email?.toLowerCase().trim()
+  const name = config.super_admin.name?.trim()
+  const password = config.super_admin.password
+
+  if (!email || !password) {
+    console.warn('⚠️ SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set. Skipping admin creation.')
+    return null
   }
 
   const isAdminExist = await User.findOne({
-    email: admin.email,
+    email,
     status: { $nin: [USER_STATUS.DELETED] },
   })
 
@@ -74,11 +67,32 @@ const createAdmin = async (): Promise<Partial<IUser> | null> => {
     console.log('Admin account already exist, skipping creation.🦥')
     return isAdminExist
   }
-  const result = await User.create([admin])
+
+  const admin: Partial<IUser> = {
+    email,
+    name: name || 'Super Admin',
+    password,
+    roles: [USER_ROLES.SUPER_ADMIN],
+    activeRole: USER_ROLES.SUPER_ADMIN,
+    status: USER_STATUS.ACTIVE,
+    verified: true,
+    authentication: {
+      oneTimeCode: '',
+      restrictionLeftAt: null,
+      expiresAt: null,
+      latestRequestAt: new Date(),
+      authType: 'createAccount',
+      resetPassword: false,
+      wrongLoginAttempts: 0,
+    } as any,
+  }
+
+  // Use single-document create to trigger pre-save hooks (for password hashing)
+  const result = await User.create(admin as any)
   if (!result) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to create admin')
   }
-  return result[0]
+  return result.toObject()
 }
 
 

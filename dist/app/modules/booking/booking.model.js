@@ -41,7 +41,7 @@ const bookingSchema = new mongoose_1.Schema({
     durationHours: {
         type: Number,
         required: true,
-        min: 1
+        min: 0.5
     },
     timezone: {
         type: String,
@@ -109,5 +109,4 @@ const bookingSchema = new mongoose_1.Schema({
 bookingSchema.index({ clientId: 1, status: 1 });
 bookingSchema.index({ providerId: 1, status: 1 });
 bookingSchema.index({ bookingDate: 1, status: 1 });
-bookingSchema.index({ bookingNumber: 1 }, { unique: true });
 exports.Booking = (0, mongoose_1.model)('Booking', bookingSchema);

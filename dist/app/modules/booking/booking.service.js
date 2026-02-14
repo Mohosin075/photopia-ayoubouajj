@@ -94,6 +94,7 @@ const createBooking = async (payload) => {
     const bookingDate = new Date(payload.bookingDate);
     // 2. Check Availability
     const availabilityCheck = await availability_service_1.AvailabilityService.checkAvailabilityForDate(payload.providerId.toString(), bookingDate);
+    console.log('Availability Check:', availabilityCheck);
     if (!availabilityCheck.isAvailable) {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Provider is not available: ${availabilityCheck.reason}`);
     }
