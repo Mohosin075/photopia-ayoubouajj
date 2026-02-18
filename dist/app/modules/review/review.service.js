@@ -89,21 +89,21 @@ const getAllReviews = async (type, paginationOptions) => {
         data: result,
     };
 };
-const getReviewsByEvent = async (user, eventId, type, paginationOptions) => {
+const getReviewsByBooking = async (user, bookingId, type, paginationOptions) => {
     const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
-    const cacheKey = `reviews:${type}:${user.userId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`;
+    const cacheKey = `reviews:${type}:${user.userId}:booking:${bookingId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`;
     // const cachedResult = await redisClient.get(cacheKey);
     // if(cachedResult){
     //   return JSON.parse(cachedResult);
     // }
     const [result, total] = await Promise.all([
-        review_model_1.Review.find({ eventId: eventId })
+        review_model_1.Review.find({ bookingId: bookingId })
             .populate('reviewer')
             .populate('reviewee')
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder }),
-        review_model_1.Review.countDocuments({ eventId: eventId }),
+        review_model_1.Review.countDocuments({ bookingId: bookingId }),
     ]);
     //cache the result
     // await redisClient.setex(cacheKey, JSON.stringify({ meta: { page, limit, total, totalPages: Math.ceil(total / limit) }, data: result }), 60 * 3); // 2 minutes
@@ -254,5 +254,5 @@ exports.ReviewServices = {
     updateReview,
     deleteReview,
     getSingleReview,
-    getReviewsByEvent,
+    getReviewsByBooking,
 };

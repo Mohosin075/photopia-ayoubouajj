@@ -112,16 +112,16 @@ const getAllReviews = async (
   }
 }
 
-const getReviewsByEvent = async (
+const getReviewsByBooking = async (
   user: JwtPayload,
-  eventId: string,
+  bookingId: string,
   type: 'reviewer' | 'reviewee',
   paginationOptions: IPaginationOptions,
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  const cacheKey = `reviews:${type}:${user.userId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
+  const cacheKey = `reviews:${type}:${user.userId}:booking:${bookingId}:page:${page}:limit:${limit}:sort:${sortBy}:${sortOrder}`
 
   // const cachedResult = await redisClient.get(cacheKey);
 
@@ -130,13 +130,13 @@ const getReviewsByEvent = async (
   // }
 
   const [result, total] = await Promise.all([
-    Review.find({ eventId: eventId })
+    Review.find({ bookingId: bookingId })
       .populate('reviewer')
       .populate('reviewee')
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder }),
-    Review.countDocuments({ eventId: eventId }),
+    Review.countDocuments({ bookingId: bookingId }),
   ])
 
   //cache the result
@@ -328,5 +328,5 @@ export const ReviewServices = {
   updateReview,
   deleteReview,
   getSingleReview,
-  getReviewsByEvent,
+  getReviewsByBooking,
 }

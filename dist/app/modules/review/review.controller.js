@@ -42,10 +42,10 @@ const getAllReviews = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
-const getReviewsByEvent = (0, catchAsync_1.default)(async (req, res) => {
+const getReviewsByBooking = (0, catchAsync_1.default)(async (req, res) => {
     const type = req.params.type;
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const result = await review_service_1.ReviewServices.getReviewsByEvent(req.user, req.params.eventId, type, paginationOptions);
+    const result = await review_service_1.ReviewServices.getReviewsByBooking(req.user, req.params.bookingId, type, paginationOptions);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -79,5 +79,5 @@ exports.ReviewController = {
     getAllReviews,
     deleteReview,
     getSingleReview,
-    getReviewsByEvent,
+    getReviewsByBooking,
 };

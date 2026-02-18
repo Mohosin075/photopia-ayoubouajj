@@ -3,7 +3,7 @@ import { IReview, ReviewModel } from './review.interface'
 
 const reviewSchema = new Schema<IReview, ReviewModel>(
   {
-    eventId: { type: Schema.Types.ObjectId, ref: 'Event', required: true },
+    bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true },
     reviewer: {
       type: Schema.Types.ObjectId,
       ref: 'User',

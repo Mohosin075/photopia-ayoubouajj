@@ -17,8 +17,9 @@ router
     .route('/')
     .get(review_controller_1.ReviewController.getAllReviews)
     .post((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), (0, validateRequest_1.default)(review_validation_1.createReviewSchema), review_controller_1.ReviewController.createReview);
-router.route('/:eventId/event')
-    .get((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), review_controller_1.ReviewController.getReviewsByEvent);
+router
+    .route('/:bookingId/booking')
+    .get((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), review_controller_1.ReviewController.getReviewsByBooking);
 // router.route('/:type')
 //   .get(auth(...roles), ReviewController.getAllReviews);
 router

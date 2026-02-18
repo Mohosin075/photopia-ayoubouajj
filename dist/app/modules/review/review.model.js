@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Review = void 0;
 const mongoose_1 = require("mongoose");
 const reviewSchema = new mongoose_1.Schema({
-    eventId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Event', required: true },
+    bookingId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Booking', required: true },
     reviewer: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
