@@ -40,6 +40,7 @@ export type Point = {
 export interface IUser {
   _id: Types.ObjectId
   name?: string
+  fullName?: string
   email?: string
   profile?: string
   phone?: string
@@ -59,6 +60,11 @@ export interface IUser {
   timezone: string
   subscribe: boolean
   isOnboardingComplete: boolean
+  stripeCustomerId?: string
+  subscriptionStatus?: string
+  subscriptionTier?: string
+  trialUsed?: boolean
+  subscriptionExpiresAt?: Date
   // membership: Membership
 
   settings?: {

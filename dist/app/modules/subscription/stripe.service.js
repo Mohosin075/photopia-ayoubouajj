@@ -8,11 +8,11 @@ const stripe_1 = __importDefault(require("stripe"));
 const config_1 = __importDefault(require("../../../config"));
 class StripeService {
     constructor() {
-        if (!config_1.default.stripe.secret_key) {
+        if (!config_1.default.stripe.stripeSecretKey) {
             throw new Error('Stripe secret key is required');
         }
-        this.stripe = new stripe_1.default(config_1.default.stripe.secret_key, {
-            apiVersion: '2025-02-24.acacia',
+        this.stripe = new stripe_1.default(config_1.default.stripe.stripeSecretKey, {
+            apiVersion: '2025-08-27.basil',
             typescript: true,
         });
     }
@@ -204,10 +204,10 @@ class StripeService {
     // Webhook Verification
     constructWebhookEvent(payload, signature) {
         try {
-            if (!config_1.default.stripe.webhook_secret) {
+            if (!config_1.default.stripe.webhookSecret) {
                 throw new Error('Stripe webhook secret is required');
             }
-            const event = this.stripe.webhooks.constructEvent(payload, signature, config_1.default.stripe.webhook_secret);
+            const event = this.stripe.webhooks.constructEvent(payload, signature, config_1.default.stripe.webhookSecret);
             return event;
         }
         catch (error) {
@@ -248,21 +248,6 @@ class StripeService {
         }
         catch (error) {
             console.error('Error creating Stripe price:', error);
-            throw error;
-        }
-    }
-    // Usage tracking (for metered billing if needed)
-    async createUsageRecord(subscriptionItemId, quantity) {
-        try {
-            const usageRecord = await this.stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
-                quantity,
-                timestamp: Math.floor(Date.now() / 1000),
-            });
-            console.log(`Usage record created for subscription item: ${subscriptionItemId}`);
-            return usageRecord;
-        }
-        catch (error) {
-            console.error('Error creating usage record:', error);
             throw error;
         }
     }

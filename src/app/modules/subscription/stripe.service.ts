@@ -5,12 +5,12 @@ class StripeService {
   private stripe: Stripe
 
   constructor() {
-    if (!config.stripe.secret_key) {
+    if (!config.stripe.stripeSecretKey) {
       throw new Error('Stripe secret key is required')
     }
 
-    this.stripe = new Stripe(config.stripe.secret_key, {
-      apiVersion: '2025-02-24.acacia',
+    this.stripe = new Stripe(config.stripe.stripeSecretKey, {
+      apiVersion: '2025-08-27.basil',
       typescript: true,
     })
   }
@@ -219,10 +219,10 @@ class StripeService {
   // Invoice Management
   async getUpcomingInvoice(customerId: string): Promise<Stripe.UpcomingInvoice> {
     try {
-      const invoice = await this.stripe.invoices.retrieveUpcoming({
+      const invoice = await (this.stripe.invoices as any).retrieveUpcoming({
         customer: customerId,
       })
-      return invoice
+      return invoice as Stripe.UpcomingInvoice
     } catch (error) {
       console.error(`Error retrieving upcoming invoice for customer ${customerId}:`, error)
       throw error
@@ -232,14 +232,14 @@ class StripeService {
   // Webhook Verification
   constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
     try {
-      if (!config.stripe.webhook_secret) {
+      if (!config.stripe.webhookSecret) {
         throw new Error('Stripe webhook secret is required')
       }
 
       const event = this.stripe.webhooks.constructEvent(
         payload,
         signature,
-        config.stripe.webhook_secret,
+        config.stripe.webhookSecret,
       )
 
       return event
@@ -294,22 +294,6 @@ class StripeService {
       return price
     } catch (error) {
       console.error('Error creating Stripe price:', error)
-      throw error
-    }
-  }
-
-  // Usage tracking (for metered billing if needed)
-  async createUsageRecord(subscriptionItemId: string, quantity: number): Promise<Stripe.UsageRecord> {
-    try {
-      const usageRecord = await this.stripe.subscriptionItems.createUsageRecord(subscriptionItemId, {
-        quantity,
-        timestamp: Math.floor(Date.now() / 1000),
-      })
-
-      console.log(`Usage record created for subscription item: ${subscriptionItemId}`)
-      return usageRecord
-    } catch (error) {
-      console.error('Error creating usage record:', error)
       throw error
     }
   }

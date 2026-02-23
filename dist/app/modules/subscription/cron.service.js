@@ -35,7 +35,6 @@ class CronService {
                 console.error('Error in subscription health monitoring cron:', error);
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         });
         job.start();
@@ -58,7 +57,6 @@ class CronService {
                 console.error('Error generating daily subscription report:', error);
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         });
         job.start();
@@ -77,7 +75,6 @@ class CronService {
                 console.error('Error in webhook health check cron:', error);
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         });
         job.start();
@@ -96,7 +93,6 @@ class CronService {
                 console.error('Error in trial conversion monitoring cron:', error);
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         });
         job.start();

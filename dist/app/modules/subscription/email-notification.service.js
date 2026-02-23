@@ -14,7 +14,7 @@ class EmailNotificationService {
                 return;
             }
             const emailData = emailTemplate_1.emailTemplate.subscriptionWelcome({
-                name: user.fullName || user.name || 'Valued Customer',
+                name: user.name || 'Valued Customer',
                 email: user.email,
                 planName: plan.name,
                 planPrice: plan.price,
@@ -39,7 +39,7 @@ class EmailNotificationService {
             if (!user || !user.email)
                 return;
             const emailData = emailTemplate_1.emailTemplate.trialEnding({
-                name: user.fullName || user.name || 'Valued Customer',
+                name: user.name || 'Valued Customer',
                 email: user.email,
                 planName: plan.name,
                 daysLeft,
@@ -62,7 +62,7 @@ class EmailNotificationService {
             if (!user || !user.email)
                 return;
             const emailData = emailTemplate_1.emailTemplate.paymentSuccess({
-                name: user.fullName || user.name || 'Valued Customer',
+                name: user.name || 'Valued Customer',
                 email: user.email,
                 invoiceNumber: invoice.number || 'N/A',
                 amount: (invoice.amount_paid / 100).toFixed(2),
@@ -86,7 +86,7 @@ class EmailNotificationService {
             if (!user || !user.email)
                 return;
             const emailData = emailTemplate_1.emailTemplate.paymentFailed({
-                name: user.fullName || user.name || 'Valued Customer',
+                name: user.name || 'Valued Customer',
                 email: user.email,
                 planName: 'Your Plan', // We'll need to get this from subscription
                 amount: (invoice.amount_due / 100).toFixed(2),
@@ -110,7 +110,7 @@ class EmailNotificationService {
             if (!user || !user.email)
                 return;
             const emailData = emailTemplate_1.emailTemplate.subscriptionCanceled({
-                name: user.fullName || user.name || 'Valued Customer',
+                name: user.name || 'Valued Customer',
                 email: user.email,
                 planName: plan.name,
                 canceledAt,
@@ -134,7 +134,7 @@ class EmailNotificationService {
             const isUpgrade = newPlan.price > (oldPrice.unit_amount / 100);
             const priceDifference = Math.abs(newPlan.price - (oldPrice.unit_amount / 100));
             const emailData = emailTemplate_1.emailTemplate.planChange({
-                name: user.fullName || user.name || 'Valued Customer',
+                name: user.name || 'Valued Customer',
                 email: user.email,
                 newPlanName: newPlan.name,
                 newPlanPrice: newPlan.price,

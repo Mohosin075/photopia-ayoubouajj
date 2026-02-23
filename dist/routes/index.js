@@ -19,6 +19,7 @@ const service_route_1 = require("../app/modules/service/service.route");
 const favourite_route_1 = require("../app/modules/favourite/favourite.route");
 const availability_route_1 = require("../app/modules/availability/availability.route");
 const booking_route_1 = require("../app/modules/booking/booking.route");
+const subscription_route_1 = require("../app/modules/subscription/subscription.route");
 const router = express_1.default.Router();
 const apiRoutes = [
     {
@@ -28,6 +29,10 @@ const apiRoutes = [
     {
         path: '/users',
         route: user_route_1.UserRoutes,
+    },
+    {
+        path: '/subscription',
+        route: subscription_route_1.SubscriptionRoutes,
     },
     {
         path: '/professional-profiles',

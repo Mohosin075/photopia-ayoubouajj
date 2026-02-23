@@ -106,7 +106,7 @@ class SubscriptionService {
       } else {
         const stripeCustomer = await stripeService.createCustomer(
           user.email!,
-          user.fullName || user.name,
+          (user as any).fullName || user.name,
           { userId: userId.toString() },
         )
         stripeCustomerId = stripeCustomer.id
@@ -138,8 +138,8 @@ class SubscriptionService {
         stripeSubscriptionId: stripeSubscription.id,
         stripePriceId: plan.stripePriceId,
         status: stripeSubscription.status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
         trialStart: stripeSubscription.trial_start
           ? new Date(stripeSubscription.trial_start * 1000)
           : null,
@@ -158,7 +158,7 @@ class SubscriptionService {
         subscriptionStatus: stripeSubscription.status,
         subscriptionTier: this.getSubscriptionTier(plan.name),
         trialUsed: trialInfo.isEligible,
-        subscriptionExpiresAt: new Date(stripeSubscription.current_period_end * 1000),
+        subscriptionExpiresAt: new Date((stripeSubscription as any).current_period_end * 1000),
       })
 
       // Send welcome email
@@ -171,7 +171,7 @@ class SubscriptionService {
       // Get client secret for payment confirmation if needed
       let clientSecret: string | undefined
       if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object') {
-        const invoice = stripeSubscription.latest_invoice
+        const invoice: any = stripeSubscription.latest_invoice
         if (invoice.payment_intent && typeof invoice.payment_intent === 'object') {
           clientSecret = invoice.payment_intent.client_secret || undefined
         }
@@ -406,7 +406,7 @@ class SubscriptionService {
       } else {
         const stripeCustomer = await stripeService.createCustomer(
           user.email!,
-          user.fullName || user.name,
+          (user as any).fullName || user.name,
           { userId: userId.toString() },
         )
         stripeCustomerId = stripeCustomer.id
@@ -718,12 +718,14 @@ class SubscriptionService {
         throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
       }
 
-      if (!user.stripeCustomerId) {
+      const userWithStripe = user as any
+
+      if (!userWithStripe.stripeCustomerId) {
         throw new ApiError(StatusCodes.BAD_REQUEST, 'User does not have a Stripe customer account')
       }
 
       // Create billing portal session
-      const session = await stripeService.createPortalSession(user.stripeCustomerId, returnUrl)
+      const session = await stripeService.createPortalSession(userWithStripe.stripeCustomerId, returnUrl)
       
       console.log(`Billing portal session created for user: ${userId}`)
       return { url: session.url }

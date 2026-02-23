@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express'
 import config from './config'
 import stripe from './config/stripe'
 import { WebhookService } from './app/modules/payment/webhook.service'
+import { webhookService as subscriptionWebhookService } from './app/modules/subscription/webhook.service'
 
 const webhookApp = express()
 
@@ -36,12 +37,15 @@ webhookApp.post(
         return
       }
 
-      await WebhookService.handleWebhook({
-        body: rawBody,
-        headers: {
-          'stripe-signature': sig,
-        },
-      })
+      await Promise.allSettled([
+        WebhookService.handleWebhook({
+          body: rawBody,
+          headers: {
+            'stripe-signature': sig,
+          },
+        }),
+        subscriptionWebhookService.processWebhookEvent(event),
+      ])
 
       res.status(200).json({
         received: true,

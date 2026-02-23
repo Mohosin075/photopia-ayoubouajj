@@ -23,8 +23,8 @@ class MonitoringService {
                         if (stripeSubscription.status !== subscription.status) {
                             await Subscription.findByIdAndUpdate(subscription._id, {
                                 status: stripeSubscription.status,
-                                currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-                                currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                                currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
+                                currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
                             })
 
                             console.log(`Synced subscription status: ${subscription._id}`)
@@ -181,8 +181,8 @@ class MonitoringService {
 
                         await Subscription.findByIdAndUpdate(subscription._id, {
                             status: stripeSubscription.status,
-                            currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-                            currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                            currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
+                            currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
                             updatedAt: new Date(),
                         })
                         

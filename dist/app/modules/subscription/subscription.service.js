@@ -627,11 +627,12 @@ class SubscriptionService {
             if (!user) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
             }
-            if (!user.stripeCustomerId) {
+            const userWithStripe = user;
+            if (!userWithStripe.stripeCustomerId) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'User does not have a Stripe customer account');
             }
             // Create billing portal session
-            const session = await stripe_service_1.stripeService.createPortalSession(user.stripeCustomerId, returnUrl);
+            const session = await stripe_service_1.stripeService.createPortalSession(userWithStripe.stripeCustomerId, returnUrl);
             console.log(`Billing portal session created for user: ${userId}`);
             return { url: session.url };
         }

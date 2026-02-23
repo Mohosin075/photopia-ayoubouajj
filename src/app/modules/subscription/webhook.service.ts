@@ -174,8 +174,8 @@ class WebhookService {
         stripeSubscriptionId: stripeSubscription.id,
         stripePriceId: stripeSubscription.items.data[0].price.id,
         status: stripeSubscription.status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
         trialStart: stripeSubscription.trial_start
           ? new Date(stripeSubscription.trial_start * 1000)
           : null,
@@ -195,7 +195,7 @@ class WebhookService {
         subscriptionStatus: stripeSubscription.status,
         subscriptionTier: this.getSubscriptionTier(plan.name),
         trialUsed: !!stripeSubscription.trial_start,
-        subscriptionExpiresAt: new Date(stripeSubscription.current_period_end * 1000),
+        subscriptionExpiresAt: new Date((stripeSubscription as any).current_period_end * 1000),
       })
 
       // Send welcome email
@@ -232,8 +232,8 @@ class WebhookService {
       // Update subscription data
       const updateData: any = {
         status: stripeSubscription.status,
-        currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+        currentPeriodStart: new Date((stripeSubscription as any).current_period_start * 1000),
+        currentPeriodEnd: new Date((stripeSubscription as any).current_period_end * 1000),
         cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
         lastWebhookEventId: eventId,
       }
@@ -272,7 +272,7 @@ class WebhookService {
       // Update user profile with new subscription info
       await User.findByIdAndUpdate(subscription.userId, {
         subscriptionStatus: stripeSubscription.status,
-        subscriptionExpiresAt: new Date(stripeSubscription.current_period_end * 1000),
+        subscriptionExpiresAt: new Date((stripeSubscription as any).current_period_end * 1000),
         trialUsed: !!stripeSubscription.trial_start,
       })
 
@@ -351,18 +351,20 @@ class WebhookService {
   // Handle successful payment
   private async handlePaymentSucceeded(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
-      if (!invoice.subscription) {
+      const invoiceWithSubscription = invoice as any
+
+      if (!invoiceWithSubscription.subscription) {
         console.log('Invoice not related to subscription')
         return
       }
 
       const subscription = await Subscription.findOne({
-        stripeSubscriptionId: invoice.subscription as string,
+        stripeSubscriptionId: invoiceWithSubscription.subscription as string,
       })
       
 
       if (!subscription) {
-        console.error(`Subscription not found: ${invoice.subscription}`)
+        console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`)
         return
       }
 
@@ -387,17 +389,19 @@ class WebhookService {
   // Handle failed payment
   private async handlePaymentFailed(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
-      if (!invoice.subscription) {
+      const invoiceWithSubscription = invoice as any
+
+      if (!invoiceWithSubscription.subscription) {
         console.log('Invoice not related to subscription')
         return
       }
 
       const subscription = await Subscription.findOne({
-        stripeSubscriptionId: invoice.subscription as string,
+        stripeSubscriptionId: invoiceWithSubscription.subscription as string,
       }).populate(['userId', 'planId'])
 
       if (!subscription) {
-        console.error(`Subscription not found: ${invoice.subscription}`)
+        console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`)
         return
       }
 
@@ -429,17 +433,19 @@ class WebhookService {
   // Handle upcoming invoice (7 days before charge)
   private async handleUpcomingInvoice(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
-      if (!invoice.subscription) {
+      const invoiceWithSubscription = invoice as any
+
+      if (!invoiceWithSubscription.subscription) {
         console.log('Invoice not related to subscription')
         return
       }
 
       const subscription = await Subscription.findOne({
-        stripeSubscriptionId: invoice.subscription as string,
+        stripeSubscriptionId: invoiceWithSubscription.subscription as string,
       }).populate(['userId', 'planId'])
 
       if (!subscription) {
-        console.error(`Subscription not found: ${invoice.subscription}`)
+        console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`)
         return
       }
 
@@ -723,10 +729,11 @@ class WebhookService {
   // Handle invoice created
   private async handleInvoiceCreated(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
-      if (!invoice.subscription) return
+      const invoiceWithSubscription = invoice as any
+      if (!invoiceWithSubscription.subscription) return
 
       const subscription = await Subscription.findOne({
-        stripeSubscriptionId: invoice.subscription as string,
+        stripeSubscriptionId: invoiceWithSubscription.subscription as string,
       })
 
       if (subscription) {
@@ -745,10 +752,11 @@ class WebhookService {
   // Handle invoice finalized
   private async handleInvoiceFinalized(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
-      if (!invoice.subscription) return
+      const invoiceWithSubscription = invoice as any
+      if (!invoiceWithSubscription.subscription) return
 
       const subscription = await Subscription.findOne({
-        stripeSubscriptionId: invoice.subscription as string,
+        stripeSubscriptionId: invoiceWithSubscription.subscription as string,
       })
 
       if (subscription) {

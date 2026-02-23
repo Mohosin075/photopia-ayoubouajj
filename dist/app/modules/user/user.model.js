@@ -10,6 +10,7 @@ const user_1 = require("../../../enum/user");
 // ------------------ USER SCHEMA ------------------
 const UserSchema = new mongoose_1.Schema({
     name: { type: String, trim: true },
+    fullName: { type: String, trim: true },
     email: { type: String, unique: true, lowercase: true, required: true },
     profile: { type: String, default: "/images/1767048629458-l94gk7.jpg" },
     phone: { type: String },
@@ -40,6 +41,11 @@ const UserSchema = new mongoose_1.Schema({
         },
     },
     subscribe: { type: Boolean, default: false },
+    stripeCustomerId: { type: String },
+    subscriptionStatus: { type: String },
+    subscriptionTier: { type: String },
+    trialUsed: { type: Boolean, default: false },
+    subscriptionExpiresAt: { type: Date },
     password: { type: String, minlength: 6 },
     roles: {
         type: [String],

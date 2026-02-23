@@ -1,8 +1,8 @@
-import cron from 'node-cron'
+import cron, { ScheduledTask } from 'node-cron'
 import { monitoringService } from './monitoring.service'
 
 class CronService {
-    private jobs: Map<string, cron.ScheduledTask> = new Map()
+  private jobs: Map<string, ScheduledTask> = new Map()
     private jobStatus: Map<string, boolean> = new Map()
 
     // Start all subscription-related cron jobs
@@ -28,7 +28,6 @@ class CronService {
                 console.error('Error in subscription health monitoring cron:', error)
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         })
 
@@ -54,7 +53,6 @@ class CronService {
                 console.error('Error generating daily subscription report:', error)
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         })
 
@@ -74,7 +72,6 @@ class CronService {
                 console.error('Error in webhook health check cron:', error)
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         })
 
@@ -94,7 +91,6 @@ class CronService {
                 console.error('Error in trial conversion monitoring cron:', error)
             }
         }, {
-            scheduled: false,
             timezone: 'UTC'
         })
 

@@ -7,6 +7,7 @@ const express_1 = __importDefault(require("express"));
 const config_1 = __importDefault(require("./config"));
 const stripe_1 = __importDefault(require("./config/stripe"));
 const webhook_service_1 = require("./app/modules/payment/webhook.service");
+const webhook_service_2 = require("./app/modules/subscription/webhook.service");
 const webhookApp = (0, express_1.default)();
 webhookApp.post('/webhook', express_1.default.raw({ type: 'application/json' }), async (req, res) => {
     try {
@@ -31,12 +32,15 @@ webhookApp.post('/webhook', express_1.default.raw({ type: 'application/json' }),
             res.status(400).json({ error: `Webhook Error: ${err.message}` });
             return;
         }
-        await webhook_service_1.WebhookService.handleWebhook({
-            body: rawBody,
-            headers: {
-                'stripe-signature': sig,
-            },
-        });
+        await Promise.allSettled([
+            webhook_service_1.WebhookService.handleWebhook({
+                body: rawBody,
+                headers: {
+                    'stripe-signature': sig,
+                },
+            }),
+            webhook_service_2.webhookService.processWebhookEvent(event),
+        ]);
         res.status(200).json({
             received: true,
             event: event.type,

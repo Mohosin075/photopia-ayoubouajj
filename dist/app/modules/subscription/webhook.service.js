@@ -315,15 +315,16 @@ class WebhookService {
     // Handle successful payment
     async handlePaymentSucceeded(invoice, eventId) {
         try {
-            if (!invoice.subscription) {
+            const invoiceWithSubscription = invoice;
+            if (!invoiceWithSubscription.subscription) {
                 console.log('Invoice not related to subscription');
                 return;
             }
             const subscription = await subscription_model_1.Subscription.findOne({
-                stripeSubscriptionId: invoice.subscription,
+                stripeSubscriptionId: invoiceWithSubscription.subscription,
             });
             if (!subscription) {
-                console.error(`Subscription not found: ${invoice.subscription}`);
+                console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`);
                 return;
             }
             // Update payment information
@@ -345,15 +346,16 @@ class WebhookService {
     // Handle failed payment
     async handlePaymentFailed(invoice, eventId) {
         try {
-            if (!invoice.subscription) {
+            const invoiceWithSubscription = invoice;
+            if (!invoiceWithSubscription.subscription) {
                 console.log('Invoice not related to subscription');
                 return;
             }
             const subscription = await subscription_model_1.Subscription.findOne({
-                stripeSubscriptionId: invoice.subscription,
+                stripeSubscriptionId: invoiceWithSubscription.subscription,
             }).populate(['userId', 'planId']);
             if (!subscription) {
-                console.error(`Subscription not found: ${invoice.subscription}`);
+                console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`);
                 return;
             }
             // Increment failure count
@@ -380,15 +382,16 @@ class WebhookService {
     // Handle upcoming invoice (7 days before charge)
     async handleUpcomingInvoice(invoice, eventId) {
         try {
-            if (!invoice.subscription) {
+            const invoiceWithSubscription = invoice;
+            if (!invoiceWithSubscription.subscription) {
                 console.log('Invoice not related to subscription');
                 return;
             }
             const subscription = await subscription_model_1.Subscription.findOne({
-                stripeSubscriptionId: invoice.subscription,
+                stripeSubscriptionId: invoiceWithSubscription.subscription,
             }).populate(['userId', 'planId']);
             if (!subscription) {
-                console.error(`Subscription not found: ${invoice.subscription}`);
+                console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`);
                 return;
             }
             // Update next payment date
@@ -634,10 +637,11 @@ class WebhookService {
     // Handle invoice created
     async handleInvoiceCreated(invoice, eventId) {
         try {
-            if (!invoice.subscription)
+            const invoiceWithSubscription = invoice;
+            if (!invoiceWithSubscription.subscription)
                 return;
             const subscription = await subscription_model_1.Subscription.findOne({
-                stripeSubscriptionId: invoice.subscription,
+                stripeSubscriptionId: invoiceWithSubscription.subscription,
             });
             if (subscription) {
                 console.log(`Invoice created for subscription: ${subscription._id}`);
@@ -654,10 +658,11 @@ class WebhookService {
     // Handle invoice finalized
     async handleInvoiceFinalized(invoice, eventId) {
         try {
-            if (!invoice.subscription)
+            const invoiceWithSubscription = invoice;
+            if (!invoiceWithSubscription.subscription)
                 return;
             const subscription = await subscription_model_1.Subscription.findOne({
-                stripeSubscriptionId: invoice.subscription,
+                stripeSubscriptionId: invoiceWithSubscription.subscription,
             });
             if (subscription) {
                 await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, {

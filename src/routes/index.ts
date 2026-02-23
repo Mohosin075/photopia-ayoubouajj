@@ -14,7 +14,8 @@ import { CategoryRoutes } from '../app/modules/category/category.route'
 import { ServiceRoutes } from '../app/modules/service/service.route'
 import { FavouriteRoutes } from '../app/modules/favourite/favourite.route'
 import { AvailabilityRoutes } from '../app/modules/availability/availability.route'
-import { BookingRoutes } from '../app/modules/booking/booking.route';
+import { BookingRoutes } from '../app/modules/booking/booking.route'
+import { SubscriptionRoutes } from '../app/modules/subscription/subscription.route'
 
 const router = express.Router()
 
@@ -26,6 +27,10 @@ const apiRoutes: { path: string; route: Router }[] = [
   {
     path: '/users',
     route: UserRoutes,
+  },
+  {
+    path: '/subscription',
+    route: SubscriptionRoutes,
   },
   {
     path: '/professional-profiles',
