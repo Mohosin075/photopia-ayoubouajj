@@ -2,7 +2,6 @@ import Stripe from 'stripe'
 import { StatusCodes } from 'http-status-codes'
 import { Types } from 'mongoose'
 import ApiError from '../../../errors/ApiError'
-import { logger } from '../../../shared/logger'
 import { stripeService } from './stripe.service'
 import { Subscription } from './subscription.model'
 import { SubscriptionPlan } from './subscription-plan.model'
@@ -19,11 +18,11 @@ class WebhookService {
       })
 
       if (existingSubscription) {
-        logger.info(`Webhook event already processed: ${event.id}`)
+        console.log(`Webhook event already processed: ${event.id}`)
         return
       }
 
-      logger.info(`Processing webhook event: ${event.type} - ${event.id}`)
+      console.log(`Processing webhook event: ${event.type} - ${event.id}`)
 
       switch (event.type) {
         case 'customer.subscription.created':
@@ -127,10 +126,10 @@ class WebhookService {
           break
 
         default:
-          logger.info(`Unhandled webhook event type: ${event.type}`)
+          console.log(`Unhandled webhook event type: ${event.type}`)
       }
     } catch (error) {
-      logger.error(`Error processing webhook event ${event.id}:`, error)
+      console.error(`Error processing webhook event ${event.id}:`, error)
       throw error
     }
   }
@@ -143,7 +142,7 @@ class WebhookService {
     try {
       const userId = stripeSubscription.metadata?.userId
       if (!userId) {
-        logger.error('No userId in subscription metadata')
+        console.error('No userId in subscription metadata')
         return
       }
 
@@ -153,7 +152,7 @@ class WebhookService {
       })
 
       if (existingSubscription) {
-        logger.info(`Subscription already exists: ${stripeSubscription.id}`)
+        console.log(`Subscription already exists: ${stripeSubscription.id}`)
         return
       }
 
@@ -163,7 +162,7 @@ class WebhookService {
       })
 
       if (!plan) {
-        logger.error(`Plan not found for price ID: ${stripeSubscription.items.data[0].price.id}`)
+        console.error(`Plan not found for price ID: ${stripeSubscription.items.data[0].price.id}`)
         return
       }
 
@@ -207,10 +206,10 @@ class WebhookService {
         !!stripeSubscription.trial_start
       )
 
-      logger.info(`Subscription created from webhook: ${subscription._id}`)
-      logger.info(`User profile updated for user: ${userId}`)
+      console.log(`Subscription created from webhook: ${subscription._id}`)
+      console.log(`User profile updated for user: ${userId}`)
     } catch (error) {
-      logger.error('Error handling subscription created:', error)
+      console.error('Error handling subscription created:', error)
       throw error
     }
   }
@@ -226,7 +225,7 @@ class WebhookService {
       })
 
       if (!subscription) {
-        logger.error(`Subscription not found: ${stripeSubscription.id}`)
+        console.error(`Subscription not found: ${stripeSubscription.id}`)
         return
       }
 
@@ -277,10 +276,10 @@ class WebhookService {
         trialUsed: !!stripeSubscription.trial_start,
       })
 
-      logger.info(`Subscription updated from webhook: ${subscription._id}`)
-      logger.info(`User profile updated for user: ${subscription.userId}`)
+      console.log(`Subscription updated from webhook: ${subscription._id}`)
+      console.log(`User profile updated for user: ${subscription.userId}`)
     } catch (error) {
-      logger.error('Error handling subscription updated:', error)
+      console.error('Error handling subscription updated:', error)
       throw error
     }
   }
@@ -296,7 +295,7 @@ class WebhookService {
       })
 
       if (!subscription) {
-        logger.error(`Subscription not found: ${stripeSubscription.id}`)
+        console.error(`Subscription not found: ${stripeSubscription.id}`)
         return
       }
 
@@ -306,9 +305,9 @@ class WebhookService {
         lastWebhookEventId: eventId,
       })
 
-      logger.info(`Subscription deleted from webhook: ${subscription._id}`)
+      console.log(`Subscription deleted from webhook: ${subscription._id}`)
     } catch (error) {
-      logger.error('Error handling subscription deleted:', error)
+      console.error('Error handling subscription deleted:', error)
       throw error
     }
   }
@@ -324,7 +323,7 @@ class WebhookService {
       }).populate(['userId', 'planId'])
 
       if (!subscription) {
-        logger.error(`Subscription not found: ${stripeSubscription.id}`)
+        console.error(`Subscription not found: ${stripeSubscription.id}`)
         return
       }
 
@@ -342,9 +341,9 @@ class WebhookService {
         daysLeft
       )
 
-      logger.info(`Trial will end notification sent for subscription: ${subscription._id}`)
+      console.log(`Trial will end notification sent for subscription: ${subscription._id}`)
     } catch (error) {
-      logger.error('Error handling trial will end:', error)
+      console.error('Error handling trial will end:', error)
       throw error
     }
   }
@@ -353,7 +352,7 @@ class WebhookService {
   private async handlePaymentSucceeded(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
       if (!invoice.subscription) {
-        logger.info('Invoice not related to subscription')
+        console.log('Invoice not related to subscription')
         return
       }
 
@@ -363,7 +362,7 @@ class WebhookService {
       
 
       if (!subscription) {
-        logger.error(`Subscription not found: ${invoice.subscription}`)
+        console.error(`Subscription not found: ${invoice.subscription}`)
         return
       }
 
@@ -378,9 +377,9 @@ class WebhookService {
       const { emailNotificationService } = await import('./email-notification.service')
       await emailNotificationService.sendPaymentSuccessEmail(subscription, invoice)
 
-      logger.info(`Payment succeeded for subscription: ${subscription._id}`)
+      console.log(`Payment succeeded for subscription: ${subscription._id}`)
     } catch (error) {
-      logger.error('Error handling payment succeeded:', error)
+      console.error('Error handling payment succeeded:', error)
       throw error
     }
   }
@@ -389,7 +388,7 @@ class WebhookService {
   private async handlePaymentFailed(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
       if (!invoice.subscription) {
-        logger.info('Invoice not related to subscription')
+        console.log('Invoice not related to subscription')
         return
       }
 
@@ -398,7 +397,7 @@ class WebhookService {
       }).populate(['userId', 'planId'])
 
       if (!subscription) {
-        logger.error(`Subscription not found: ${invoice.subscription}`)
+        console.error(`Subscription not found: ${invoice.subscription}`)
         return
       }
 
@@ -416,13 +415,13 @@ class WebhookService {
 
       // If too many failures, consider additional actions
       if (failureCount >= 3) {
-        logger.warn(`Multiple payment failures for subscription: ${subscription._id}`)
+        console.warn(`Multiple payment failures for subscription: ${subscription._id}`)
         // Implement additional logic for handling repeated failures
       }
 
-      logger.info(`Payment failed for subscription: ${subscription._id} (attempt ${failureCount})`)
+      console.log(`Payment failed for subscription: ${subscription._id} (attempt ${failureCount})`)
     } catch (error) {
-      logger.error('Error handling payment failed:', error)
+      console.error('Error handling payment failed:', error)
       throw error
     }
   }
@@ -431,7 +430,7 @@ class WebhookService {
   private async handleUpcomingInvoice(invoice: Stripe.Invoice, eventId: string): Promise<void> {
     try {
       if (!invoice.subscription) {
-        logger.info('Invoice not related to subscription')
+        console.log('Invoice not related to subscription')
         return
       }
 
@@ -440,7 +439,7 @@ class WebhookService {
       }).populate(['userId', 'planId'])
 
       if (!subscription) {
-        logger.error(`Subscription not found: ${invoice.subscription}`)
+        console.error(`Subscription not found: ${invoice.subscription}`)
         return
       }
 
@@ -453,9 +452,9 @@ class WebhookService {
       // Send upcoming payment notification
       // await notificationService.sendUpcomingPaymentNotification(subscription, invoice)
 
-      logger.info(`Upcoming invoice notification sent for subscription: ${subscription._id}`)
+      console.log(`Upcoming invoice notification sent for subscription: ${subscription._id}`)
     } catch (error) {
-      logger.error('Error handling upcoming invoice:', error)
+      console.error('Error handling upcoming invoice:', error)
       throw error
     }
   }
@@ -467,27 +466,27 @@ class WebhookService {
   ): Promise<void> {
     try {
       if (session.mode !== 'subscription') {
-        logger.info('Checkout session not for subscription')
+        console.log('Checkout session not for subscription')
         return
       }
 
       const userId = session.metadata?.userId
       if (!userId) {
-        logger.error('No userId in checkout session metadata')
+        console.error('No userId in checkout session metadata')
         return
       }
       console.log('session', session)
 
       // The subscription should already be created by the subscription.created webhook
       // This is mainly for logging and additional processing if needed
-      logger.info(`Checkout completed for user: ${userId}`)
+      console.log(`Checkout completed for user: ${userId}`)
 
       // You can add additional logic here like:
       // - Sending welcome emails
       // - Updating user status
       // - Triggering onboarding flows
     } catch (error) {
-      logger.error('Error handling checkout completed:', error)
+      console.error('Error handling checkout completed:', error)
       throw error
     }
   }
@@ -500,7 +499,7 @@ class WebhookService {
       })
 
       if (!plan) {
-        logger.warn(`Plan not found for Stripe product: ${stripeProduct.id}`)
+        console.warn(`Plan not found for Stripe product: ${stripeProduct.id}`)
         return
       }
 
@@ -512,9 +511,9 @@ class WebhookService {
         lastWebhookEventId: eventId,
       })
 
-      logger.info(`Plan updated from Stripe product webhook: ${plan._id}`)
+      console.log(`Plan updated from Stripe product webhook: ${plan._id}`)
     } catch (error) {
-      logger.error('Error handling product updated:', error)
+      console.error('Error handling product updated:', error)
       throw error
     }
   }
@@ -527,7 +526,7 @@ class WebhookService {
       })
 
       if (!plan) {
-        logger.warn(`Plan not found for deleted Stripe product: ${stripeProduct.id}`)
+        console.warn(`Plan not found for deleted Stripe product: ${stripeProduct.id}`)
         return
       }
 
@@ -546,15 +545,15 @@ class WebhookService {
       for (const subscription of activeSubscriptions) {
         try {
           await stripeService.cancelSubscription(subscription.stripeSubscriptionId, true)
-          logger.info(`Canceled subscription due to product deletion: ${subscription._id}`)
+          console.log(`Canceled subscription due to product deletion: ${subscription._id}`)
         } catch (error) {
-          logger.error(`Error canceling subscription ${subscription._id}:`, error)
+          console.error(`Error canceling subscription ${subscription._id}:`, error)
         }
       }
 
-      logger.info(`Plan deactivated due to product deletion: ${plan._id}`)
+      console.log(`Plan deactivated due to product deletion: ${plan._id}`)
     } catch (error) {
-      logger.error('Error handling product deleted:', error)
+      console.error('Error handling product deleted:', error)
       throw error
     }
   }
@@ -567,7 +566,7 @@ class WebhookService {
       })
 
       if (!plan) {
-        logger.warn(`Plan not found for Stripe price: ${stripePrice.id}`)
+        console.warn(`Plan not found for Stripe price: ${stripePrice.id}`)
         return
       }
 
@@ -593,9 +592,9 @@ class WebhookService {
 
       await SubscriptionPlan.findByIdAndUpdate(plan._id, updateData)
 
-      logger.info(`Plan price updated from Stripe webhook: ${plan._id}`)
+      console.log(`Plan price updated from Stripe webhook: ${plan._id}`)
     } catch (error) {
-      logger.error('Error handling price updated:', error)
+      console.error('Error handling price updated:', error)
       throw error
     }
   }
@@ -608,7 +607,7 @@ class WebhookService {
       })
 
       if (!plan) {
-        logger.warn(`Plan not found for deleted Stripe price: ${stripePrice.id}`)
+        console.warn(`Plan not found for deleted Stripe price: ${stripePrice.id}`)
         return
       }
 
@@ -618,9 +617,9 @@ class WebhookService {
         lastWebhookEventId: eventId,
       })
 
-      logger.info(`Plan deactivated due to price deletion: ${plan._id}`)
+      console.log(`Plan deactivated due to price deletion: ${plan._id}`)
     } catch (error) {
-      logger.error('Error handling price deleted:', error)
+      console.error('Error handling price deleted:', error)
       throw error
     }
   }
@@ -632,14 +631,14 @@ class WebhookService {
   ): Promise<void> {
     try {
       // Log payment method attachment for security monitoring
-      logger.info(`Payment method attached: ${paymentMethod.id} to customer: ${paymentMethod.customer}`)
+      console.log(`Payment method attached: ${paymentMethod.id} to customer: ${paymentMethod.customer}`)
       
       // You could add additional logic here like:
       // - Updating user payment method preferences
       // - Sending confirmation emails
       // - Security notifications for new payment methods
     } catch (error) {
-      logger.error('Error handling payment method attached:', error)
+      console.error('Error handling payment method attached:', error)
       throw error
     }
   }
@@ -661,9 +660,9 @@ class WebhookService {
         }
       }
 
-      logger.info(`Customer updated: ${stripeCustomer.id}`)
+      console.log(`Customer updated: ${stripeCustomer.id}`)
     } catch (error) {
-      logger.error('Error handling customer updated:', error)
+      console.error('Error handling customer updated:', error)
       throw error
     }
   }
@@ -685,9 +684,9 @@ class WebhookService {
         })
       }
 
-      logger.info(`Customer deleted and subscriptions canceled: ${stripeCustomer.id}`)
+      console.log(`Customer deleted and subscriptions canceled: ${stripeCustomer.id}`)
     } catch (error) {
-      logger.error('Error handling customer deleted:', error)
+      console.error('Error handling customer deleted:', error)
       throw error
     }
   }
@@ -695,7 +694,7 @@ class WebhookService {
   // Handle dispute created (chargeback)
   private async handleDisputeCreated(dispute: Stripe.Dispute, eventId: string): Promise<void> {
     try {
-      logger.warn(`Dispute created: ${dispute.id} for charge: ${dispute.charge}`)
+      console.warn(`Dispute created: ${dispute.id} for charge: ${dispute.charge}`)
       
       // Find subscription related to the disputed charge
       const subscription = await Subscription.findOne({
@@ -710,13 +709,13 @@ class WebhookService {
         })
 
         // Send alert to admin
-        logger.error(`DISPUTE ALERT: Subscription ${subscription._id} suspended due to dispute ${dispute.id}`)
+        console.error(`DISPUTE ALERT: Subscription ${subscription._id} suspended due to dispute ${dispute.id}`)
         
         // You could add notification logic here
         // await notificationService.sendDisputeAlert(subscription, dispute)
       }
     } catch (error) {
-      logger.error('Error handling dispute created:', error)
+      console.error('Error handling dispute created:', error)
       throw error
     }
   }
@@ -731,14 +730,14 @@ class WebhookService {
       })
 
       if (subscription) {
-        logger.info(`Invoice created for subscription: ${subscription._id}`)
+        console.log(`Invoice created for subscription: ${subscription._id}`)
         
         // Send invoice email to customer
         const { emailNotificationService } = await import('./email-notification.service')
         await emailNotificationService.sendInvoiceEmail(invoice)
       }
     } catch (error) {
-      logger.error('Error handling invoice created:', error)
+      console.error('Error handling invoice created:', error)
       throw error
     }
   }
@@ -758,10 +757,10 @@ class WebhookService {
           lastWebhookEventId: eventId,
         })
 
-        logger.info(`Invoice finalized for subscription: ${subscription._id}`)
+        console.log(`Invoice finalized for subscription: ${subscription._id}`)
       }
     } catch (error) {
-      logger.error('Error handling invoice finalized:', error)
+      console.error('Error handling invoice finalized:', error)
       throw error
     }
   }
@@ -772,7 +771,7 @@ class WebhookService {
     eventId: string,
   ): Promise<void> {
     try {
-      logger.info(`Payment intent succeeded: ${paymentIntent.id}`)
+      console.log(`Payment intent succeeded: ${paymentIntent.id}`)
       
       // Find subscription by customer
       if (paymentIntent.customer) {
@@ -788,7 +787,7 @@ class WebhookService {
         }
       }
     } catch (error) {
-      logger.error('Error handling payment intent succeeded:', error)
+      console.error('Error handling payment intent succeeded:', error)
       throw error
     }
   }
@@ -799,7 +798,7 @@ class WebhookService {
     eventId: string,
   ): Promise<void> {
     try {
-      logger.warn(`Payment intent failed: ${paymentIntent.id}`)
+      console.warn(`Payment intent failed: ${paymentIntent.id}`)
       
       if (paymentIntent.customer) {
         const subscription = await Subscription.findOne({
@@ -816,12 +815,12 @@ class WebhookService {
 
           // Alert on multiple failures
           if (failureCount >= 3) {
-            logger.error(`CRITICAL: Multiple payment failures for subscription ${subscription._id}`)
+            console.error(`CRITICAL: Multiple payment failures for subscription ${subscription._id}`)
           }
         }
       }
     } catch (error) {
-      logger.error('Error handling payment intent failed:', error)
+      console.error('Error handling payment intent failed:', error)
       throw error
     }
   }
@@ -843,10 +842,10 @@ class WebhookService {
           lastWebhookEventId: eventId,
         })
 
-        logger.info(`Subscription paused: ${subscription._id}`)
+        console.log(`Subscription paused: ${subscription._id}`)
       }
     } catch (error) {
-      logger.error('Error handling subscription paused:', error)
+      console.error('Error handling subscription paused:', error)
       throw error
     }
   }
@@ -868,10 +867,10 @@ class WebhookService {
           lastWebhookEventId: eventId,
         })
 
-        logger.info(`Subscription resumed: ${subscription._id}`)
+        console.log(`Subscription resumed: ${subscription._id}`)
       }
     } catch (error) {
-      logger.error('Error handling subscription resumed:', error)
+      console.error('Error handling subscription resumed:', error)
       throw error
     }
   }
@@ -882,12 +881,12 @@ class WebhookService {
     eventId: string,
   ): Promise<void> {
     try {
-      logger.info(`Setup intent succeeded: ${setupIntent.id}`)
+      console.log(`Setup intent succeeded: ${setupIntent.id}`)
       
       // This indicates a payment method was successfully saved
       // You could send confirmation notifications here
     } catch (error) {
-      logger.error('Error handling setup intent succeeded:', error)
+      console.error('Error handling setup intent succeeded:', error)
       throw error
     }
   }
@@ -898,12 +897,12 @@ class WebhookService {
     eventId: string,
   ): Promise<void> {
     try {
-      logger.info(`Payment method automatically updated: ${paymentMethod.id}`)
+      console.log(`Payment method automatically updated: ${paymentMethod.id}`)
       
       // Stripe automatically updates expired cards
       // You could notify the customer about the update
     } catch (error) {
-      logger.error('Error handling payment method updated:', error)
+      console.error('Error handling payment method updated:', error)
       throw error
     }
   }
@@ -924,7 +923,7 @@ class WebhookService {
     try {
       return stripeService.constructWebhookEvent(payload, signature)
     } catch (error) {
-      logger.error('Webhook signature verification failed:', error)
+      console.error('Webhook signature verification failed:', error)
       throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid webhook signature')
     }
   }

@@ -1,7 +1,6 @@
 import { StatusCodes } from 'http-status-codes'
 import { Types } from 'mongoose'
 import ApiError from '../../../errors/ApiError'
-import { logger } from '../../../shared/logger'
 import { User } from '../user/user.model'
 import { stripeService } from './stripe.service'
 import { Subscription } from './subscription.model'
@@ -32,7 +31,7 @@ class SubscriptionService {
       const plans = await SubscriptionPlan.find(query).sort({ priority: 1, price: 1 })
       return plans
     } catch (error) {
-      logger.error('Error fetching subscription plans:', error)
+      console.error('Error fetching subscription plans:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription plans')
     }
   }
@@ -47,7 +46,7 @@ class SubscriptionService {
       return plan
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error fetching subscription plan:', error)
+      console.error('Error fetching subscription plan:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription plan')
     }
   }
@@ -69,7 +68,7 @@ class SubscriptionService {
         reason: isEligible ? undefined : 'User has already used their free trial',
       }
     } catch (error) {
-      logger.error('Error checking trial eligibility:', error)
+      console.error('Error checking trial eligibility:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check trial eligibility')
     }
   }
@@ -178,7 +177,7 @@ class SubscriptionService {
         }
       }
 
-      logger.info(`Subscription created for user ${userId}: ${subscription._id}`)
+      console.log(`Subscription created for user ${userId}: ${subscription._id}`)
 
       return {
         subscription: await subscription.populate(['planId']),
@@ -186,7 +185,7 @@ class SubscriptionService {
       }
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error creating subscription:', error)
+      console.error('Error creating subscription:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create subscription')
     }
   }
@@ -197,7 +196,7 @@ class SubscriptionService {
       const subscription = await Subscription.findActiveByUserId(userId)
       return subscription
     } catch (error) {
-      logger.error('Error fetching user subscription:', error)
+      console.error('Error fetching user subscription:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription')
     }
   }
@@ -275,12 +274,12 @@ class SubscriptionService {
         updateParams,
         { new: true },
       ).populate(['planId'])
-
-      logger.info(`Subscription updated: ${subscriptionId}`)
+      
+      console.log(`Subscription updated: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error updating subscription:', error)
+      console.error('Error updating subscription:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to update subscription')
     }
   }
@@ -320,12 +319,12 @@ class SubscriptionService {
         updateData,
         { new: true },
       ).populate(['planId'])
-
-      logger.info(`Subscription canceled: ${subscriptionId}`)
+      
+      console.log(`Subscription canceled: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error canceling subscription:', error)
+      console.error('Error canceling subscription:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to cancel subscription')
     }
   }
@@ -377,7 +376,7 @@ class SubscriptionService {
         currentPlan,
       }
     } catch (error) {
-      logger.error('Error getting subscription status:', error)
+      console.error('Error getting subscription status:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to get subscription status')
     }
   }
@@ -431,7 +430,7 @@ class SubscriptionService {
       }
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error creating checkout session:', error)
+      console.error('Error creating checkout session:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create checkout session')
     }
   }
@@ -470,11 +469,11 @@ class SubscriptionService {
       })
 
       await plan.save()
-
-      logger.info(`Subscription plan created: ${plan._id}`)
+      
+      console.log(`Subscription plan created: ${plan._id}`)
       return plan
     } catch (error) {
-      logger.error('Error creating subscription plan:', error)
+      console.error('Error creating subscription plan:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create subscription plan')
     }
   }
@@ -515,12 +514,12 @@ class SubscriptionService {
       }
 
       const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(planId, updateData, { new: true })
-
-      logger.info(`Subscription plan updated: ${planId}`)
+      
+      console.log(`Subscription plan updated: ${planId}`)
       return updatedPlan!
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error updating subscription plan:', error)
+      console.error('Error updating subscription plan:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to update subscription plan')
     }
   }
@@ -616,10 +615,10 @@ class SubscriptionService {
       result.churnRate = result.totalSubscriptions > 0
         ? (result.canceledSubscriptions / result.totalSubscriptions * 100).toFixed(2)
         : 0
-
+      
       return result
     } catch (error) {
-      logger.error('Error getting subscription analytics:', error)
+      console.error('Error getting subscription analytics:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to get subscription analytics')
     }
   }
@@ -636,15 +635,14 @@ class SubscriptionService {
       const stripeSubscription = await stripeService.getSubscriptionExpanded(subscription.stripeSubscriptionId)
 
       if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object') {
-        const invoice = stripeSubscription.latest_invoice
-
+        const invoice = stripeSubscription.latest_invoice as any
         // Retry payment on the invoice
         await stripeService.retryInvoicePayment(invoice.id)
-
-        logger.info(`Payment retry initiated for subscription: ${subscriptionId}`)
+        
+        console.log(`Payment retry initiated for subscription: ${subscriptionId}`)
       }
     } catch (error) {
-      logger.error('Error retrying failed payment:', error)
+      console.error('Error retrying failed payment:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to retry payment')
     }
   }
@@ -670,12 +668,12 @@ class SubscriptionService {
         { status: 'paused' },
         { new: true }
       ).populate(['planId'])
-
-      logger.info(`Subscription paused: ${subscriptionId}`)
+      
+      console.log(`Subscription paused: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error pausing subscription:', error)
+      console.error('Error pausing subscription:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to pause subscription')
     }
   }
@@ -701,12 +699,12 @@ class SubscriptionService {
         { status: 'active' },
         { new: true }
       ).populate(['planId'])
-
-      logger.info(`Subscription resumed: ${subscriptionId}`)
+      
+      console.log(`Subscription resumed: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error resuming subscription:', error)
+      console.error('Error resuming subscription:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to resume subscription')
     }
   }
@@ -727,11 +725,11 @@ class SubscriptionService {
       // Create billing portal session
       const session = await stripeService.createPortalSession(user.stripeCustomerId, returnUrl)
       
-      logger.info(`Billing portal session created for user: ${userId}`)
+      console.log(`Billing portal session created for user: ${userId}`)
       return { url: session.url }
     } catch (error) {
       if (error instanceof ApiError) throw error
-      logger.error('Error creating billing portal session:', error)
+      console.error('Error creating billing portal session:', error)
       throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create billing portal session')
     }
   }

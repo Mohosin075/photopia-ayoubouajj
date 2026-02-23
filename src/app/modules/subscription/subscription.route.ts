@@ -33,14 +33,14 @@ router.get(
 
 router.get(
   '/trial-eligibility/:userId?',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.checkTrialEligibility),
   SubscriptionController.checkTrialEligibility,
 )
 
 router.post(
   '/create',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.createSubscription),
   SubscriptionController.createSubscription,
 ) //if payment is handle from frontend then this route will be used
@@ -49,13 +49,13 @@ router.post(
 
 router.get(
   '/my-subscription',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   SubscriptionController.getUserSubscription,
 )
 
 router.patch(
   '/:subscriptionId',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.subscriptionParams),
   validateRequest(subscriptionValidation.updateSubscription),
   SubscriptionController.updateSubscription,
@@ -63,62 +63,62 @@ router.patch(
 
 router.delete(
   '/:subscriptionId/cancel',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.subscriptionParams),
   SubscriptionController.cancelSubscription,
 )
 
 router.get(
   '/status',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
 
   SubscriptionController.getSubscriptionStatus,
 )
 
 router.post(
   '/checkout-session',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.createCheckoutSession),
   SubscriptionController.createCheckoutSession,
 )
 
 router.post(
   '/:subscriptionId/reactivate',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.subscriptionParams),
   SubscriptionController.reactivateSubscription,
 )
 
 router.post(
   '/:subscriptionId/pause',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.subscriptionParams),
   SubscriptionController.pauseSubscription,
 )
 
 router.post(
   '/:subscriptionId/resume',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.subscriptionParams),
   SubscriptionController.resumeSubscription,
 )
 
 router.get(
   '/usage',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
 
   SubscriptionController.getUsageData,
 )
 
 router.get(
   '/usage/warnings',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   SubscriptionController.getUsageWarnings,
 )
 
 router.post(
   '/billing-portal',
-  auth(USER_ROLES.DRIVER, USER_ROLES.COMPANY, USER_ROLES.COOK, USER_ROLES.FUEL_PROVIDER, USER_ROLES.MECHANIC),
+  auth(USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
   validateRequest(subscriptionValidation.createBillingPortal),
   SubscriptionController.createBillingPortal,
 )

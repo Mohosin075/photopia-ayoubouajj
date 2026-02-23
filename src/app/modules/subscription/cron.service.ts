@@ -1,5 +1,4 @@
 import cron from 'node-cron'
-import { logger } from '../../../shared/logger'
 import { monitoringService } from './monitoring.service'
 
 class CronService {
@@ -13,10 +12,9 @@ class CronService {
             this.startDailyReporting()
             this.startWebhookHealthCheck()
             this.startTrialConversionMonitoring()
-
-            logger.info('Subscription cron jobs started')
+            console.log('Subscription cron jobs started')
         } else {
-            logger.info('Subscription monitoring disabled in development mode')
+            console.log('Subscription monitoring disabled in development mode')
         }
     }
 
@@ -24,10 +22,10 @@ class CronService {
     private startHealthMonitoring(): void {
         const job = cron.schedule('0 * * * *', async () => {
             try {
-                logger.info('Running subscription health monitoring...')
+                console.log('Running subscription health monitoring...')
                 await monitoringService.runAllMonitoringTasks()
             } catch (error) {
-                logger.error('Error in subscription health monitoring cron:', error)
+                console.error('Error in subscription health monitoring cron:', error)
             }
         }, {
             scheduled: false,
@@ -37,7 +35,7 @@ class CronService {
         job.start()
         this.jobs.set('health-monitoring', job)
         this.jobStatus.set('health-monitoring', true)
-        logger.info('Health monitoring cron job scheduled (every hour)')
+        console.log('Health monitoring cron job scheduled (every hour)')
     }
 
     // Generate daily reports at 9 AM UTC
@@ -47,13 +45,13 @@ class CronService {
 
         const job = cron.schedule(`${minute} ${hour} * * *`, async () => {
             try {
-                logger.info('Generating daily subscription report...')
+                console.log('Generating daily subscription report...')
                 const report = await monitoringService.generateDailyReport()
 
                 // You could send this report via email or Slack
-                logger.info('Daily subscription report generated successfully')
+                console.log('Daily subscription report generated successfully')
             } catch (error) {
-                logger.error('Error generating daily subscription report:', error)
+                console.error('Error generating daily subscription report:', error)
             }
         }, {
             scheduled: false,
@@ -63,17 +61,17 @@ class CronService {
         job.start()
         this.jobs.set('daily-reporting', job)
         this.jobStatus.set('daily-reporting', true)
-        logger.info(`Daily reporting cron job scheduled (${reportTime} UTC)`)
+        console.log(`Daily reporting cron job scheduled (${reportTime} UTC)`)
     }
 
     // Check webhook health every 6 hours
     private startWebhookHealthCheck(): void {
         const job = cron.schedule('0 */6 * * *', async () => {
             try {
-                logger.info('Running webhook health check...')
+                console.log('Running webhook health check...')
                 await monitoringService.monitorWebhookHealth()
             } catch (error) {
-                logger.error('Error in webhook health check cron:', error)
+                console.error('Error in webhook health check cron:', error)
             }
         }, {
             scheduled: false,
@@ -83,17 +81,17 @@ class CronService {
         job.start()
         this.jobs.set('webhook-health', job)
         this.jobStatus.set('webhook-health', true)
-        logger.info('Webhook health check cron job scheduled (every 6 hours)')
+        console.log('Webhook health check cron job scheduled (every 6 hours)')
     }
 
     // Monitor trial conversions every 4 hours
     private startTrialConversionMonitoring(): void {
         const job = cron.schedule('0 */4 * * *', async () => {
             try {
-                logger.info('Running trial conversion monitoring...')
+                console.log('Running trial conversion monitoring...')
                 await monitoringService.monitorTrialConversions()
             } catch (error) {
-                logger.error('Error in trial conversion monitoring cron:', error)
+                console.error('Error in trial conversion monitoring cron:', error)
             }
         }, {
             scheduled: false,
@@ -103,7 +101,7 @@ class CronService {
         job.start()
         this.jobs.set('trial-conversion', job)
         this.jobStatus.set('trial-conversion', true)
-        logger.info('Trial conversion monitoring cron job scheduled (every 4 hours)')
+        console.log('Trial conversion monitoring cron job scheduled (every 4 hours)')
     }
 
     // Stop all cron jobs
@@ -111,12 +109,12 @@ class CronService {
         this.jobs.forEach((job, name) => {
             job.stop()
             this.jobStatus.set(name, false)
-            logger.info(`Stopped cron job: ${name}`)
+            console.log(`Stopped cron job: ${name}`)
         })
 
         this.jobs.clear()
         this.jobStatus.clear()
-        logger.info('All subscription cron jobs stopped')
+        console.log('All subscription cron jobs stopped')
     }
 
     // Get status of all jobs
@@ -136,7 +134,7 @@ class CronService {
         if (job) {
             job.stop()
             this.jobStatus.set(jobName, false)
-            logger.info(`Stopped cron job: ${jobName}`)
+            console.log(`Stopped cron job: ${jobName}`)
             return true
         }
         return false
@@ -148,7 +146,7 @@ class CronService {
         if (job) {
             job.start()
             this.jobStatus.set(jobName, true)
-            logger.info(`Started cron job: ${jobName}`)
+            console.log(`Started cron job: ${jobName}`)
             return true
         }
         return false

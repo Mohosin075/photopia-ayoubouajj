@@ -1,4 +1,3 @@
-import { logger } from '../../../shared/logger'
 import { emailHelper } from '../../../helpers/emailHelper'
 import { emailTemplate } from '../../../shared/emailTemplate'
 import { User } from '../user/user.model'
@@ -15,7 +14,7 @@ class EmailNotificationService {
     try {
       const user = await User.findById(subscription.userId).select('+email')
       if (!user || !user.email) {
-        logger.warn(`No email found for user: ${subscription.userId}`)
+        console.warn(`No email found for user: ${subscription.userId}`)
         return
       }
 
@@ -33,9 +32,9 @@ class EmailNotificationService {
       })
 
       await emailHelper.sendEmail(emailData)
-      logger.info(`Subscription welcome email sent to: ${user.email}`)
+      console.log(`Subscription welcome email sent to: ${user.email}`)
     } catch (error) {
-      logger.error('Error sending subscription welcome email:', error)
+      console.error('Error sending subscription welcome email:', error)
     }
   }
 
@@ -61,9 +60,9 @@ class EmailNotificationService {
       })
 
       await emailHelper.sendEmail(emailData)
-      logger.info(`Trial ending email sent to: ${user.email}`)
+      console.log(`Trial ending email sent to: ${user.email}`)
     } catch (error) {
-      logger.error('Error sending trial ending email:', error)
+      console.error('Error sending trial ending email:', error)
     }
   }
 
@@ -89,9 +88,9 @@ class EmailNotificationService {
       })
 
       await emailHelper.sendEmail(emailData)
-      logger.info(`Payment success email sent to: ${user.email}`)
+      console.log(`Payment success email sent to: ${user.email}`)
     } catch (error) {
-      logger.error('Error sending payment success email:', error)
+      console.error('Error sending payment success email:', error)
     }
   }
 
@@ -118,9 +117,9 @@ class EmailNotificationService {
       })
 
       await emailHelper.sendEmail(emailData)
-      logger.info(`Payment failed email sent to: ${user.email}`)
+      console.log(`Payment failed email sent to: ${user.email}`)
     } catch (error) {
-      logger.error('Error sending payment failed email:', error)
+      console.error('Error sending payment failed email:', error)
     }
   }
 
@@ -145,9 +144,9 @@ class EmailNotificationService {
       })
 
       await emailHelper.sendEmail(emailData)
-      logger.info(`Subscription canceled email sent to: ${user.email}`)
+      console.log(`Subscription canceled email sent to: ${user.email}`)
     } catch (error) {
-      logger.error('Error sending subscription canceled email:', error)
+      console.error('Error sending subscription canceled email:', error)
     }
   }
 
@@ -181,9 +180,9 @@ class EmailNotificationService {
       })
 
       await emailHelper.sendEmail(emailData)
-      logger.info(`Plan change email sent to: ${user.email}`)
+      console.log(`Plan change email sent to: ${user.email}`)
     } catch (error) {
-      logger.error('Error sending plan change email:', error)
+      console.error('Error sending plan change email:', error)
     }
   }
 
@@ -191,7 +190,7 @@ class EmailNotificationService {
   async sendInvoiceEmail(invoice: Stripe.Invoice): Promise<void> {
     try {
       if (!invoice.customer_email) {
-        logger.warn(`No customer email for invoice: ${invoice.id}`)
+        console.warn(`No customer email for invoice: ${invoice.id}`)
         return
       }
 
@@ -210,9 +209,9 @@ class EmailNotificationService {
       })
 
       await emailHelper.sendEmail(emailData)
-      logger.info(`Invoice email sent to: ${invoice.customer_email}`)
+      console.log(`Invoice email sent to: ${invoice.customer_email}`)
     } catch (error) {
-      logger.error('Error sending invoice email:', error)
+      console.error('Error sending invoice email:', error)
     }
   }
 }

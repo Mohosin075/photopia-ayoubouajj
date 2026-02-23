@@ -1,5 +1,4 @@
 import { Types } from 'mongoose'
-import { logger } from '../../../shared/logger'
 import { Subscription } from './subscription.model'
 import { User } from '../user/user.model'
 import { ISubscriptionPlan } from './subscription.interface'
@@ -54,7 +53,7 @@ class UsageTrackingService {
 
             return { allowed: true }
         } catch (error) {
-            logger.error('Error checking truck limit:', error)
+            console.error('Error checking truck limit:', error)
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check truck limit')
         }
     }
@@ -98,7 +97,7 @@ class UsageTrackingService {
 
             return { allowed: true }
         } catch (error) {
-            logger.error('Error checking user limit:', error)
+            console.error('Error checking user limit:', error)
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check user limit')
         }
     }
@@ -117,7 +116,7 @@ class UsageTrackingService {
                 apiCallsThisMonth: 0, // Implement based on your needs
             }
         } catch (error) {
-            logger.error('Error getting current usage:', error)
+            console.error('Error getting current usage:', error)
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to get usage data')
         }
     }
@@ -175,7 +174,7 @@ class UsageTrackingService {
             }
         } catch (error) {
             if (error instanceof ApiError) throw error
-            logger.error('Error getting usage with limits:', error)
+            console.error('Error getting usage with limits:', error)
             throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to get usage data')
         }
     }
@@ -202,7 +201,7 @@ class UsageTrackingService {
 
             return { warnings, suggestions }
         } catch (error) {
-            logger.error('Error checking approaching limits:', error)
+            console.error('Error checking approaching limits:', error)
             return { warnings: [], suggestions: [] }
         }
     }
@@ -217,7 +216,7 @@ class UsageTrackingService {
             // Placeholder implementation
             return 0
         } catch (error) {
-            logger.error('Error getting truck count:', error)
+            console.error('Error getting truck count:', error)
             return 0
         }
     }
@@ -232,7 +231,7 @@ class UsageTrackingService {
             // Placeholder implementation
             return 1 // At least the owner
         } catch (error) {
-            logger.error('Error getting user count:', error)
+            console.error('Error getting user count:', error)
             return 1
         }
     }
@@ -241,12 +240,12 @@ class UsageTrackingService {
     async trackFeatureUsage(userId: string, feature: string): Promise<void> {
         try {
             // Implement feature usage tracking
-            logger.info(`Feature used: ${feature} by user: ${userId}`)
+            console.log(`Feature used: ${feature} by user: ${userId}`)
 
             // You could store this in a separate collection for analytics
             // await FeatureUsage.create({ userId, feature, timestamp: new Date() })
         } catch (error) {
-            logger.error('Error tracking feature usage:', error)
+            console.error('Error tracking feature usage:', error)
         }
     }
 }

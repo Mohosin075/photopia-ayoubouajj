@@ -1,6 +1,5 @@
 import Stripe from 'stripe'
 import config from '../../../config'
-import { logger } from '../../../shared/logger'
 
 class StripeService {
   private stripe: Stripe
@@ -25,10 +24,10 @@ class StripeService {
         metadata: metadata || {},
       })
 
-      logger.info(`Stripe customer created: ${customer.id}`)
+      console.log(`Stripe customer created: ${customer.id}`)
       return customer
     } catch (error) {
-      logger.error('Error creating Stripe customer:', error)
+      console.error('Error creating Stripe customer:', error)
       throw error
     }
   }
@@ -38,7 +37,7 @@ class StripeService {
       const customer = await this.stripe.customers.retrieve(customerId)
       return customer as Stripe.Customer
     } catch (error) {
-      logger.error(`Error retrieving Stripe customer ${customerId}:`, error)
+      console.error(`Error retrieving Stripe customer ${customerId}:`, error)
       throw error
     }
   }
@@ -46,10 +45,10 @@ class StripeService {
   async updateCustomer(customerId: string, params: Stripe.CustomerUpdateParams): Promise<Stripe.Customer> {
     try {
       const customer = await this.stripe.customers.update(customerId, params)
-      logger.info(`Stripe customer updated: ${customerId}`)
+      console.log(`Stripe customer updated: ${customerId}`)
       return customer
     } catch (error) {
-      logger.error(`Error updating Stripe customer ${customerId}:`, error)
+      console.error(`Error updating Stripe customer ${customerId}:`, error)
       throw error
     }
   }
@@ -82,10 +81,10 @@ class StripeService {
 
       const subscription = await this.stripe.subscriptions.create(subscriptionParams)
 
-      logger.info(`Stripe subscription created: ${subscription.id}`)
+      console.log(`Stripe subscription created: ${subscription.id}`)
       return subscription
     } catch (error) {
-      logger.error('Error creating Stripe subscription:', error)
+      console.error('Error creating Stripe subscription:', error)
       throw error
     }
   }
@@ -97,7 +96,7 @@ class StripeService {
       })
       return subscription
     } catch (error) {
-      logger.error(`Error retrieving Stripe subscription ${subscriptionId}:`, error)
+      console.error(`Error retrieving Stripe subscription ${subscriptionId}:`, error)
       throw error
     }
   }
@@ -108,10 +107,10 @@ class StripeService {
   ): Promise<Stripe.Subscription> {
     try {
       const subscription = await this.stripe.subscriptions.update(subscriptionId, params)
-      logger.info(`Stripe subscription updated: ${subscriptionId}`)
+      console.log(`Stripe subscription updated: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      logger.error(`Error updating Stripe subscription ${subscriptionId}:`, error)
+      console.error(`Error updating Stripe subscription ${subscriptionId}:`, error)
       throw error
     }
   }
@@ -131,10 +130,10 @@ class StripeService {
         subscription = await this.stripe.subscriptions.cancel(subscriptionId)
       }
 
-      logger.info(`Stripe subscription canceled: ${subscriptionId}`)
+      console.log(`Stripe subscription canceled: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      logger.error(`Error canceling Stripe subscription ${subscriptionId}:`, error)
+      console.error(`Error canceling Stripe subscription ${subscriptionId}:`, error)
       throw error
     }
   }
@@ -146,10 +145,10 @@ class StripeService {
         customer: customerId,
       })
 
-      logger.info(`Payment method attached: ${paymentMethodId} to customer: ${customerId}`)
+      console.log(`Payment method attached: ${paymentMethodId} to customer: ${customerId}`)
       return paymentMethod
     } catch (error) {
-      logger.error('Error attaching payment method:', error)
+      console.error('Error attaching payment method:', error)
       throw error
     }
   }
@@ -162,10 +161,10 @@ class StripeService {
         },
       })
 
-      logger.info(`Default payment method set for customer: ${customerId}`)
+      console.log(`Default payment method set for customer: ${customerId}`)
       return customer
     } catch (error) {
-      logger.error('Error setting default payment method:', error)
+      console.error('Error setting default payment method:', error)
       throw error
     }
   }
@@ -209,10 +208,10 @@ class StripeService {
 
       const session = await this.stripe.checkout.sessions.create(sessionParams)
 
-      logger.info(`Stripe checkout session created: ${session.id}`)
+      console.log(`Stripe checkout session created: ${session.id}`)
       return session
     } catch (error) {
-      logger.error('Error creating Stripe checkout session:', error)
+      console.error('Error creating Stripe checkout session:', error)
       throw error
     }
   }
@@ -225,7 +224,7 @@ class StripeService {
       })
       return invoice
     } catch (error) {
-      logger.error(`Error retrieving upcoming invoice for customer ${customerId}:`, error)
+      console.error(`Error retrieving upcoming invoice for customer ${customerId}:`, error)
       throw error
     }
   }
@@ -245,7 +244,7 @@ class StripeService {
 
       return event
     } catch (error) {
-      logger.error('Error constructing webhook event:', error)
+      console.error('Error constructing webhook event:', error)
       throw error
     }
   }
@@ -263,10 +262,10 @@ class StripeService {
         metadata: params.metadata || {},
       })
 
-      logger.info(`Stripe product created: ${product.id}`)
+      console.log(`Stripe product created: ${product.id}`)
       return product
     } catch (error) {
-      logger.error('Error creating Stripe product:', error)
+      console.error('Error creating Stripe product:', error)
       throw error
     }
   }
@@ -291,10 +290,10 @@ class StripeService {
         metadata: params.metadata || {},
       })
 
-      logger.info(`Stripe price created: ${price.id}`)
+      console.log(`Stripe price created: ${price.id}`)
       return price
     } catch (error) {
-      logger.error('Error creating Stripe price:', error)
+      console.error('Error creating Stripe price:', error)
       throw error
     }
   }
@@ -307,10 +306,10 @@ class StripeService {
         timestamp: Math.floor(Date.now() / 1000),
       })
 
-      logger.info(`Usage record created for subscription item: ${subscriptionItemId}`)
+      console.log(`Usage record created for subscription item: ${subscriptionItemId}`)
       return usageRecord
     } catch (error) {
-      logger.error('Error creating usage record:', error)
+      console.error('Error creating usage record:', error)
       throw error
     }
   }
@@ -319,10 +318,10 @@ class StripeService {
   async updateProduct(productId: string, params: Stripe.ProductUpdateParams): Promise<Stripe.Product> {
     try {
       const product = await this.stripe.products.update(productId, params)
-      logger.info(`Stripe product updated: ${productId}`)
+      console.log(`Stripe product updated: ${productId}`)
       return product
     } catch (error) {
-      logger.error(`Error updating Stripe product ${productId}:`, error)
+      console.error(`Error updating Stripe product ${productId}:`, error)
       throw error
     }
   }
@@ -331,10 +330,10 @@ class StripeService {
   async archivePrice(priceId: string): Promise<Stripe.Price> {
     try {
       const price = await this.stripe.prices.update(priceId, { active: false })
-      logger.info(`Stripe price archived: ${priceId}`)
+      console.log(`Stripe price archived: ${priceId}`)
       return price
     } catch (error) {
-      logger.error(`Error archiving Stripe price ${priceId}:`, error)
+      console.error(`Error archiving Stripe price ${priceId}:`, error)
       throw error
     }
   }
@@ -343,10 +342,10 @@ class StripeService {
   async retryInvoicePayment(invoiceId: string): Promise<Stripe.Invoice> {
     try {
       const invoice = await this.stripe.invoices.pay(invoiceId)
-      logger.info(`Invoice payment retried: ${invoiceId}`)
+      console.log(`Invoice payment retried: ${invoiceId}`)
       return invoice
     } catch (error) {
-      logger.error(`Error retrying invoice payment ${invoiceId}:`, error)
+      console.error(`Error retrying invoice payment ${invoiceId}:`, error)
       throw error
     }
   }
@@ -359,10 +358,10 @@ class StripeService {
           behavior: 'keep_as_draft',
         },
       })
-      logger.info(`Stripe subscription paused: ${subscriptionId}`)
+      console.log(`Stripe subscription paused: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      logger.error(`Error pausing Stripe subscription ${subscriptionId}:`, error)
+      console.error(`Error pausing Stripe subscription ${subscriptionId}:`, error)
       throw error
     }
   }
@@ -373,10 +372,10 @@ class StripeService {
       const subscription = await this.stripe.subscriptions.update(subscriptionId, {
         pause_collection: null,
       })
-      logger.info(`Stripe subscription resumed: ${subscriptionId}`)
+      console.log(`Stripe subscription resumed: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      logger.error(`Error resuming Stripe subscription ${subscriptionId}:`, error)
+      console.error(`Error resuming Stripe subscription ${subscriptionId}:`, error)
       throw error
     }
   }
@@ -387,7 +386,7 @@ class StripeService {
       const paymentMethod = await this.stripe.paymentMethods.retrieve(paymentMethodId)
       return paymentMethod
     } catch (error) {
-      logger.error(`Error retrieving payment method ${paymentMethodId}:`, error)
+      console.error(`Error retrieving payment method ${paymentMethodId}:`, error)
       throw error
     }
   }
@@ -401,7 +400,7 @@ class StripeService {
       })
       return paymentMethods.data
     } catch (error) {
-      logger.error(`Error listing payment methods for customer ${customerId}:`, error)
+      console.error(`Error listing payment methods for customer ${customerId}:`, error)
       throw error
     }
   }
@@ -410,10 +409,10 @@ class StripeService {
   async deleteCustomer(customerId: string): Promise<Stripe.DeletedCustomer> {
     try {
       const deletedCustomer = await this.stripe.customers.del(customerId)
-      logger.info(`Stripe customer deleted: ${customerId}`)
+      console.log(`Stripe customer deleted: ${customerId}`)
       return deletedCustomer
     } catch (error) {
-      logger.error(`Error deleting Stripe customer ${customerId}:`, error)
+      console.error(`Error deleting Stripe customer ${customerId}:`, error)
       throw error
     }
   }
@@ -426,10 +425,10 @@ class StripeService {
         payment_method_types: ['card'],
         usage: 'off_session',
       })
-      logger.info(`Setup intent created for customer: ${customerId}`)
+      console.log(`Setup intent created for customer: ${customerId}`)
       return setupIntent
     } catch (error) {
-      logger.error('Error creating setup intent:', error)
+      console.error('Error creating setup intent:', error)
       throw error
     }
   }
@@ -441,10 +440,10 @@ class StripeService {
         customer: customerId,
         return_url: returnUrl,
       })
-      logger.info(`Billing portal session created for customer: ${customerId}`)
+      console.log(`Billing portal session created for customer: ${customerId}`)
       return session
     } catch (error) {
-      logger.error('Error creating billing portal session:', error)
+      console.error('Error creating billing portal session:', error)
       throw error
     }
   }
@@ -462,7 +461,7 @@ class StripeService {
       })
       return subscription
     } catch (error) {
-      logger.error(`Error retrieving expanded subscription ${subscriptionId}:`, error)
+      console.error(`Error retrieving expanded subscription ${subscriptionId}:`, error)
       throw error
     }
   }

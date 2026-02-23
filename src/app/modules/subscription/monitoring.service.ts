@@ -1,4 +1,3 @@
-import { logger } from '../../../shared/logger'
 import { Subscription } from './subscription.model'
 import { SubscriptionPlan } from './subscription-plan.model'
 import { stripeService } from './stripe.service'
@@ -14,7 +13,7 @@ class MonitoringService {
             })
 
             if (expiredSubscriptions.length > 0) {
-                logger.warn(`Found ${expiredSubscriptions.length} expired but active subscriptions`)
+                console.warn(`Found ${expiredSubscriptions.length} expired but active subscriptions`)
 
                 // Sync with Stripe to get current status
                 for (const subscription of expiredSubscriptions) {
@@ -28,15 +27,15 @@ class MonitoringService {
                                 currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
                             })
 
-                            logger.info(`Synced subscription status: ${subscription._id}`)
+                            console.log(`Synced subscription status: ${subscription._id}`)
                         }
                     } catch (error) {
-                        logger.error(`Error syncing subscription ${subscription._id}:`, error)
+                        console.error(`Error syncing subscription ${subscription._id}:`, error)
                     }
                 }
             }
         } catch (error) {
-            logger.error('Error monitoring subscription health:', error)
+            console.error('Error monitoring subscription health:', error)
         }
     }
 
@@ -50,18 +49,18 @@ class MonitoringService {
             }).populate(['userId', 'planId'])
 
             if (failedPayments.length > 0) {
-                logger.warn(`HIGH PRIORITY: ${failedPayments.length} subscriptions with multiple payment failures`)
+                console.warn(`HIGH PRIORITY: ${failedPayments.length} subscriptions with multiple payment failures`)
 
                 // Send alerts to admin
                 for (const subscription of failedPayments) {
-                    logger.error(`PAYMENT FAILURE ALERT: Subscription ${subscription._id} has ${subscription.paymentFailureCount} failed attempts`)
+                    console.error(`PAYMENT FAILURE ALERT: Subscription ${subscription._id} has ${subscription.paymentFailureCount} failed attempts`)
 
                     // You could integrate with your notification service here
                     // await notificationService.sendPaymentFailureAlert(subscription)
                 }
             }
         } catch (error) {
-            logger.error('Error monitoring payment failures:', error)
+            console.error('Error monitoring payment failures:', error)
         }
     }
 
@@ -77,18 +76,18 @@ class MonitoringService {
             }).populate(['userId', 'planId'])
 
             if (trialEndingSoon.length > 0) {
-                logger.info(`${trialEndingSoon.length} trials ending in the next 3 days`)
+                console.log(`${trialEndingSoon.length} trials ending in the next 3 days`)
 
                 // Send conversion reminders
                 for (const subscription of trialEndingSoon) {
-                    logger.info(`Trial ending soon: ${subscription._id}`)
+                    console.log(`Trial ending soon: ${subscription._id}`)
 
                     // You could send reminder emails here
                     // await emailService.sendTrialEndingReminder(subscription)
                 }
             }
         } catch (error) {
-            logger.error('Error monitoring trial conversions:', error)
+            console.error('Error monitoring trial conversions:', error)
         }
     }
 
@@ -108,12 +107,12 @@ class MonitoringService {
                 // const plan = subscription.planId as ISubscriptionPlan
 
                 // if (usage.truckCount >= plan.maxTrucks * 0.8) {
-                //   logger.warn(`User ${subscription.userId} approaching truck limit`)
+                //   console.warn(`User ${subscription.userId} approaching truck limit`)
                 //   // Send upgrade suggestion
                 // }
             }
         } catch (error) {
-            logger.error('Error monitoring plan usage:', error)
+            console.error('Error monitoring plan usage:', error)
         }
     }
 
@@ -155,10 +154,10 @@ class MonitoringService {
                 ? ((report.canceledSubscriptions / totalActive) * 100).toFixed(2)
                 : '0.00'
 
-            logger.info('Daily subscription report generated', report)
+            console.log('Daily subscription report generated', report)
             return report
         } catch (error) {
-            logger.error('Error generating daily report:', error)
+            console.error('Error generating daily report:', error)
             throw error
         }
     }
@@ -173,7 +172,7 @@ class MonitoringService {
             })
 
             if (staleSubscriptions.length > 0) {
-                logger.warn(`Found ${staleSubscriptions.length} subscriptions with stale webhook data`)
+                console.warn(`Found ${staleSubscriptions.length} subscriptions with stale webhook data`)
 
                 // Sync with Stripe
                 for (const subscription of staleSubscriptions.slice(0, 10)) { // Limit to 10 to avoid rate limits
@@ -186,21 +185,21 @@ class MonitoringService {
                             currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
                             updatedAt: new Date(),
                         })
-
-                        logger.info(`Synced stale subscription: ${subscription._id}`)
+                        
+                        console.log(`Synced stale subscription: ${subscription._id}`)
                     } catch (error) {
-                        logger.error(`Error syncing stale subscription ${subscription._id}:`, error)
+                        console.error(`Error syncing stale subscription ${subscription._id}:`, error)
                     }
                 }
             }
         } catch (error) {
-            logger.error('Error monitoring webhook health:', error)
+            console.error('Error monitoring webhook health:', error)
         }
     }
 
     // Run all monitoring tasks
     async runAllMonitoringTasks(): Promise<void> {
-        logger.info('Starting subscription monitoring tasks...')
+        console.log('Starting subscription monitoring tasks...')
 
         await Promise.allSettled([
             this.monitorSubscriptionHealth(),
@@ -209,8 +208,8 @@ class MonitoringService {
             this.monitorPlanUsage(),
             this.monitorWebhookHealth(),
         ])
-
-        logger.info('Subscription monitoring tasks completed')
+        
+        console.log('Subscription monitoring tasks completed')
     }
 }
 

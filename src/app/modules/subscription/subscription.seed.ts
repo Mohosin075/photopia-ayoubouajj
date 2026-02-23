@@ -1,6 +1,5 @@
 import { SubscriptionPlan } from './subscription-plan.model'
 import { stripeService } from './stripe.service'
-import { logger } from '../../../shared/logger'
 
 // Default subscription plans for FleetSync
 const defaultPlans = [
@@ -238,12 +237,12 @@ const defaultPlans = [
 
 export async function seedSubscriptionPlans(): Promise<void> {
   try {
-    logger.info('Starting subscription plans seeding...')
+    console.log('Starting subscription plans seeding...')
 
     // Check if plans already exist
     const existingPlansCount = await SubscriptionPlan.countDocuments()
     if (existingPlansCount > 0) {
-      logger.info(`${existingPlansCount} subscription plans already exist. Skipping seed.`)
+      console.log(`${existingPlansCount} subscription plans already exist. Skipping seed.`)
       return
     }
 
@@ -282,16 +281,16 @@ export async function seedSubscriptionPlans(): Promise<void> {
         })
 
         await plan.save()
-        logger.info(`Created subscription plan: ${planData.name}`)
+        console.log(`Created subscription plan: ${planData.name}`)
       } catch (error) {
-        logger.error(`Error creating plan ${planData.name}:`, error)
+        console.error(`Error creating plan ${planData.name}:`, error)
         // Continue with other plans even if one fails
       }
     }
 
-    logger.info('Subscription plans seeding completed successfully')
+    console.log('Subscription plans seeding completed successfully')
   } catch (error) {
-    logger.error('Error seeding subscription plans:', error)
+    console.error('Error seeding subscription plans:', error)
     throw error
   }
 }
@@ -299,14 +298,14 @@ export async function seedSubscriptionPlans(): Promise<void> {
 // Function to update existing plans (for migrations)
 export async function updateSubscriptionPlans(): Promise<void> {
   try {
-    logger.info('Updating subscription plans...')
+    console.log('Updating subscription plans...')
 
     // Add any plan updates here
     // Example: Update features for existing plans
     
-    logger.info('Subscription plans update completed')
+    console.log('Subscription plans update completed')
   } catch (error) {
-    logger.error('Error updating subscription plans:', error)
+    console.error('Error updating subscription plans:', error)
     throw error
   }
 }
@@ -338,9 +337,9 @@ export async function createSpecificPlan(planData: any): Promise<void> {
     })
 
     await plan.save()
-    logger.info(`Created specific plan: ${planData.name}`)
+    console.log(`Created specific plan: ${planData.name}`)
   } catch (error) {
-    logger.error(`Error creating specific plan:`, error)
+    console.error(`Error creating specific plan:`, error)
     throw error
   }
 }
