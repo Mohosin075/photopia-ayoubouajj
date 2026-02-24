@@ -138,6 +138,20 @@ class StripeService {
     }
   }
 
+  async reactivateSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+    try {
+      const subscription = await this.stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: false,
+      })
+
+      console.log(`Stripe subscription reactivated: ${subscriptionId}`)
+      return subscription
+    } catch (error) {
+      console.error(`Error reactivating Stripe subscription ${subscriptionId}:`, error)
+      throw error
+    }
+  }
+
   // Payment Method Management
   async attachPaymentMethod(paymentMethodId: string, customerId: string): Promise<Stripe.PaymentMethod> {
     try {

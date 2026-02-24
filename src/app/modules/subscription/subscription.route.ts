@@ -20,13 +20,12 @@ router.get(
   SubscriptionController.getPlanById,
 ) //✅tested
 
-// Webhook endpoint (no authentication, but signature verification)
-// router.post(
-//   '/webhook',
-//   express.raw({ type: 'application/json' }), // Raw body for webhook signature verification
-//   validateRequest(subscriptionValidation.webhookHeader),
-//   SubscriptionController.handleWebhook,
-// )
+// Webhook route (Stripe calls this)
+router.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }),
+  SubscriptionController.handleWebhook,
+)
 
 // User routes (require authentication)
 // Apply authentication middleware to all routes below

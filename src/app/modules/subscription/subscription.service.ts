@@ -329,6 +329,55 @@ class SubscriptionService {
     }
   }
 
+  // Reactivate subscription
+  async reactivateSubscription(userId: string, subscriptionId: string): Promise<ISubscription> {
+    try {
+      const subscription = await Subscription.findOne({
+        _id: subscriptionId,
+        userId: new Types.ObjectId(userId),
+      })
+
+      if (!subscription) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Subscription not found')
+      }
+
+      if (subscription.status === 'canceled' && subscription.endedAt) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Subscription has already ended and cannot be reactivated. Please start a new subscription.')
+      }
+
+      if (!subscription.cancelAtPeriodEnd) {
+        throw new ApiError(StatusCodes.BAD_REQUEST, 'Subscription is not set to cancel and is already active.')
+      }
+
+      // Reactivate in Stripe
+      await stripeService.reactivateSubscription(subscription.stripeSubscriptionId)
+
+      // Update local subscription
+      const updatedSubscription = await Subscription.findByIdAndUpdate(
+        subscriptionId,
+        {
+          cancelAtPeriodEnd: false,
+          canceledAt: null,
+          resumedAt: new Date(),
+        },
+        { new: true },
+      ).populate(['planId'])
+
+      // Send reactivation email
+      const plan = updatedSubscription?.planId as unknown as ISubscriptionPlan
+      if (plan) {
+        await emailNotificationService.sendSubscriptionWelcomeEmail(updatedSubscription!, plan, updatedSubscription!.status === 'trialing')
+      }
+
+      console.log(`Subscription reactivated: ${subscriptionId}`)
+      return updatedSubscription!
+    } catch (error) {
+      if (error instanceof ApiError) throw error
+      console.error('Error reactivating subscription:', error)
+      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to reactivate subscription')
+    }
+  }
+
   // Get subscription status
   async getSubscriptionStatus(userId: string): Promise<SubscriptionStatus> {
     try {
@@ -444,8 +493,8 @@ class SubscriptionService {
         description: planData.description,
         metadata: {
           userTypes: planData.userTypes.join(','),
-          maxUsers: planData.maxUsers.toString(),
-          maxTrucks: planData.maxTrucks.toString(),
+          maxTeamMembers: planData.maxTeamMembers.toString(),
+          maxServices: planData.maxServices.toString(),
         },
       })
 

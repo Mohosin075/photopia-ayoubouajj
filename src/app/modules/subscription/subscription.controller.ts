@@ -226,14 +226,13 @@ const reactivateSubscription = catchAsync(async (req: Request, res: Response) =>
   const userId = user.authId!.toString()
   const { subscriptionId } = req.params
   
-  // This would involve creating a new subscription or updating the canceled one
-  // Implementation depends on your business logic
+  const subscription = await subscriptionService.reactivateSubscription(userId, subscriptionId)
   
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Subscription reactivation initiated',
-    data: { message: 'Please contact support for subscription reactivation' },
+    message: 'Subscription reactivated successfully',
+    data: subscription,
   })
 })
 
