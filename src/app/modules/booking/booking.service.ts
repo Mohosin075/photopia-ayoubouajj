@@ -7,6 +7,7 @@ import { Service } from '../service/service.model'
 import { User } from '../user/user.model'
 import mongoose, { Types } from 'mongoose'
 import { SERVICE_PRICING_TYPE } from '../../../enum/service'
+import { WalletService } from '../wallet/wallet.service'
 
 const calculatePrice = async (
   serviceId: string,
@@ -72,12 +73,11 @@ const calculatePrice = async (
 
   subtotal += travelFee
 
-  const platformCommissionClient = 0.10
-  const platformCommissionProvider = 0.05
-  // const clientTotal = subtotal * (1 + platformCommissionClient)
-  const clientTotal = subtotal // Client pays subtotal? Usually platform fee is added on top. Let's stick to existing logic:
-  const totalWithClientFee = subtotal * (1 + platformCommissionClient)
+  const platformCommission = 0.05 // 5% commission as per user request (3-5%)
+  const platformCommissionClient = 0 // Assuming no extra fee for client for now, or it's included in subtotal
+  const platformCommissionProvider = platformCommission
   
+  const clientTotal = subtotal 
   const providerEarnings = subtotal * (1 - platformCommissionProvider)
 
   return {
@@ -88,7 +88,7 @@ const calculatePrice = async (
     subtotal,
     platformCommissionClient,
     platformCommissionProvider,
-    clientTotal: totalWithClientFee,
+    clientTotal,
     providerEarnings,
     currency: service.currency || 'EUR',
     durationHours
@@ -161,9 +161,9 @@ const createBooking = async (payload: IBooking): Promise<IBooking> => {
 
   payload.pricingDetails = pricing
   payload.durationHours = pricing.durationHours
-  payload.depositAmount = pricing.clientTotal * 0.5 // 50% deposit
-  payload.balanceAmount = pricing.clientTotal - payload.depositAmount
-  payload.depositPercentage = 0.5
+  payload.depositAmount = pricing.clientTotal // Full payment
+  payload.balanceAmount = 0
+  payload.depositPercentage = 1 // 100%
   payload.bookingDate = bookingDate // Ensure the Date object is saved
 
   const result = await Booking.create(payload)
@@ -175,23 +175,46 @@ const updateBookingStatus = async (
   status: string,
   userId: string
 ): Promise<IBooking | null> => {
-  const booking = await Booking.findById(bookingId)
-  if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
+  const session = await mongoose.startSession()
+  session.startTransaction()
 
-  // Only provider or admin can confirm/cancel (client can cancel too)
-  // For simplicity allowing update if user is involved
-  if (booking.clientId.toString() !== userId && booking.providerId.toString() !== userId) {
-      // Check if admin (need role passed or check logic)
-      // throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized')
+  try {
+    const booking = await Booking.findById(bookingId).session(session)
+    if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
+
+    // Only provider or admin can confirm/cancel (client can cancel too)
+    // For simplicity allowing update if user is involved
+    if (booking.clientId.toString() !== userId && booking.providerId.toString() !== userId) {
+        // Check if admin (need role passed or check logic)
+        // throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized')
+    }
+
+    const previousStatus = booking.status
+    booking.status = status as any
+    if (status === 'confirmed') booking.confirmedAt = new Date()
+    if (status === 'cancelled') booking.cancelledAt = new Date()
+    if (status === 'completed') {
+      booking.completedAt = new Date()
+      
+      // If booking is completed and wasn't already completed, transfer earnings to professional's wallet
+      if (previousStatus !== 'completed') {
+        await WalletService.addEarnings(
+          booking.providerId,
+          booking.pricingDetails.providerEarnings,
+          session
+        )
+      }
+    }
+
+    await booking.save({ session })
+    await session.commitTransaction()
+    return booking
+  } catch (error) {
+    await session.abortTransaction()
+    throw error
+  } finally {
+    session.endSession()
   }
-
-  booking.status = status as any
-  if (status === 'confirmed') booking.confirmedAt = new Date()
-  if (status === 'cancelled') booking.cancelledAt = new Date()
-  if (status === 'completed') booking.completedAt = new Date()
-
-  await booking.save()
-  return booking
 }
 
 import { paginationHelper } from '../../../helpers/paginationHelper'

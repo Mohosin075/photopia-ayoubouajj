@@ -16,6 +16,8 @@ import { FavouriteRoutes } from '../app/modules/favourite/favourite.route'
 import { AvailabilityRoutes } from '../app/modules/availability/availability.route'
 import { BookingRoutes } from '../app/modules/booking/booking.route'
 import { SubscriptionRoutes } from '../app/modules/subscription/subscription.route'
+import { WalletRoutes } from '../app/modules/wallet/wallet.route'
+import { WithdrawalRoutes } from '../app/modules/withdrawal/withdrawal.route'
 
 const router = express.Router()
 
@@ -56,7 +58,9 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/chat', route: ChatRoutes },
   { path: '/review', route: ReviewRoutes },
   { path: '/category', route: CategoryRoutes },
-  { path: '/favourite', route: FavouriteRoutes }
+  { path: '/favourite', route: FavouriteRoutes },
+  { path: '/wallet', route: WalletRoutes },
+  { path: '/withdrawal', route: WithdrawalRoutes }
 ]
 
 apiRoutes.forEach(route => {
