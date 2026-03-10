@@ -2,12 +2,15 @@ import express from 'express'
 import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../../enum/user'
 import { WithdrawalController } from './withdrawal.controller'
+import validateRequest from '../../middleware/validateRequest'
+import { WithdrawalValidation } from './withdrawal.validation'
 
 const router = express.Router()
 
 router.post(
   '/',
   auth(USER_ROLES.PROFESSIONAL),
+  validateRequest(WithdrawalValidation.createWithdrawalZodSchema),
   WithdrawalController.createWithdrawal
 )
 
@@ -26,6 +29,7 @@ router.get(
 router.patch(
   '/:id/status',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  validateRequest(WithdrawalValidation.updateWithdrawalStatusZodSchema),
   WithdrawalController.updateWithdrawalStatus
 )
 
