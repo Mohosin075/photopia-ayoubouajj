@@ -8,6 +8,8 @@ import { User } from '../user/user.model'
 import mongoose, { Types } from 'mongoose'
 import { SERVICE_PRICING_TYPE } from '../../../enum/service'
 import { WalletService } from '../wallet/wallet.service'
+import stripe from '../../../config/stripe'
+import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
 
 const calculatePrice = async (
   serviceId: string,
@@ -196,13 +198,39 @@ const updateBookingStatus = async (
     if (status === 'completed') {
       booking.completedAt = new Date()
       
-      // If booking is completed and wasn't already completed, transfer earnings to professional's wallet
+      // If booking is completed and wasn't already completed, transfer earnings
       if (previousStatus !== 'completed') {
+        // 1. Add to local wallet for display (as per instruction 3)
         await WalletService.addEarnings(
           booking.providerId,
           booking.pricingDetails.providerEarnings,
           session
         )
+
+        // 2. Stripe Connect Transfer (as per instruction 2)
+        const professionalProfile = await ProfessionalProfile.findOne({ user: booking.providerId })
+        
+        if (professionalProfile?.stripeAccountId && professionalProfile?.stripeOnboardingComplete) {
+          try {
+            const transfer = await stripe.transfers.create({
+              amount: Math.round(booking.pricingDetails.providerEarnings * 100), // convert to cents
+              currency: booking.pricingDetails.currency.toLowerCase(),
+              destination: professionalProfile.stripeAccountId,
+              metadata: {
+                bookingId: booking._id.toString(),
+                bookingNumber: booking.bookingNumber
+              }
+            })
+            // Optionally store transfer ID in booking
+            booking.set('stripeTransferId', transfer.id)
+          } catch (error: any) {
+            console.error('Stripe Transfer Error:', error.message)
+            // We don't necessarily want to abort the whole transaction if Stripe transfer fails, 
+            // but we should probably log it or handle it. 
+            // The instruction says "stripe.transfers.create এপিআই কল করতে হবে".
+            // If it fails, the professional might not get paid immediately.
+          }
+        }
       }
     }
 

@@ -17,7 +17,7 @@ const createWithdrawalZodSchema = z.object({
         required_error: 'IBAN is required',
       }),
       swiftCode: z.string().optional(),
-    }),
+    }).optional(),
   }),
 })
 

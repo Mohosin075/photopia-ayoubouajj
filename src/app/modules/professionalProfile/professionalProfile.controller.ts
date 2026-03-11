@@ -39,8 +39,32 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const stripeConnectOnboarding = catchAsync(async (req: Request, res: Response) => {
+    const { userId } = req.user as JwtPayload
+    const result = await ProfessionalProfileServices.stripeConnectOnboarding(userId)
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Stripe onboarding URL generated successfully',
+        data: result,
+    })
+})
+
+const checkStripeAccountStatus = catchAsync(async (req: Request, res: Response) => {
+    const { userId } = req.user as JwtPayload
+    const result = await ProfessionalProfileServices.checkStripeAccountStatus(userId)
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Stripe account status retrieved successfully',
+        data: result,
+    })
+})
+
 export const ProfessionalProfileController = {
     createProfile,
     getProfile,
     updateProfile,
+    stripeConnectOnboarding,
+    checkStripeAccountStatus,
 }

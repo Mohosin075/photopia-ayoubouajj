@@ -61,6 +61,8 @@ export interface IUser {
   subscribe: boolean
   isOnboardingComplete: boolean
   stripeCustomerId?: string
+  stripeConnectedAccountId?: string
+  isStripeConnected?: boolean
   subscriptionStatus?: string
   subscriptionTier?: string
   trialUsed?: boolean

@@ -22,6 +22,8 @@ const ProfessionalProfileSchema = new Schema<IProfessionalProfile>(
         isVerified: { type: Boolean, default: false },
         rating: { type: Number, default: 0 },
         reviewCount: { type: Number, default: 0 },
+        stripeAccountId: { type: String, default: null },
+        stripeOnboardingComplete: { type: Boolean, default: false },
     },
     {
         timestamps: true,

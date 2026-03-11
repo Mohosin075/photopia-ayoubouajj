@@ -1,24 +1,56 @@
 import { Withdrawal } from './withdrawal.model'
 import { IWithdrawal } from './withdrawal.interface'
 import { WalletService } from '../wallet/wallet.service'
+import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
+import stripe from '../../../config/stripe'
 import mongoose from 'mongoose'
 import ApiError from '../../../errors/ApiError'
 import httpStatus from 'http-status-codes'
 
 const createWithdrawal = async (payload: Partial<IWithdrawal>): Promise<IWithdrawal> => {
+  const { userId, amount } = payload
+  if (!userId || !amount) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'User ID and amount are required')
+  }
+
+  // Check if professional has Stripe Connect
+  const professionalProfile = await ProfessionalProfile.findOne({ user: userId })
+  const isStripeConnected = professionalProfile?.stripeAccountId && professionalProfile?.stripeOnboardingComplete
+
   const session = await mongoose.startSession()
   session.startTransaction()
 
   try {
-    const { userId, amount } = payload
-    if (!userId || !amount) {
-        throw new ApiError(httpStatus.BAD_REQUEST, 'User ID and amount are required')
-    }
-
-    // Deduct from wallet first to ensure they have balance
+    // 1. Deduct from local wallet first to ensure they have balance
     await WalletService.deductBalance(userId.toString(), amount, session)
 
-    const withdrawal = await Withdrawal.create([payload], { session })
+    let withdrawalData = { ...payload }
+
+    if (isStripeConnected) {
+      // 2. Trigger Stripe Payout from Connected Account to their Bank
+      try {
+        const payout = await stripe.payouts.create({
+          amount: Math.round(amount * 100),
+          currency: (payload.currency || 'eur').toLowerCase(),
+        }, {
+          stripeAccount: professionalProfile.stripeAccountId as string,
+        })
+
+        withdrawalData.status = 'completed'
+        withdrawalData.transactionId = payout.id
+        withdrawalData.processedAt = new Date()
+      } catch (stripeError: any) {
+        throw new ApiError(httpStatus.BAD_REQUEST, `Stripe Payout failed: ${stripeError.message}`)
+      }
+    } else {
+      // Manual flow for users without Stripe Connect
+      if (!payload.bankAccountDetails) {
+        throw new ApiError(httpStatus.BAD_REQUEST, 'Bank account details are required for manual withdrawal')
+      }
+      withdrawalData.status = 'pending'
+    }
+
+    const withdrawal = await Withdrawal.create([withdrawalData], { session })
     
     await session.commitTransaction()
     return withdrawal[0]

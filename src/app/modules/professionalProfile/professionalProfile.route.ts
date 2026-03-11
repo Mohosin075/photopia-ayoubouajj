@@ -27,4 +27,22 @@ router.patch(
     ProfessionalProfileController.updateProfile,
 )
 
+router.post(
+    '/stripe-connect-onboarding',
+    auth(USER_ROLES.PROFESSIONAL),
+    ProfessionalProfileController.stripeConnectOnboarding,
+)
+
+router.get(
+    '/stripe-connect-status',
+    auth(USER_ROLES.PROFESSIONAL),
+    ProfessionalProfileController.checkStripeAccountStatus,
+)
+
+// Public route for Stripe to return to, which will redirect to frontend
+router.get(
+    '/stripe-connect-return',
+    ProfessionalProfileController.checkStripeAccountStatus,
+)
+
 export const ProfessionalProfileRoutes = router
