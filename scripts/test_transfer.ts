@@ -5,7 +5,7 @@ import path from 'path';
 dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 const stripe = new Stripe(process.env.STRIPE_API_SECRET as string, {
-  apiVersion: '2025-01-27.acacia' as any,
+  apiVersion: '2025-05-28.basil' as any,
 });
 
 const transferToProfessional = async (connectedAccountId: string, amount: number) => {

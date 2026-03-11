@@ -30,9 +30,12 @@ webhookApp.post(
       const cleanSecret = config.stripe.webhookSecret.trim()
 
       let event
+      console.log('🚀 Webhook hit! Signature:', sig)
       try {
         event = stripe.webhooks.constructEvent(rawBody, sig, cleanSecret)
+        console.log('✅ Webhook Event Constructed:', event.type)
       } catch (err: any) {
+        console.error('❌ Webhook Construction Error:', err.message)
         res.status(400).json({ error: `Webhook Error: ${err.message}` })
         return
       }

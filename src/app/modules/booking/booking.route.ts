@@ -9,7 +9,7 @@ const router = express.Router()
 
 router.post(
   '/',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN),
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(createBookingValidationSchema),
   BookingController.createBooking
 )
@@ -23,19 +23,19 @@ router.post(
 
 router.get(
   '/my-bookings',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN),
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   BookingController.getMyBookings
 )
 
 router.get(
   '/:id',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN),
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   BookingController.getSingleBooking
 )
 
 router.patch(
   '/:id/status',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN),
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(updateBookingStatusSchema),
   BookingController.updateBookingStatus
 )

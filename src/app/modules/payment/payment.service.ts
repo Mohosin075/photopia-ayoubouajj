@@ -202,7 +202,7 @@ const createPaymentIntent = async (
  */
 const createEphemeralKey = async (
   user: any,
-  apiVersion: string = '2024-12-18.acacia',
+  apiVersion: string = '2025-05-28.basil',
 ): Promise<{ ephemeralKey: string }> => {
   try {
     let customerId = user.stripeCustomerId

@@ -11,6 +11,7 @@ const handleCheckoutSessionCompleted = async (
   sessionData: any,
 ): Promise<void> => {
   try {
+    console.log('🔔 Processing Checkout Session Completed:', sessionData.id)
     const sessionWithDetails = await stripe.checkout.sessions.retrieve(
       sessionData.id,
       {
@@ -58,16 +59,20 @@ const handleCheckoutSessionCompleted = async (
 
       // Update Booking Status if bookingId exists in metadata or payment
       const bookingId = payment.bookingId || sessionWithDetails.metadata?.bookingId
+      
+      console.log(`Webhook: Processing booking update for ID: ${bookingId}`)
+      
       if (bookingId) {
-        await Booking.findByIdAndUpdate(
+        const updatedBooking = await Booking.findByIdAndUpdate(
           bookingId,
           { 
             status: 'confirmed',
             paymentStatus: 'deposit_paid',
             stripePaymentId: sessionWithDetails.id
           },
-          { session: mongoSession }
+          { session: mongoSession, new: true }
         )
+        console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking?.bookingNumber}`)
       }
 
       await mongoSession.commitTransaction()

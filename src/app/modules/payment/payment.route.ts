@@ -12,6 +12,8 @@ router.get(
   auth(
     USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
   ),
   PaymentController.getAllPayments,
 )
@@ -21,6 +23,8 @@ router.get(
   auth(
     USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
+        USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
   ),
   PaymentController.getMyPayments,
 )
@@ -63,16 +67,20 @@ router.post(
   auth(
     USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
   ),
   validateRequest(PaymentValidations.create),
   PaymentController.createPaymentIntent,
 )
 
+//Add SUPER_ADMIN role protection to the ephemeral-key route for enhanced security
 router.post(
   '/ephemeral-key',
   auth(
     USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
   ),
   PaymentController.createEphemeralKey,
 )
