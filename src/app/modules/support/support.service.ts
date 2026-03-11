@@ -20,7 +20,7 @@ const createSupport = async (
   const data = {
     ...payload,
     userId: user?.userId,
-    status: SUPPORT_STATUS.IN_PROGRESS,
+    status: SUPPORT_STATUS.PENDING,
   }
 
   try {

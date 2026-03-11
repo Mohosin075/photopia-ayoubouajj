@@ -8,9 +8,11 @@ export const createSupportSchema = z.object({
     message: z.string(),
     status: z
       .enum([
-        SUPPORT_STATUS.DELETED,
-        SUPPORT_STATUS.IN_PROGRESS,
+        SUPPORT_STATUS.PENDING,
+        SUPPORT_STATUS.UNDER_REVIEW,
         SUPPORT_STATUS.SOLVED,
+        SUPPORT_STATUS.DISMISSED,
+        SUPPORT_STATUS.DELETED,
       ])
       .optional(),
     attachments: z.array(z.string()).optional(),
@@ -25,10 +27,11 @@ export const updateSupportSchema = z.object({
     message: z.string().optional(),
     status: z
       .enum([
-        SUPPORT_STATUS.DELETED,
-        SUPPORT_STATUS.IN_PROGRESS,
+        SUPPORT_STATUS.PENDING,
+        SUPPORT_STATUS.UNDER_REVIEW,
         SUPPORT_STATUS.SOLVED,
         SUPPORT_STATUS.DISMISSED,
+        SUPPORT_STATUS.DELETED,
       ])
       .optional(),
     attachments: z.array(z.string()).optional(),

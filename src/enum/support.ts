@@ -1,6 +1,7 @@
 export enum SUPPORT_STATUS {
-  DELETED = 'deleted',
+  PENDING = 'pending',
+  UNDER_REVIEW = 'under_review',
   SOLVED = 'solved',
-  IN_PROGRESS = 'in_progress',
   DISMISSED = 'dismissed',
+  DELETED = 'deleted',
 }

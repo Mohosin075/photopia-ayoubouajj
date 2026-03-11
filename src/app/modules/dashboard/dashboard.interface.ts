@@ -38,3 +38,54 @@ export type IUserDetailsStats = {
   activityHistory: IActivityHistory[]
   recentPayments: IRecentPayment[]
 }
+
+export type IContentModerationStats = {
+  pendingReports: number
+  underReview: number
+  resolvedToday: number
+  totalReports: number
+}
+
+export type IModerationReport = {
+  id: string
+  title: string
+  description: string
+  priority: 'low' | 'medium' | 'high'
+  status: string
+  reportedUser: {
+    id: string
+    name: string
+  }
+  reportedBy: {
+    id: string
+    name: string
+  }
+  date: Date
+}
+
+export type IModerationLog = {
+  action: string
+  by: string
+  details: string
+  timestamp: Date
+}
+
+export type IModerationReportDetails = {
+  report: IModerationReport & {
+    reportId: string
+    reportedContent?: string
+  }
+  userHistory: {
+    totalReports: number
+    warningsIssued: number
+    accountAge: string
+    accountStatus: string
+  }
+  relatedReports: Array<{
+    id: string
+    title: string
+    date: Date
+    status: string
+  }>
+  moderationLog: IModerationLog[]
+}

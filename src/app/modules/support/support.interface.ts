@@ -9,13 +9,22 @@ export interface ISupportFilterables {
 
 export interface ISupport {
   _id: Types.ObjectId
-  contentType: 'comment' | 'review'
+  contentType: 'comment' | 'review' | 'user'
+  contentId?: Types.ObjectId
+  reportedUser?: Types.ObjectId
   reason: 'harassment' | 'spam' | 'fraud' | 'other'
-  userId: Types.ObjectId
+  userId: Types.ObjectId // Reporter
   subject?: string
   message: string
   status: SUPPORT_STATUS
+  priority: 'low' | 'medium' | 'high'
   attachments?: string[]
+  moderationLog?: Array<{
+    action: string
+    by: Types.ObjectId
+    details: string
+    timestamp: Date
+  }>
 }
 
 export type SupportModel = Model<ISupport, {}, {}>
