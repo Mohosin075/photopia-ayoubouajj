@@ -18,10 +18,15 @@ import { BookingRoutes } from '../app/modules/booking/booking.route'
 import { SubscriptionRoutes } from '../app/modules/subscription/subscription.route'
 import { WalletRoutes } from '../app/modules/wallet/wallet.route'
 import { WithdrawalRoutes } from '../app/modules/withdrawal/withdrawal.route'
+import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route'
 
 const router = express.Router()
 
 const apiRoutes: { path: string; route: Router }[] = [
+  {
+    path: '/dashboard',
+    route: DashboardRoutes,
+  },
   {
     path: '/auth',
     route: AuthRoutes,
