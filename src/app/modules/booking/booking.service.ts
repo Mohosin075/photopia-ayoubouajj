@@ -10,6 +10,7 @@ import { SERVICE_PRICING_TYPE } from '../../../enum/service'
 import { WalletService } from '../wallet/wallet.service'
 import stripe from '../../../config/stripe'
 import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
+import { PaymentServices } from '../payment/payment.service'
 
 const calculatePrice = async (
   serviceId: string,
@@ -97,7 +98,7 @@ const calculatePrice = async (
   }
 }
 
-const createBooking = async (payload: IBooking): Promise<IBooking> => {
+const createBooking = async (payload: IBooking, user: any): Promise<any> => {
   // 1. Check Service Existence
   const service = await Service.findById(payload.serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
@@ -169,7 +170,26 @@ const createBooking = async (payload: IBooking): Promise<IBooking> => {
   payload.bookingDate = bookingDate // Ensure the Date object is saved
 
   const result = await Booking.create(payload)
-  return result
+
+  // 4. Create Stripe Checkout Session
+  const paymentPayload = {
+    amount: pricing.clientTotal,
+    currency: pricing.currency.toLowerCase(),
+    productName: `Booking for ${service.title}`,
+    description: `Booking Number: ${result.bookingNumber}`,
+    bookingId: result._id,
+    metadata: {
+      bookingId: result._id,
+      bookingNumber: result.bookingNumber
+    }
+  }
+
+  const checkoutSession = await PaymentServices.createCheckoutSession(user, paymentPayload)
+
+  return {
+    booking: result,
+    paymentSession: checkoutSession
+  }
 }
 
 const updateBookingStatus = async (

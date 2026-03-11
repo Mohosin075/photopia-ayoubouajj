@@ -16,12 +16,12 @@ const createBooking = catchAsync(async (req: Request, res: Response) => {
     clientId: user.userId
   }
 
-  const result = await BookingService.createBooking(bookingData)
+  const result = await BookingService.createBooking(bookingData, user)
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: 'Booking created successfully',
+    message: 'Booking created successfully. Please complete the payment.',
     data: result,
   })
 })

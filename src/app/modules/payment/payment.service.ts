@@ -44,12 +44,14 @@ const createCheckoutSession = async (
       customer_email: user.email,
       metadata: {
         userId: user.userId,
+        bookingId: payload.bookingId,
         ...payload.metadata
       },
     })
 
     await Payment.create({
       userId: user.userId,
+      bookingId: payload.bookingId,
       userEmail: user.email,
       amount: payload.amount,
       currency: payload.currency || 'USD',
@@ -58,6 +60,7 @@ const createCheckoutSession = async (
       status: 'pending',
       metadata: {
         checkoutSessionId: session.id,
+        bookingId: payload.bookingId,
         ...payload.metadata
       },
     })

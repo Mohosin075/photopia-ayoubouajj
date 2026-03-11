@@ -22,7 +22,6 @@ const handleGoogleLogin = async (
     //return only the token
     const tokens = AuthHelper.createToken(
       isUserExist._id,
-      isUserExist.roles[0],
       isUserExist.activeRole,
       isUserExist.name!,
       isUserExist.email!,
@@ -60,7 +59,6 @@ const handleGoogleLogin = async (
     //create token
     const tokens = AuthHelper.createToken(
       user[0]._id,
-      user[0].roles[0],
       user[0].activeRole,
       user[0].name!,
       user[0].email!,

@@ -161,7 +161,6 @@ const adminLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
   //tokens
   const tokens = AuthHelper.createToken(
     isUserExist._id,
-    isUserExist.roles[0], // fallback to first role if needed, but adminLogin should check roles
     isUserExist.activeRole,
     isUserExist.name!,
     isUserExist.email!,
@@ -352,7 +351,6 @@ const verifyAccount = async (
 
     const tokens = AuthHelper.createToken(
       isUserExist._id,
-      isUserExist.roles[0],
       isUserExist.activeRole,
       isUserExist.name!,
       isUserExist.email!,
@@ -419,7 +417,6 @@ const getRefreshToken = async (token: string) => {
 
     const tokens = AuthHelper.createToken(
       (userId || authId) as any,
-      role,
       decodedToken.activeRole || role,
       decodedToken.name,
       decodedToken.email,

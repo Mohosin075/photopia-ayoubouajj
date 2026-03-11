@@ -10,6 +10,7 @@ export interface IPaymentFilterables {
 export interface IPayment {
   _id: Types.ObjectId
   userId: Types.ObjectId
+  bookingId?: Types.ObjectId
   userEmail: string
   amount: number
   currency: string

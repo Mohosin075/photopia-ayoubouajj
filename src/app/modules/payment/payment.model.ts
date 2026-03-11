@@ -9,6 +9,10 @@ const paymentSchema = new Schema<IPayment, PaymentModel>(
       ref: 'User',
       required: true,
     },
+    bookingId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Booking',
+    },
     userEmail: {
       type: String,
       required: true,

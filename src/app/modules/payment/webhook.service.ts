@@ -5,6 +5,7 @@ import ApiError from '../../../errors/ApiError'
 import { Payment } from './payment.model'
 import { emailHelper } from '../../../helpers/emailHelper'
 import { emailTemplate } from '../../../shared/emailTemplate'
+import { Booking } from '../booking/booking.model'
 
 const handleCheckoutSessionCompleted = async (
   sessionData: any,
@@ -55,8 +56,19 @@ const handleCheckoutSessionCompleted = async (
       payment.metadata = { ...payment.metadata, ...sessionWithDetails }
       await payment.save({ session: mongoSession })
 
-      // No more ticket/event/attendee updates needed here
-
+      // Update Booking Status if bookingId exists in metadata or payment
+      const bookingId = payment.bookingId || sessionWithDetails.metadata?.bookingId
+      if (bookingId) {
+        await Booking.findByIdAndUpdate(
+          bookingId,
+          { 
+            status: 'confirmed',
+            paymentStatus: 'deposit_paid',
+            stripePaymentId: sessionWithDetails.id
+          },
+          { session: mongoSession }
+        )
+      }
 
       await mongoSession.commitTransaction()
       console.log(
