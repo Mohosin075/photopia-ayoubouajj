@@ -11,4 +11,16 @@ router.get(
   DashboardController.getUserManagementStats,
 )
 
+router.get(
+  '/user-details/:userId',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getUserDetailsStats,
+)
+
+router.post(
+  '/warn-user',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.warnUser,
+)
+
 export const DashboardRoutes = router
