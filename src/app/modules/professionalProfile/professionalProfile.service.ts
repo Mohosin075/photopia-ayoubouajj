@@ -85,8 +85,10 @@ const stripeConnectOnboarding = async (userId: string) => {
     // Generate onboarding link
     const accountLink = await stripe.accountLinks.create({
         account: stripeAccountId,
-        refresh_url: `${config.clientUrl}/stripe-connect/refresh`,
-        return_url: `${config.clientUrl}/stripe-connect/return`,
+        refresh_url: `${config.clientUrl}/expired`,
+        return_url: `${config.clientUrl}`,
+        // refresh_url: `${config.clientUrl}/stripe-connect/refresh`,
+        // return_url: `${config.clientUrl}/stripe-connect/return`,
         type: 'account_onboarding',
     })
 

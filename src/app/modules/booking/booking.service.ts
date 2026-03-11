@@ -210,8 +210,9 @@ const updateBookingStatus = async (
         // 2. Stripe Connect Transfer (as per instruction 2)
         const professionalProfile = await ProfessionalProfile.findOne({ user: booking.providerId })
         
-        if (professionalProfile?.stripeAccountId && professionalProfile?.stripeOnboardingComplete) {
+        if (professionalProfile?.stripeAccountId) {
           try {
+            console.log(`Attempting transfer to: ${professionalProfile.stripeAccountId}`)
             const transfer = await stripe.transfers.create({
               amount: Math.round(booking.pricingDetails.providerEarnings * 100), // convert to cents
               currency: booking.pricingDetails.currency.toLowerCase(),
