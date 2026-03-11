@@ -10,6 +10,7 @@ import {
   updateUserStatusSchema,
 } from './user.validation'
 import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processReqBody'
+import { ProfessionalProfileController } from '../professionalProfile/professionalProfile.controller'
 
 const router = express.Router()
 
@@ -42,7 +43,24 @@ router.delete(
   auth(USER_ROLES.ADMIN, USER_ROLES.USER),
   UserController.deleteProfile,
 )
+router.post(
+    '/stripe-connect-onboarding',
+    auth(USER_ROLES.PROFESSIONAL),
+    ProfessionalProfileController.stripeConnectOnboarding,
+)
 
+router.get(
+    '/stripe-connect-status',
+    auth(USER_ROLES.PROFESSIONAL),
+    ProfessionalProfileController.checkStripeAccountStatus,
+)
+
+// Public route for Stripe to return to
+router.get(
+    '/stripe-connect-return',
+    auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+    ProfessionalProfileController.checkStripeAccountStatus,
+)
 router
   .route('/')
   .get(
