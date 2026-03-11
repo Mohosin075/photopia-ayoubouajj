@@ -217,7 +217,7 @@ const updateBookingStatus = async (
               currency: booking.pricingDetails.currency.toLowerCase(),
               destination: professionalProfile.stripeAccountId,
               metadata: {
-                bookingId: booking._id.toString(),
+                bookingId: booking.id,
                 bookingNumber: booking.bookingNumber
               }
             })
