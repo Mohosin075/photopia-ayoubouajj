@@ -55,12 +55,13 @@ const updateWithdrawalStatus = async (
 
   try {
     withdrawal.status = status
+    withdrawal.processedAt = new Date()
+
     if (status === 'completed') {
-        withdrawal.processedAt = new Date()
         withdrawal.transactionId = transactionId
     } else if (status === 'failed' || status === 'cancelled') {
         // Refund the wallet if failed or cancelled
-        await WalletService.addEarnings(withdrawal.userId, withdrawal.amount, session)
+        await WalletService.refundBalance(withdrawal.userId, withdrawal.amount, session)
     }
 
     await withdrawal.save({ session })

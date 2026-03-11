@@ -9,14 +9,14 @@ const router = express.Router()
 
 router.post(
   '/',
-  auth(USER_ROLES.PROFESSIONAL),
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(WithdrawalValidation.createWithdrawalZodSchema),
   WithdrawalController.createWithdrawal
 )
 
 router.get(
   '/my-withdrawals',
-  auth(USER_ROLES.PROFESSIONAL),
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   WithdrawalController.getMyWithdrawals
 )
 
