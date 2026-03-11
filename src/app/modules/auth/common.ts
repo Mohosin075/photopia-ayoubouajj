@@ -107,23 +107,26 @@ const handleLoginLogic = async (
       },
     })
 
+    if (isUserExist.status === USER_STATUS.INACTIVE) {
+      throw new ApiError(
+        StatusCodes.TOO_MANY_REQUESTS,
+        'Too many incorrect password attempts. Your account has been restricted for 10 minutes.',
+      )
+    }
+
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'Incorrect password, please try again.',
     )
   }
 
-  await User.findByIdAndUpdate(
-    isUserExist._id,
-    {
-      $set: {
-        deviceToken: payload.deviceToken,
-        'authentication.restrictionLeftAt': null,
-        'authentication.wrongLoginAttempts': 0,
-      },
+  await User.findByIdAndUpdate(isUserExist._id, {
+    $set: {
+      deviceToken: payload.deviceToken,
+      'authentication.restrictionLeftAt': null,
+      'authentication.wrongLoginAttempts': 0,
     },
-    { new: true },
-  )
+  })
   const rememberMe = payload.rememberMe || false
 
   const tokens = AuthHelper.createToken(

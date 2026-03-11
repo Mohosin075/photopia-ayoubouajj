@@ -28,10 +28,10 @@ const createCheckoutSession = async (
       line_items: [
         {
           price_data: {
-            currency: payload.currency || 'usd',
+            currency: (payload.currency || 'USD').toLowerCase(),
             product_data: {
               name: payload.productName || 'Payment',
-              description: payload.description || 'General Payment',
+              description: payload.description,
             },
             unit_amount: Math.round(payload.amount * 100),
           },
@@ -43,8 +43,8 @@ const createCheckoutSession = async (
       cancel_url: `${config.clientUrl}/payment/cancel`,
       customer_email: user.email,
       metadata: {
-        userId: user.userId,
-        bookingId: payload.bookingId,
+        userId: user.userId.toString(),
+        bookingId: payload.bookingId.toString(),
         ...payload.metadata
       },
     })
@@ -60,7 +60,7 @@ const createCheckoutSession = async (
       status: 'pending',
       metadata: {
         checkoutSessionId: session.id,
-        bookingId: payload.bookingId,
+        bookingId: payload.bookingId.toString(),
         ...payload.metadata
       },
     })

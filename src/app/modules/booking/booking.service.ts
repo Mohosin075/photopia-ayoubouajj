@@ -169,25 +169,25 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
   payload.depositPercentage = 1 // 100%
   payload.bookingDate = bookingDate // Ensure the Date object is saved
 
-  const result = await Booking.create(payload)
+  const [booking] = await Booking.create([payload]) as any
 
   // 4. Create Stripe Checkout Session
   const paymentPayload = {
     amount: pricing.clientTotal,
     currency: pricing.currency.toLowerCase(),
     productName: `Booking for ${service.title}`,
-    description: `Booking Number: ${result.bookingNumber}`,
-    bookingId: result._id,
+    description: `Booking Number: ${booking.bookingNumber}`,
+    bookingId: booking._id.toString(),
     metadata: {
-      bookingId: result._id,
-      bookingNumber: result.bookingNumber
+      bookingId: booking._id.toString(),
+      bookingNumber: booking.bookingNumber
     }
   }
 
   const checkoutSession = await PaymentServices.createCheckoutSession(user, paymentPayload)
 
   return {
-    booking: result,
+    booking,
     paymentSession: checkoutSession
   }
 }
