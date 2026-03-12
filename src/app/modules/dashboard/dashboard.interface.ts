@@ -89,3 +89,45 @@ export type IModerationReportDetails = {
   }>
   moderationLog: IModerationLog[]
 }
+
+export type IPaymentStats = {
+  totalRevenue: {
+    amount: number
+    percentageChange: number
+  }
+  commissionsEarned: {
+    amount: number
+    averageRate: number
+  }
+  subscriptions: {
+    amount: number
+    activeSubscribers: number
+  }
+  refunds: {
+    amount: number
+    refundRequests: number
+  }
+  trends: {
+    commissions: number[]
+    totalTransactions: number[]
+    months: string[]
+  }
+  categories: Array<{
+    category: string
+    amount: number
+  }>
+}
+
+export type ITransaction = {
+  id: string
+  transactionId: string
+  user: {
+    id: string
+    name: string
+  }
+  type: 'Payment' | 'Subscription' | 'Refund'
+  amount: number
+  commission: number
+  date: Date
+  status: 'Completed' | 'Pending' | 'Failed'
+}

@@ -53,4 +53,16 @@ router.post(
   DashboardController.handleModerationAction,
 )
 
+router.get(
+  '/payment-stats',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getPaymentAndCommissionStats,
+)
+
+router.get(
+  '/recent-transactions',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getRecentTransactions,
+)
+
 export const DashboardRoutes = router

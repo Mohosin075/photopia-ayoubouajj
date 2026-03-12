@@ -7,6 +7,8 @@ import {
   IContentModerationStats,
   IModerationReport,
   IModerationReportDetails,
+  IPaymentStats,
+  ITransaction,
   IUserDetailsStats,
   IUserManagementStats,
 } from './dashboard.interface'
@@ -96,6 +98,26 @@ const handleModerationAction = catchAsync(async (req: Request, res: Response) =>
   })
 })
 
+const getPaymentAndCommissionStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.getPaymentAndCommissionStats()
+  sendResponse<IPaymentStats>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Payment and commission stats retrieved successfully',
+    data: result,
+  })
+})
+
+const getRecentTransactions = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.getRecentTransactions()
+  sendResponse<ITransaction[]>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Recent transactions retrieved successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -104,4 +126,6 @@ export const DashboardController = {
   getModerationReports,
   getModerationReportDetails,
   handleModerationAction,
+  getPaymentAndCommissionStats,
+  getRecentTransactions,
 }
