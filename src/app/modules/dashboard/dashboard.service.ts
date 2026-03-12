@@ -19,6 +19,7 @@ import {
   IPaymentStats,
   IRecentPayment,
   ITransaction,
+  ITransactionDetails,
   IUserDetailsStats,
   IUserManagementStats,
 } from './dashboard.interface'
@@ -462,6 +463,70 @@ const getRecentTransactions = async (): Promise<ITransaction[]> => {
   }))
 }
 
+const getTransactionDetails = async (transactionId: string): Promise<ITransactionDetails> => {
+  if (!Types.ObjectId.isValid(transactionId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Transaction ID')
+  }
+
+  const payment = (await Payment.findById(transactionId)
+    .populate('userId', 'name fullName')
+    .populate({
+      path: 'bookingId',
+      populate: { path: 'serviceId' }
+    })
+    .lean()) as any
+
+  if (!payment) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Transaction not found.')
+  }
+
+  const commission = Math.floor(payment.amount * 0.05)
+  const providerReceives = payment.amount - commission
+
+  const details: ITransactionDetails = {
+    transaction: {
+      id: payment._id.toString(),
+      transactionId: `TXN-${payment._id.toString().slice(-6).toUpperCase()}`,
+      user: {
+        id: payment.userId?._id?.toString() || '',
+        name: payment.userId?.fullName || payment.userId?.name || 'Unknown User',
+      },
+      type: payment.metadata?.type === 'subscription' ? 'Subscription' : 'Payment',
+      amount: payment.amount,
+      commission,
+      date: payment.createdAt,
+      status: payment.status === 'succeeded' ? 'Completed' : payment.status === 'pending' ? 'Pending' : 'Failed',
+      paymentMethod: 'Credit Card ****4242', // Mocking card details as they're not in schema
+      baseAmount: payment.amount,
+      providerReceives,
+      cardholderName: payment.userId?.fullName || payment.userId?.name || 'Sarah Johnson',
+      expiryDate: '12/2026',
+      invoiceNumber: `INV-TXN-${payment._id.toString().slice(-6).toUpperCase()}`,
+    },
+    paymentHistory: [
+      { status: 'Payment initiated', amount: payment.amount, timestamp: payment.createdAt },
+      { status: 'Payment processing', amount: payment.amount, timestamp: payment.createdAt },
+      { status: 'Payment completed', amount: payment.amount, timestamp: payment.createdAt },
+    ],
+    commissionSummary: {
+      platformFee: commission,
+      earnings: commission,
+    },
+  }
+
+  if (payment.bookingId) {
+    const booking = payment.bookingId
+    details.serviceDetails = {
+      type: booking.eventType || 'Wedding Photography',
+      date: booking.bookingDate,
+      location: `${booking.eventLocation?.city || ''}, ${booking.eventLocation?.country || ''}`,
+      duration: `${booking.durationHours || 8} hours`,
+    }
+  }
+
+  return details
+}
+
 export const DashboardService = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -472,4 +537,5 @@ export const DashboardService = {
   handleModerationAction,
   getPaymentAndCommissionStats,
   getRecentTransactions,
+  getTransactionDetails,
 }

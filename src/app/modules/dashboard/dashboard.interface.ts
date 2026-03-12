@@ -131,3 +131,29 @@ export type ITransaction = {
   date: Date
   status: 'Completed' | 'Pending' | 'Failed'
 }
+
+export type ITransactionDetails = {
+  transaction: ITransaction & {
+    paymentMethod: string
+    baseAmount: number
+    providerReceives: number
+    cardholderName: string
+    expiryDate: string
+    invoiceNumber: string
+  }
+  paymentHistory: Array<{
+    status: string
+    amount: number
+    timestamp: Date
+  }>
+  serviceDetails?: {
+    type: string
+    date: Date
+    location: string
+    duration: string
+  }
+  commissionSummary: {
+    platformFee: number
+    earnings: number
+  }
+}

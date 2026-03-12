@@ -65,4 +65,11 @@ router.get(
   DashboardController.getRecentTransactions,
 )
 
+router.get(
+  '/recent-transactions/:transactionId',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  validateRequest(DashboardValidation.getTransactionDetailsZodSchema),
+  DashboardController.getTransactionDetails,
+)
+
 export const DashboardRoutes = router

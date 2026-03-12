@@ -54,9 +54,20 @@ const handleModerationActionZodSchema = z.object({
   }),
 })
 
+const getTransactionDetailsZodSchema = z.object({
+  params: z.object({
+    transactionId: z
+      .string({
+        required_error: 'Transaction ID is required',
+      })
+      .regex(objectIdRegex, 'Invalid transaction ID format'),
+  }),
+})
+
 export const DashboardValidation = {
   getUserDetailsStatsZodSchema,
   warnUserZodSchema,
   getModerationReportDetailsZodSchema,
   handleModerationActionZodSchema,
+  getTransactionDetailsZodSchema,
 }

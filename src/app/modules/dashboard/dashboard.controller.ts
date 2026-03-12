@@ -9,6 +9,7 @@ import {
   IModerationReportDetails,
   IPaymentStats,
   ITransaction,
+  ITransactionDetails,
   IUserDetailsStats,
   IUserManagementStats,
 } from './dashboard.interface'
@@ -118,6 +119,17 @@ const getRecentTransactions = catchAsync(async (req: Request, res: Response) => 
   })
 })
 
+const getTransactionDetails = catchAsync(async (req: Request, res: Response) => {
+  const { transactionId } = req.params
+  const result = await DashboardService.getTransactionDetails(transactionId)
+  sendResponse<ITransactionDetails>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Transaction details retrieved successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -128,4 +140,5 @@ export const DashboardController = {
   handleModerationAction,
   getPaymentAndCommissionStats,
   getRecentTransactions,
+  getTransactionDetails,
 }
