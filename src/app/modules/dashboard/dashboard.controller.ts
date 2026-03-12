@@ -36,9 +36,6 @@ const getUserDetailsStats = catchAsync(async (req: Request, res: Response) => {
 
 const warnUser = catchAsync(async (req: Request, res: Response) => {
   const { userId, message } = req.body
-  if (!userId || !message) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'User ID and message are required')
-  }
   const result = await DashboardService.warnUser(userId, message)
   sendResponse<string>(res, {
     statusCode: StatusCodes.OK,
@@ -83,10 +80,6 @@ const handleModerationAction = catchAsync(async (req: Request, res: Response) =>
   const { reportId } = req.params
   const { action, details } = req.body
   const admin = req.user as JwtPayload
-
-  if (!action) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Action is required')
-  }
 
   const result = await DashboardService.handleModerationAction(
     reportId,
