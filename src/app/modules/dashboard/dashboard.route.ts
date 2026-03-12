@@ -72,4 +72,16 @@ router.get(
   DashboardController.getTransactionDetails,
 )
 
+router.get(
+  '/subscription-stats',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getSubscriptionManagementStats,
+)
+
+router.get(
+  '/subscribers',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getSubscriberList,
+)
+
 export const DashboardRoutes = router

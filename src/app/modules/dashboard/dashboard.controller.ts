@@ -8,6 +8,8 @@ import {
   IModerationReport,
   IModerationReportDetails,
   IPaymentStats,
+  ISubscriber,
+  ISubscriptionStats,
   ITransaction,
   ITransactionDetails,
   IUserDetailsStats,
@@ -130,6 +132,26 @@ const getTransactionDetails = catchAsync(async (req: Request, res: Response) => 
   })
 })
 
+const getSubscriptionManagementStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.getSubscriptionManagementStats()
+  sendResponse<ISubscriptionStats>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Subscription management stats retrieved successfully',
+    data: result,
+  })
+})
+
+const getSubscriberList = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.getSubscriberList()
+  sendResponse<ISubscriber[]>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Subscriber list retrieved successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -141,4 +163,6 @@ export const DashboardController = {
   getPaymentAndCommissionStats,
   getRecentTransactions,
   getTransactionDetails,
+  getSubscriptionManagementStats,
+  getSubscriberList,
 }

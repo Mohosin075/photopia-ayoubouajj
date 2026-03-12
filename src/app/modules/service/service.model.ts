@@ -222,9 +222,9 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: locationSchema,
       required: true,
     },
-    coverMedia: {
-      type: String,
-    },
+    // coverMedia: {
+    //   type: String,
+    // },
     gallery: {
       type: [String],
       default: [],

@@ -157,3 +157,49 @@ export type ITransactionDetails = {
     earnings: number
   }
 }
+
+export type ISubscriptionStats = {
+  totalProvider: {
+    count: number
+    percentageChange: number
+  }
+  monthlyRevenue: {
+    amount: number
+    percentageChange: number
+  }
+  premiumSubscribers: {
+    count: number
+    pricePerMonth: number
+  }
+  noSubscribers: {
+    count: number
+  }
+  subscriberGrowth: {
+    months: string[]
+    premium: number[]
+    noSubscription: number[]
+  }
+  revenueDistribution: {
+    premium: number
+    noSubscription: number
+  }
+  activePlan: {
+    name: string
+    price: number
+    features: string[]
+    subscribers: number
+    monthlyRevenue: number
+  }
+}
+
+export type ISubscriber = {
+  id: string
+  name: string
+  email: string
+  profile: string
+  plan: string
+  status: string
+  startDate: Date
+  nextBilling: Date
+  totalRevenue: number
+}

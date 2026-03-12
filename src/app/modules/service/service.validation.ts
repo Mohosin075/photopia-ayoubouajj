@@ -46,7 +46,7 @@ export const createServiceSchema = z.object({
     pricingType: z.enum(pricingTypeValues),
     duration: z.string().min(1).max(100),
     location: locationSchema,
-    coverMedia: z.string().url().optional(),
+    // coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),
     status: z.enum(statusValues).default(SERVICE_STATUS.ACTIVE),
   }),
