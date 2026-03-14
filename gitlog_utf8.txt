@@ -1,0 +1,71 @@
+﻿commit 5b57f360685cbbb46666e64a6958e424bece10ad
+Author: Md Mohosin <mohosinali075@gmail.com>
+Date:   Fri Mar 13 00:59:31 2026 +0600
+
+    feat(dashboard): add subscription management endpoints and stats
+
+M	src/app.ts
+M	src/app/modules/dashboard/dashboard.controller.ts
+M	src/app/modules/dashboard/dashboard.interface.ts
+M	src/app/modules/dashboard/dashboard.route.ts
+M	src/app/modules/dashboard/dashboard.service.ts
+M	src/app/modules/service/service.model.ts
+M	src/app/modules/service/service.validation.ts
+
+commit 8329b7e81793aeb704a2b40b0e86ba4449ae4a34
+Author: Md Mohosin <mohosinali075@gmail.com>
+Date:   Thu Mar 12 22:51:09 2026 +0600
+
+    feat(dashboard): add endpoint to fetch transaction details
+    
+    Add new API endpoint GET /recent-tr
+
+M	src/app/modules/dashboard/dashboard.controller.ts
+M	src/app/modules/dashboard/dashboard.interface.ts
+M	src/app/modules/dashboard/dashboard.route.ts
+M	src/app/modules/dashboard/dashboard.service.ts
+M	src/app/modules/dashboard/dashboard.validation.ts
+
+commit 5d84096e4d34f593a96cad50d386b814cbf7f0cf
+Author: Md Mohosin <mohosinali075@gmail.com>
+Date:   Thu Mar 12 22:39:00 2026 +0600
+
+    feat(dashboard): add payment stats and recent transactions endpoints
+
+M	src/app/modules/dashboard/dashboard.controller.ts
+M	src/app/modules/dashboard/dashboard.interface.ts
+M	src/app/modules/dashboard/dashboard.route.ts
+M	src/app/modules/dashboard/dashboard.service.ts
+
+commit 3ecabb686013b0bbf2205c7295c028d49e36a8ba
+Author: Md Mohosin <mohosinali075@gmail.com>
+Date:   Thu Mar 12 21:56:22 2026 +0600
+
+    refactor: migrate validation from controllers to zod
+
+M	src/app/modules/dashboard/dashboard.controller.ts
+M	src/app/modules/dashboard/dashboard.route.ts
+A	src/app/modules/dashboard/dashboard.validation.ts
+M	src/app/modules/support/support.route.ts
+
+commit 8d70a7667a3ba14843af6fc7dd66fafab93c4d76
+Author: Md Mohosin <mohosinali075@gmail.com>
+Date:   Thu Mar 12 03:07:17 2026 +0600
+
+    feat(dashboard): add content moderation reporting and admin actions
+    
+    - Extend support enum with PENDING and UNDER_REVIEW statuses, reorder for clarity
+    - Enhance support model with moderation fields: reportedUser, contentId, priority, and moderationLog
+    - Add dashboard routes for moderation stats, reports, and actions
+    - Implement moderation stats, report listing, details, and action handling services
+    - Update validation schemas to refle
+
+M	src/app/modules/dashboard/dashboard.controller.ts
+M	src/app/modules/dashboard/dashboard.interface.ts
+M	src/app/modules/dashboard/dashboard.route.ts
+M	src/app/modules/dashboard/dashboard.service.ts
+M	src/app/modules/support/support.interface.ts
+M	src/app/modules/support/support.model.ts
+M	src/app/modules/support/support.service.ts
+M	src/app/modules/support/support.validation.ts
+M	src/enum/support.ts

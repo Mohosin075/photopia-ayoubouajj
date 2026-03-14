@@ -4,6 +4,7 @@ import catchAsync from '../../../shared/catchAsync'
 import sendResponse from '../../../shared/sendResponse'
 import { DashboardService } from './dashboard.service'
 import {
+  IAdvancedAnalyticsStats,
   IContentModerationStats,
   IModerationReport,
   IModerationReportDetails,
@@ -152,6 +153,16 @@ const getSubscriberList = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getAdvancedAnalyticsStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.getAdvancedAnalyticsStats()
+  sendResponse<IAdvancedAnalyticsStats>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Advanced analytics stats retrieved successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -165,4 +176,5 @@ export const DashboardController = {
   getTransactionDetails,
   getSubscriptionManagementStats,
   getSubscriberList,
+  getAdvancedAnalyticsStats,
 }

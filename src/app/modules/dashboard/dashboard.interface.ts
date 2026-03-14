@@ -203,3 +203,32 @@ export type ISubscriber = {
   nextBilling: Date
   totalRevenue: number
 }
+
+export type IAdvancedAnalyticsStats = {
+  summary: {
+    totalBookings: { count: number; percentageChange: number }
+    grossRevenue: { amount: number; percentageChange: number }
+    netRevenue: { amount: number; percentageChange: number; commission: number }
+    conversionRate: { rate: number; percentageChange: number }
+  }
+  breakdownByService: Array<{
+    serviceType: string
+    bookings: number
+    avgPrice: number
+    grossRevenue: number
+    commission: number
+    netRevenue: number
+  }>
+  revenueTrends: {
+    months: string[]
+    categories: Array<{
+      name: string
+      data: number[]
+    }>
+  }
+  bookingStatusDistribution: Array<{
+    status: string
+    count: number
+    percentage: number
+  }>
+}

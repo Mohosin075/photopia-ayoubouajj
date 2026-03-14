@@ -84,4 +84,10 @@ router.get(
   DashboardController.getSubscriberList,
 )
 
+router.get(
+  '/advanced-analytics',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getAdvancedAnalyticsStats,
+)
+
 export const DashboardRoutes = router
