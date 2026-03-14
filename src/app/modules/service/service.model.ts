@@ -144,6 +144,11 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       ref: 'Category',
       required: true,
     },
+    serviceType: {
+      type: String,
+      enum: Object.values(SERVICE_TYPE),
+      required: true,
+    },
     subCategory: {
       type: String,
       trim: true,
@@ -254,6 +259,7 @@ const serviceSchema = new Schema<IService, ServiceModel>(
 // Indexes for better query performance
 serviceSchema.index({ providerId: 1 })
 serviceSchema.index({ category: 1 })
+serviceSchema.index({ serviceType: 1 })
 serviceSchema.index({ subCategory: 1 })
 serviceSchema.index({ tags: 1 })
 serviceSchema.index({ 'location.type': 1 })

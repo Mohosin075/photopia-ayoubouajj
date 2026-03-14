@@ -8,6 +8,7 @@ import {
 } from '../../../enum/service'
 
 // Convert enums to arrays for Zod
+const serviceTypeValues = Object.values(SERVICE_TYPE) as [string, ...string[]]
 const pricingTypeValues = Object.values(SERVICE_PRICING_TYPE) as [string, ...string[]]
 const locationTypeValues = Object.values(SERVICE_LOCATION_TYPE) as [string, ...string[]]
 const statusValues = Object.values(SERVICE_STATUS) as [string, ...string[]]
@@ -36,6 +37,9 @@ export const createServiceSchema = z.object({
       .min(SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MIN_LENGTH)
       .max(SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MAX_LENGTH),
     category: z.string().min(2).max(50),
+    serviceType: z.enum(serviceTypeValues, {
+      required_error: 'Service type is required',
+    }),
     subCategory: z.string().optional(),
     tags: z.array(z.string().min(1).max(30)).optional(),
     equipment: z.array(z.string().min(1).max(50)).optional(),
@@ -63,6 +67,7 @@ export const updateServiceSchema = z.object({
       .max(SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MAX_LENGTH)
       .optional(),
     category: z.string().min(2).max(50).optional(),
+    serviceType: z.enum(serviceTypeValues).optional(),
     subCategory: z.string().optional(),
     tags: z.array(z.string().min(1).max(30)).optional(),
     equipment: z.array(z.string().min(1).max(50)).optional(),
@@ -103,6 +108,7 @@ export const filterServiceSchema = z.object({
     status: z.enum(statusValues).optional(),
     isVerified: z.enum(['true', 'false']).optional(),
     providerId: z.string().optional(),
+    serviceType: z.enum(serviceTypeValues).optional(),
     isActive: z.enum(['true', 'false']).optional(),
   }),
 })

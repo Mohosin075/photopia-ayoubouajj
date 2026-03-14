@@ -1,4 +1,5 @@
 import { Model, Types } from 'mongoose'
+import { SERVICE_TYPE } from '../../../enum/user'
 import {
   SERVICE_LOCATION_TYPE,
   SERVICE_PRICING_TYPE,
@@ -33,7 +34,7 @@ export interface IServiceFilterables {
   status?: SERVICE_STATUS
   isVerified?: boolean | string
   providerId?: string
-  serviceType?: string
+  serviceType?: SERVICE_TYPE | string
   isActive?: boolean | string
 }
 
@@ -43,6 +44,7 @@ export interface IService {
   title: string
   description: string
   category: Types.ObjectId
+  serviceType: SERVICE_TYPE
   subCategory?: string
   tags?: string[]
   equipment?: string[]
