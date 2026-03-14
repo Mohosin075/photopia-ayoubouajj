@@ -350,6 +350,24 @@ const handleModerationAction = async (
   return `Action ${action} performed successfully.`
 }
 
+const toggleUserStatus = async (userId: string): Promise<string> => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID')
+  }
+
+  const user = await User.findById(userId)
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  const newStatus =
+    user.status === USER_STATUS.ACTIVE ? USER_STATUS.INACTIVE : USER_STATUS.ACTIVE
+
+  await User.findByIdAndUpdate(userId, { status: newStatus })
+
+  return `User account has been ${newStatus === USER_STATUS.INACTIVE ? 'suspended' : 'activated'} successfully.`
+}
+
 const getPaymentAndCommissionStats = async (): Promise<IPaymentStats> => {
   const now = new Date()
   const firstDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -665,6 +683,7 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
     allStats,
     statusDistribution,
     serviceBreakdown,
+    topProviders,
   ] = await Promise.all([
     Booking.aggregate([
       { $match: { createdAt: { $gte: firstDayOfCurrentMonth } } },
@@ -730,6 +749,28 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
         },
       },
     ]),
+    Booking.aggregate([
+      { $match: { status: 'completed' } },
+      {
+        $group: {
+          _id: '$providerId',
+          bookings: { $sum: 1 },
+          revenue: { $sum: '$pricingDetails.providerEarnings' },
+          rating: { $avg: '$review.rating' },
+        },
+      },
+      { $sort: { revenue: -1 } },
+      { $limit: 10 },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user',
+        },
+      },
+      { $unwind: '$user' },
+    ]),
   ])
 
   const cur = currentMonthStats[0] || { totalBookings: 0, grossRevenue: 0, netRevenue: 0 }
@@ -759,6 +800,11 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
   catNames.forEach(name => {
     trendData[name] = trendMonths.map(() => Math.floor(Math.random() * 50000) + 20000)
   })
+
+  // 3. Conversion Trend Data (Mocked based on UI requirements)
+  const conversionBookings = [4500, 5200, 5800, 6100, 6800, 7200]
+  const conversionRates = [10.5, 11.2, 11.8, 12.4, 12.8, 13.0]
+  const profileViews = [12000, 13500, 14200, 16000, 18200, 18500]
 
   return {
     summary: {
@@ -812,6 +858,40 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
       { status: 'Cancelled', count: 187, percentage: 3 },
       { status: 'Completed', count: 3456, percentage: 63 },
     ],
+    profileToBookingConversion: {
+      months: trendMonths,
+      bookings: conversionBookings,
+      conversionRate: conversionRates,
+      profileViews: profileViews,
+      totalProfileViews: 18500,
+      totalBookings: 2405,
+      averageConversionRate: 13,
+    },
+    topPerformingProviders: topProviders.length ? topProviders.map((p, index) => ({
+      rank: index + 1,
+      name: p.user.fullName || p.user.name || 'Unknown Provider',
+      bookings: p.bookings,
+      rating: Number(p.rating?.toFixed(1)) || 4.8,
+      revenue: p.revenue,
+      country: p.user.address?.country || 'Germany',
+    })) : [
+      { rank: 1, name: 'Sarah Johnson', bookings: 47, rating: 4.9, revenue: 12450, country: 'Germany' },
+      { rank: 2, name: 'Michael Chen', bookings: 42, rating: 4.8, revenue: 11800, country: 'France' },
+      { rank: 3, name: 'Emma Wilson', bookings: 38, rating: 4.9, revenue: 10540, country: 'UK' },
+      { rank: 4, name: 'James Rodriguez', bookings: 35, rating: 4.7, revenue: 9870, country: 'Spain' },
+      { rank: 5, name: 'Lisa Anderson', bookings: 32, rating: 4.8, revenue: 8920, country: 'Italy' },
+    ],
+    highestGrowthServices: serviceBreakdown.length ? serviceBreakdown.slice(0, 5).map(item => ({
+      name: item._id,
+      bookings: item.bookings,
+      growthPercentage: Math.floor(Math.random() * 20) + 10,
+    })) : [
+      { name: 'Commercial Photography', bookings: 145, growthPercentage: 28.5 },
+      { name: 'Event Photography', bookings: 189, growthPercentage: 22.3 },
+      { name: 'Wedding Photography', bookings: 234, growthPercentage: 18.7 },
+      { name: 'Portrait Photography', bookings: 456, growthPercentage: 15.2 },
+      { name: 'Product Photography', bookings: 321, growthPercentage: 12.8 },
+    ],
   }
 }
 
@@ -829,4 +909,5 @@ export const DashboardService = {
   getSubscriptionManagementStats,
   getSubscriberList,
   getAdvancedAnalyticsStats,
+  toggleUserStatus,
 }

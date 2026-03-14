@@ -231,4 +231,26 @@ export type IAdvancedAnalyticsStats = {
     count: number
     percentage: number
   }>
+  profileToBookingConversion: {
+    months: string[]
+    bookings: number[]
+    conversionRate: number[]
+    profileViews: number[]
+    totalProfileViews: number
+    totalBookings: number
+    averageConversionRate: number
+  }
+  topPerformingProviders: Array<{
+    rank: number
+    name: string
+    bookings: number
+    rating: number
+    revenue: number
+    country: string
+  }>
+  highestGrowthServices: Array<{
+    name: string
+    bookings: number
+    growthPercentage: number
+  }>
 }

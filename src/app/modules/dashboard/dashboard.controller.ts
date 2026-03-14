@@ -163,6 +163,17 @@ const getAdvancedAnalyticsStats = catchAsync(async (req: Request, res: Response)
   })
 })
 
+const toggleUserStatus = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.params
+  const result = await DashboardService.toggleUserStatus(userId)
+  sendResponse<string>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'User status updated successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -177,4 +188,5 @@ export const DashboardController = {
   getSubscriptionManagementStats,
   getSubscriberList,
   getAdvancedAnalyticsStats,
+  toggleUserStatus,
 }

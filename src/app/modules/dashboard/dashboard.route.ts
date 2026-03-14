@@ -20,6 +20,12 @@ router.get(
   DashboardController.getUserDetailsStats,
 )
 
+router.patch(
+  '/user-status/:userId',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.toggleUserStatus,
+)
+
 router.post(
   '/warn-user',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
