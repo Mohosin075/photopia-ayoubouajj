@@ -5,7 +5,7 @@ import { BookingService } from './src/app/modules/booking/booking.service';
 import { Service } from './src/app/modules/service/service.model';
 import { Availability } from './src/app/modules/availability/availability.model';
 import { Booking } from './src/app/modules/booking/booking.model';
-import config from './src/app/config';
+import config from './src/config/index';
 
 // Mock DB connection
 const connectDB = async () => {
@@ -30,6 +30,13 @@ const runTest = async () => {
     const serviceId = new mongoose.Types.ObjectId();
 
     console.log('Using IDs:', { providerId, clientId, serviceId });
+
+    // Mock User for context
+    const mockUser = {
+        userId: clientId,
+        email: 'test@example.com',
+        role: 'USER'
+    };
 
     // Create Service
     const service = await Service.create({
@@ -113,7 +120,7 @@ const runTest = async () => {
     
     // Booking on Price Override Date (Day After Tomorrow)
     try {
-        const bookingOverride = await BookingService.createBooking({
+        const { booking, paymentSession } = await BookingService.createBooking({
             providerId: providerId,
             serviceId: serviceId,
             clientId: clientId,
@@ -128,15 +135,23 @@ const runTest = async () => {
             },
             clientName: 'Test Client',
             clientEmail: 'test@example.com'
-        } as any);
+        } as any, mockUser);
         
-        // Expected: 2 hours * 200 (Override) = 400 Base Subtotal
-        console.log('Booking Price Override Check:', 
-           (bookingOverride.pricingDetails.baseRate === 200 && bookingOverride.pricingDetails.subtotal === 400) ? 'PASS' : 'FAIL',
-           { baseRate: bookingOverride.pricingDetails.baseRate, subtotal: bookingOverride.pricingDetails.subtotal }
-        );
+        // Expected Logic:
+        // 2 hours * 200 (Override) = 400 Subtotal
+        // Client Total: 400 * (1 + 0.10) = 440
+        // Deposit: 440 * 0.5 = 220
+        // Provider Earnings: 400 * (1 - 0.05) = 380
+        
+        console.log('Booking Price Check:');
+        console.log(' - Subtotal (400):', booking.pricingDetails.subtotal === 400 ? 'PASS' : 'FAIL', booking.pricingDetails.subtotal);
+        console.log(' - Client Total (440):', booking.pricingDetails.clientTotal === 440 ? 'PASS' : 'FAIL', booking.pricingDetails.clientTotal);
+        console.log(' - Provider Earnings (380):', booking.pricingDetails.providerEarnings === 380 ? 'PASS' : 'FAIL', booking.pricingDetails.providerEarnings);
+        console.log(' - Deposit (220):', booking.depositAmount === 220 ? 'PASS' : 'FAIL', booking.depositAmount);
+        console.log(' - Balance (220):', booking.balanceAmount === 220 ? 'PASS' : 'FAIL', booking.balanceAmount);
+
     } catch (e: any) {
-        console.log('Booking Price Override Error:', e.message);
+        console.log('Booking Price Override Error:', e.message, e.stack);
     }
 
     console.log('--- TEST END ---');

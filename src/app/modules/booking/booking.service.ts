@@ -34,7 +34,8 @@ const calculatePrice = async (
   const day = date.getDay()
   if (day === 0 || day === 6) {
     isWeekend = true
-    baseRate = service.pricingModel?.weekendHourlyRate || service.price
+    // If weekendHourlyRate is not set, apply 20% increase to base price
+    baseRate = service.pricingModel?.weekendHourlyRate || (service.price * 1.2)
   } else {
     baseRate = service.pricingModel?.weekdayHourlyRate || service.price
   }
@@ -76,19 +77,18 @@ const calculatePrice = async (
 
   subtotal += travelFee
 
-  const platformCommission = 0.05 // 5% commission as per user request (3-5%)
-  const platformCommissionClient = 0 // Assuming no extra fee for client for now, or it's included in subtotal
-  const platformCommissionProvider = platformCommission
+  const platformCommissionClient = 0.10 // 10% from user (client)
+  const platformCommissionProvider = 0.05 // 5% from provider
   
-  const clientTotal = subtotal 
-  const providerEarnings = subtotal * (1 - platformCommissionProvider)
+  const clientTotal = Number((subtotal * (1 + platformCommissionClient)).toFixed(2))
+  const providerEarnings = Number((subtotal * (1 - platformCommissionProvider)).toFixed(2))
 
   return {
     pricingType: service.pricingType,
     baseRate,
     isWeekend,
     travelFee,
-    subtotal,
+    subtotal: Number(subtotal.toFixed(2)),
     platformCommissionClient,
     platformCommissionProvider,
     clientTotal,
@@ -164,23 +164,26 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
 
   payload.pricingDetails = pricing
   payload.durationHours = pricing.durationHours
-  payload.depositAmount = pricing.clientTotal // Full payment
-  payload.balanceAmount = 0
-  payload.depositPercentage = 1 // 100%
-  payload.bookingDate = bookingDate // Ensure the Date object is saved
+  
+  // Implement 50% deposit logic
+   payload.depositPercentage = 0.5 // 50%
+   payload.depositAmount = Number((pricing.clientTotal * payload.depositPercentage).toFixed(2))
+   payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2))
+   payload.bookingDate = bookingDate // Ensure the Date object is saved
 
   const [booking] = await Booking.create([payload]) as any
 
   // 4. Create Stripe Checkout Session
   const paymentPayload = {
-    amount: pricing.clientTotal,
+    amount: payload.depositAmount, // Charge the deposit amount
     currency: pricing.currency.toLowerCase(),
-    productName: `Booking for ${service.title}`,
-    description: `Booking Number: ${booking.bookingNumber}`,
+    productName: `Deposit for ${service.title}`,
+    description: `Booking Number: ${booking.bookingNumber} (50% Deposit)`,
     bookingId: booking._id.toString(),
     metadata: {
       bookingId: booking._id.toString(),
-      bookingNumber: booking.bookingNumber
+      bookingNumber: booking.bookingNumber,
+      paymentType: 'deposit'
     }
   }
 

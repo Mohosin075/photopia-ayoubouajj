@@ -104,10 +104,11 @@ const checkAvailabilityForDate = async (
       // 3. Check default schedule
       const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
       const dayName = days[targetDate.getDay()]
-      const daySchedule = availability.defaultSchedule[dayName]
+      const defaultSchedule = availability.defaultSchedule as any
+      const daySchedule = defaultSchedule[dayName] || defaultSchedule.get?.(dayName)
 
       if (!daySchedule || !daySchedule.isActive) {
-        return { isAvailable: false, reason: 'Day is not a working day in default schedule' }
+        return { isAvailable: false, reason: `Day (${dayName}) is not a working day in default schedule` }
       }
       workingHours = { start: daySchedule.start, end: daySchedule.end }
       if (daySchedule.maxBookings) maxBookings = daySchedule.maxBookings
