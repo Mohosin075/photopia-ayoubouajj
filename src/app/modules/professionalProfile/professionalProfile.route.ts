@@ -9,7 +9,7 @@ const router = express.Router()
 
 router.post(
     '/',
-    auth(USER_ROLES.USER),
+    auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
     validateRequest(ProfessionalProfileValidation.createProfessionalProfileSchema),
     ProfessionalProfileController.createProfile,
 )
@@ -22,7 +22,7 @@ router.get(
 
 router.patch(
     '/',
-    auth(USER_ROLES.PROFESSIONAL),
+    auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
     validateRequest(ProfessionalProfileValidation.updateProfessionalProfileSchema),
     ProfessionalProfileController.updateProfile,
 )
