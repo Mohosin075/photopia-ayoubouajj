@@ -20,7 +20,11 @@ import ApiError from '../../../errors/ApiError'
 import { JwtPayload } from 'jsonwebtoken'
 
 const getUserManagementStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getUserManagementStats()
+  const { country, city } = req.query
+  const result = await DashboardService.getUserManagementStats(
+    country as string,
+    city as string,
+  )
   sendResponse<IUserManagementStats>(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -103,7 +107,11 @@ const handleModerationAction = catchAsync(async (req: Request, res: Response) =>
 })
 
 const getPaymentAndCommissionStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getPaymentAndCommissionStats()
+  const { country, city } = req.query
+  const result = await DashboardService.getPaymentAndCommissionStats(
+    country as string,
+    city as string,
+  )
   sendResponse<IPaymentStats>(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -198,6 +206,16 @@ const exportPayments = catchAsync(async (req: Request, res: Response) => {
   res.send(result)
 })
 
+const getLocationList = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.getLocationList()
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Location list retrieved successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -215,4 +233,5 @@ export const DashboardController = {
   toggleUserStatus,
   exportUsers,
   exportPayments,
+  getLocationList,
 }

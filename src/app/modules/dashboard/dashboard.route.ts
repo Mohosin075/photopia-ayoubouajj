@@ -14,6 +14,12 @@ router.get(
 )
 
 router.get(
+  '/locations',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getLocationList,
+)
+
+router.get(
   '/export-users',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   DashboardController.exportUsers,

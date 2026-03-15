@@ -33,24 +33,31 @@ import { NotificationServices } from '../notification/notification.service'
 
 import ExcelJS from 'exceljs'
 
-const getUserManagementStats = async (): Promise<IUserManagementStats> => {
+const getUserManagementStats = async (
+  country?: string,
+  city?: string,
+): Promise<IUserManagementStats> => {
   const now = new Date()
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
+  const filter: any = { status: { $ne: USER_STATUS.DELETED } }
+  if (country) filter['address.country'] = country
+  if (city) filter['address.city'] = city
+
   const [totalUsers, providers, activeThisMonth, suspended] = await Promise.all([
-    User.countDocuments({ status: { $ne: USER_STATUS.DELETED } }),
+    User.countDocuments(filter),
     User.countDocuments({
+      ...filter,
       roles: USER_ROLES.PROFESSIONAL,
-      status: { $ne: USER_STATUS.DELETED },
     }),
     User.countDocuments({
-      status: { $ne: USER_STATUS.DELETED },
+      ...filter,
       $or: [
         { createdAt: { $gte: firstDayOfMonth } },
         { 'authentication.latestRequestAt': { $gte: firstDayOfMonth } },
       ],
     }),
-    User.countDocuments({ status: USER_STATUS.INACTIVE }),
+    User.countDocuments({ ...filter, status: USER_STATUS.INACTIVE }),
   ])
 
   return {
@@ -417,31 +424,67 @@ const exportUsers = async () => {
   return buffer
 }
 
-const getPaymentAndCommissionStats = async (): Promise<IPaymentStats> => {
+const getPaymentAndCommissionStats = async (
+  country?: string,
+  city?: string,
+): Promise<IPaymentStats> => {
   const now = new Date()
   const firstDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
   const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+  // 0. Location Filtering Logic
+  let userFilter: any = {}
+  if (country) userFilter['address.country'] = country
+  if (city) userFilter['address.city'] = city
+
+  let userIds: any[] = []
+  if (Object.keys(userFilter).length > 0) {
+    const users = await User.find(userFilter).select('_id').lean()
+    userIds = users.map(u => u._id)
+  }
+
+  const paymentFilter: any = { status: 'succeeded' }
+  const refundFilter: any = { status: 'refunded' }
+  const bookingFilter: any = { status: 'completed' }
+  const subscriptionFilter: any = { status: 'active' }
+
+  if (userIds.length > 0) {
+    paymentFilter.userId = { $in: userIds }
+    refundFilter.userId = { $in: userIds }
+    bookingFilter.$or = [{ userId: { $in: userIds } }, { providerId: { $in: userIds } }]
+    subscriptionFilter.userId = { $in: userIds }
+  } else if (country || city) {
+    // If location filter was provided but no users found
+    return {
+      totalRevenue: { amount: 0, percentageChange: 0 },
+      commissionsEarned: { amount: 0, averageRate: 0 },
+      subscriptions: { amount: 0, activeSubscribers: 0 },
+      refunds: { amount: 0, refundRequests: 0 },
+      categories: [],
+      trends: { months: [], commissions: [], totalTransactions: [] },
+    }
+  }
 
   // 1. Basic Metrics
   const [
     currentMonthPayments,
     lastMonthPayments,
-    activeSubscriptions,
+    activeSubscriptionsCount,
     refunds,
     allCompletedBookings,
     categories,
   ] = await Promise.all([
     Payment.find({
-      status: 'succeeded',
+      ...paymentFilter,
       createdAt: { $gte: firstDayOfCurrentMonth },
     }).lean(),
     Payment.find({
-      status: 'succeeded',
+      ...paymentFilter,
       createdAt: { $gte: firstDayOfLastMonth, $lt: firstDayOfCurrentMonth },
     }).lean(),
-    Subscription.countDocuments({ status: 'active' }),
-    Payment.find({ status: 'refunded' }).lean(),
-    Booking.find({ status: 'completed' }).lean(),
+    Subscription.countDocuments(subscriptionFilter),
+    Payment.find(refundFilter).lean(),
+    Booking.find(bookingFilter).lean(),
     Category.find({ isActive: true }).lean(),
   ])
 
@@ -491,7 +534,7 @@ const getPaymentAndCommissionStats = async (): Promise<IPaymentStats> => {
     },
     subscriptions: {
       amount: subscriptionRevenue || 20544,
-      activeSubscribers: activeSubscriptions || 1284,
+      activeSubscribers: activeSubscriptionsCount || 1284,
     },
     refunds: {
       amount: totalRefunds || 840,
@@ -986,6 +1029,17 @@ const exportPayments = async () => {
   return buffer
 }
 
+const getLocationList = async () => {
+  const users = await User.find({ status: { $ne: USER_STATUS.DELETED } })
+    .select('address.country address.city')
+    .lean()
+
+  const countries = [...new Set(users.map(u => u.address?.country).filter(Boolean))]
+  const cities = [...new Set(users.map(u => u.address?.city).filter(Boolean))]
+
+  return { countries, cities }
+}
+
 export const DashboardService = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -1003,4 +1057,5 @@ export const DashboardService = {
   toggleUserStatus,
   exportUsers,
   exportPayments,
+  getLocationList,
 }
