@@ -64,7 +64,7 @@ const subscriptionPlanSchema = new Schema<ISubscriptionPlan, SubscriptionPlanMod
     },
     userTypes: [{
       type: String,
-      enum: ['user', 'organizer', 'admin', 'super_admin'],
+      enum: ['user', 'professional', 'admin', 'super_admin'],
       required: true,
     }],
     priority: {

@@ -16,7 +16,7 @@ export interface ISubscriptionPlan {
   isActive: boolean
   stripePriceId: string
   stripeProductId: string
-  userTypes: ('user' | 'organizer' | 'admin' | 'super_admin')[]
+  userTypes: ('user' | 'professional' | 'admin' | 'super_admin')[]
   priority: number
   createdAt?: Date
   updatedAt?: Date

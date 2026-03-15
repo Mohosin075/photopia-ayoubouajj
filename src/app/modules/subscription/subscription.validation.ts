@@ -16,7 +16,7 @@ export const createSubscriptionPlanSchema = z.object({
     maxTeamMembers: z.number().min(1, 'Max team members must be at least 1').default(1),
     maxServices: z.number().min(1, 'Max services must be at least 1').default(1),
     userTypes: z.array(
-      z.enum(['user', 'organizer', 'admin', 'super_admin'], {
+      z.enum(['user', 'professional', 'admin', 'super_admin'], {
         errorMap: () => ({ message: 'Invalid user type' }),
       }),
     ).min(1, 'At least one user type is required'),
@@ -64,7 +64,7 @@ export const createCheckoutSessionSchema = z.object({
 // Query Validation
 export const getPlansQuerySchema = z.object({
   query: z.object({
-    userType: z.enum(['user', 'organizer', 'admin', 'super_admin']).optional(),
+    userType: z.enum(['user', 'professional', 'admin', 'super_admin']).optional(),
   }),
 })
 
