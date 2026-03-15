@@ -31,6 +31,8 @@ import { Notification } from '../notification/notification.model'
 import { CreateNotificationDto, NotificationType } from '../notification/notification.interface'
 import { NotificationServices } from '../notification/notification.service'
 
+import ExcelJS from 'exceljs'
+
 const getUserManagementStats = async (): Promise<IUserManagementStats> => {
   const now = new Date()
   const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -366,6 +368,53 @@ const toggleUserStatus = async (userId: string): Promise<string> => {
   await User.findByIdAndUpdate(userId, { status: newStatus })
 
   return `User account has been ${newStatus === USER_STATUS.INACTIVE ? 'suspended' : 'activated'} successfully.`
+}
+
+const exportUsers = async () => {
+  const users = await User.find({
+    status: { $ne: USER_STATUS.DELETED },
+  })
+    .select(
+      'name fullName email phone roles status address.city address.country createdAt subscriptionStatus',
+    )
+    .lean()
+
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('Users')
+
+  // Define columns
+  worksheet.columns = [
+    { header: 'Name', key: 'name', width: 25 },
+    { header: 'Email', key: 'email', width: 30 },
+    { header: 'Phone', key: 'phone', width: 15 },
+    { header: 'Roles', key: 'roles', width: 15 },
+    { header: 'Status', key: 'status', width: 10 },
+    { header: 'City', key: 'city', width: 15 },
+    { header: 'Country', key: 'country', width: 15 },
+    { header: 'Subscription Status', key: 'subscription', width: 20 },
+    { header: 'Joined Date', key: 'joined', width: 15 },
+  ]
+
+  // Add rows
+  users.forEach(user => {
+    worksheet.addRow({
+      name: user.fullName || user.name || 'N/A',
+      email: user.email,
+      phone: user.phone || 'N/A',
+      roles: Array.isArray(user.roles) ? user.roles.join(', ') : user.roles,
+      status: user.status,
+      city: user.address?.city || 'N/A',
+      country: user.address?.country || 'N/A',
+      subscription: user.subscriptionStatus || 'N/A',
+      joined: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
+    })
+  })
+
+  // Style header
+  worksheet.getRow(1).font = { bold: true }
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  return buffer
 }
 
 const getPaymentAndCommissionStats = async (): Promise<IPaymentStats> => {
@@ -910,4 +959,5 @@ export const DashboardService = {
   getSubscriberList,
   getAdvancedAnalyticsStats,
   toggleUserStatus,
+  exportUsers,
 }

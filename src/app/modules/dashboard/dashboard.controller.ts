@@ -174,6 +174,18 @@ const toggleUserStatus = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const exportUsers = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.exportUsers()
+
+  res.setHeader(
+    'Content-Type',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  )
+  res.setHeader('Content-Disposition', 'attachment; filename=' + 'users.xlsx')
+
+  res.send(result)
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -189,4 +201,5 @@ export const DashboardController = {
   getSubscriberList,
   getAdvancedAnalyticsStats,
   toggleUserStatus,
+  exportUsers,
 }
