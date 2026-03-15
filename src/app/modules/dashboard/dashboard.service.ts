@@ -1056,16 +1056,20 @@ const getDetailedStats = async (
   const filteredUsers = await User.find(userFilter).select('_id').lean()
   const userIds = filteredUsers.map(u => u._id)
 
-  let bookingFilter: any = {}
+  let bookingFilter: any = { status: 'completed' }
   let paymentFilter: any = { status: 'succeeded' }
 
   if (country || city) {
-    bookingFilter.$or = [
-      { clientId: { $in: userIds } },
-      { providerId: { $in: userIds } },
-      { 'eventLocation.city': city },
-      { 'eventLocation.country': country },
-    ]
+    // If we have specific users from this location
+    const locationCondition = {
+      $or: [
+        { clientId: { $in: userIds } },
+        { providerId: { $in: userIds } },
+        { 'eventLocation.city': city },
+        { 'eventLocation.country': country },
+      ],
+    }
+    bookingFilter = { ...bookingFilter, ...locationCondition }
     paymentFilter.userId = { $in: userIds }
   }
 
@@ -1080,10 +1084,9 @@ const getDetailedStats = async (
     supportTickets,
     prevSupportTickets,
   ] = await Promise.all([
-    Booking.countDocuments({ ...bookingFilter, status: 'completed' }),
+    Booking.countDocuments(bookingFilter),
     Booking.countDocuments({
       ...bookingFilter,
-      status: 'completed',
       createdAt: {
         $gte: new Date(now.getFullYear(), now.getMonth() - 1, 1),
         $lt: new Date(now.getFullYear(), now.getMonth(), 1),
@@ -1135,7 +1138,7 @@ const getDetailedStats = async (
 
   // 4. Net Revenue Trending (Commissions)
   const revenueTrendingAgg = await Booking.aggregate([
-    { $match: { ...bookingFilter, status: 'completed', createdAt: { $gte: sixMonthsAgo } } },
+    { $match: { ...bookingFilter, createdAt: { $gte: sixMonthsAgo } } },
     {
       $group: {
         _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
@@ -1154,7 +1157,7 @@ const getDetailedStats = async (
 
   // 5. Geographic Performance
   const geoPerformanceAgg = await Booking.aggregate([
-    { $match: { ...bookingFilter, status: 'completed' } },
+    { $match: { ...bookingFilter } },
     {
       $group: {
         _id: '$eventLocation.city',
@@ -1175,7 +1178,7 @@ const getDetailedStats = async (
 
   // 6. Country Ranking
   const countryRankingAgg = await Booking.aggregate([
-    { $match: { ...bookingFilter, status: 'completed' } },
+    { $match: { ...bookingFilter } },
     {
       $group: {
         _id: '$eventLocation.country',
