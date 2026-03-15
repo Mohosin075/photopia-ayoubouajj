@@ -20,6 +20,12 @@ router.get(
 )
 
 router.get(
+  '/export-payments',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.exportPayments,
+)
+
+router.get(
   '/user-details/:userId',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(DashboardValidation.getUserDetailsStatsZodSchema),

@@ -944,6 +944,48 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
   }
 }
 
+const exportPayments = async () => {
+  const payments = await Payment.find({})
+    .populate('userId', 'name fullName email')
+    .sort({ createdAt: -1 })
+    .lean()
+
+  const workbook = new ExcelJS.Workbook()
+  const worksheet = workbook.addWorksheet('Payments')
+
+  // Define columns
+  worksheet.columns = [
+    { header: 'User Name', key: 'userName', width: 25 },
+    { header: 'User Email', key: 'userEmail', width: 30 },
+    { header: 'Amount', key: 'amount', width: 15 },
+    { header: 'Currency', key: 'currency', width: 10 },
+    { header: 'Payment Method', key: 'method', width: 15 },
+    { header: 'Transaction ID', key: 'transactionId', width: 35 },
+    { header: 'Status', key: 'status', width: 15 },
+    { header: 'Date', key: 'date', width: 20 },
+  ]
+
+  // Add rows
+  payments.forEach((payment: any) => {
+    worksheet.addRow({
+      userName: payment.userId?.fullName || payment.userId?.name || 'N/A',
+      userEmail: payment.userEmail || payment.userId?.email || 'N/A',
+      amount: payment.amount,
+      currency: payment.currency || 'USD',
+      method: payment.paymentMethod || 'Stripe',
+      transactionId: payment.paymentIntentId || 'N/A',
+      status: payment.status,
+      date: payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A',
+    })
+  })
+
+  // Style header
+  worksheet.getRow(1).font = { bold: true }
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  return buffer
+}
+
 export const DashboardService = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -960,4 +1002,5 @@ export const DashboardService = {
   getAdvancedAnalyticsStats,
   toggleUserStatus,
   exportUsers,
+  exportPayments,
 }
