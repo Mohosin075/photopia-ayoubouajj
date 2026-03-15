@@ -14,6 +14,12 @@ router.get(
 )
 
 router.get(
+  '/detailed-stats',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getDetailedStats,
+)
+
+router.get(
   '/locations',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   DashboardController.getLocationList,

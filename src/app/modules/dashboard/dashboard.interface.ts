@@ -204,6 +204,45 @@ export type ISubscriber = {
   totalRevenue: number
 }
 
+export type IDetailedDashboardStats = {
+  mainMetrics: {
+    gmv: { amount: number; change: number }
+    newBookings: { count: number; change: number }
+    netRevenue: { amount: number; change: number }
+    conversionRate: { rate: number; change: number }
+    activeCreators: { count: number; change: number }
+    activeCustomers: { count: number; change: number }
+    supportTickets: { count: number; change: number }
+    avgResponseTime: { hours: number; change: number }
+  }
+  gmvTrending: Array<{ month: string; amount: number }>
+  netRevenueTrending: Array<{
+    month: string
+    providerCommission: number
+    userCommission: number
+  }>
+  geographicPerformance: Array<{
+    city: string
+    bookings: number
+    revenue: number
+    growth: number
+  }>
+  marketplaceHealth: {
+    creatorCustomerRatio: string
+    matchRate: number
+    avgProjectValue: number
+    completionRate: number
+  }
+  countryRanking: Array<{
+    country: string
+    revenue: number
+    growth: number
+    rankCurrent: number
+    rankPrev1: number
+    rankPrev2: number
+  }>
+}
+
 export type IAdvancedAnalyticsStats = {
   summary: {
     totalBookings: { count: number; percentageChange: number }

@@ -6,6 +6,7 @@ import { DashboardService } from './dashboard.service'
 import {
   IAdvancedAnalyticsStats,
   IContentModerationStats,
+  IDetailedDashboardStats,
   IModerationReport,
   IModerationReportDetails,
   IPaymentStats,
@@ -216,6 +217,17 @@ const getLocationList = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getDetailedStats = catchAsync(async (req: Request, res: Response) => {
+  const { country, city } = req.query
+  const result = await DashboardService.getDetailedStats(country as string, city as string)
+  sendResponse<IDetailedDashboardStats>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Detailed dashboard stats retrieved successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -234,4 +246,5 @@ export const DashboardController = {
   exportUsers,
   exportPayments,
   getLocationList,
+  getDetailedStats,
 }
