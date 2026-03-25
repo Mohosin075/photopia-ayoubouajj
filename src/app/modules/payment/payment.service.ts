@@ -338,7 +338,10 @@ const getAllPayments = async (
       .skip(skip)
       .limit(limit)
       .sort({ [sortBy]: sortOrder })
-      .populate('userId', 'name email'),
+      .populate('userId', 'name email')
+      .populate({
+        path: 'bookingId'
+      }),
     Payment.countDocuments(whereConditions),
   ])
 

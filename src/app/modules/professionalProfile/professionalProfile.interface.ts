@@ -16,6 +16,9 @@ export interface IProfessionalProfile {
     isVerified: boolean
     rating: number
     reviewCount: number
+    profileViews: number
+    projects: number
+    responseRate: number
     stripeAccountId?: string
     stripeOnboardingComplete?: boolean
 }

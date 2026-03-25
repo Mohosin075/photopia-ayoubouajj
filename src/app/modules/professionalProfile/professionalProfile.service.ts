@@ -6,6 +6,8 @@ import { User } from '../user/user.model'
 import { USER_ROLES } from '../../../enum/user'
 import stripe from '../../../config/stripe'
 import config from '../../../config'
+import { Booking } from '../booking/booking.model'
+import { Types } from 'mongoose'
 
 const createProfile = async (
     userId: string,
@@ -41,7 +43,74 @@ const getProfile = async (userId: string) => {
     if (!profile) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Professional profile not found')
     }
-    return profile
+
+    // Get Booking Stats
+    const now = new Date()
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
+    const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()))
+
+    const [thisWeekBookings, thisMonthStats, lastMonthStats] = await Promise.all([
+        Booking.countDocuments({
+            providerId: new Types.ObjectId(userId),
+            createdAt: { $gte: currentWeekStart },
+        }),
+        Booking.aggregate([
+            {
+                $match: {
+                    providerId: new Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: currentMonthStart },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+                    totalBookings: { $sum: 1 },
+                },
+            },
+        ]),
+        Booking.aggregate([
+            {
+                $match: {
+                    providerId: new Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+                },
+            },
+        ]),
+    ])
+
+    const calculateChange = (current: number, previous: number) => {
+        if (previous === 0) return current > 0 ? 100 : 0
+        return Number(((current - previous) / previous * 100).toFixed(2))
+    }
+
+    const currentMonthRevenue = thisMonthStats[0]?.totalRevenue || 0
+    const lastMonthRevenue = lastMonthStats[0]?.totalRevenue || 0
+    const totalBookingsCount = thisMonthStats[0]?.totalBookings || 0
+
+    return {
+        ...profile.toObject(),
+        statistics: {
+            bookings: {
+                count: totalBookingsCount,
+                thisWeek: thisWeekBookings,
+            },
+            revenue: {
+                amount: currentMonthRevenue,
+                percentageChange: calculateChange(currentMonthRevenue, lastMonthRevenue),
+            },
+        },
+    }
 }
 
 const updateProfile = async (
