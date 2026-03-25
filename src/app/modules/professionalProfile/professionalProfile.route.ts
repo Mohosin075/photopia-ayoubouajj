@@ -22,6 +22,18 @@ router.get(
     ProfessionalProfileController.getProfile,
 )
 
+router.get(
+    '/statistics',
+    auth(USER_ROLES.PROFESSIONAL),
+    ProfessionalProfileController.getDetailedStatistics,
+)
+
+router.get(
+    '/statistics/export',
+    auth(USER_ROLES.PROFESSIONAL),
+    ProfessionalProfileController.exportStatisticsReport,
+)
+
 router.patch(
     '/',
     auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),

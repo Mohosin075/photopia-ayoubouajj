@@ -61,10 +61,39 @@ const checkStripeAccountStatus = catchAsync(async (req: Request, res: Response) 
     })
 })
 
+const getDetailedStatistics = catchAsync(async (req: Request, res: Response) => {
+    const { userId } = req.user as JwtPayload
+    const result = await ProfessionalProfileServices.getDetailedStatistics(userId)
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Detailed statistics retrieved successfully',
+        data: result,
+    })
+})
+
+const exportStatisticsReport = catchAsync(async (req: Request, res: Response) => {
+    const { userId } = req.user as JwtPayload
+    const result = await ProfessionalProfileServices.exportStatisticsReport(userId)
+
+    res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    )
+    res.setHeader(
+        'Content-Disposition',
+        'attachment; filename=' + 'statistics-report.xlsx',
+    )
+
+    res.send(result)
+})
+
 export const ProfessionalProfileController = {
     createProfile,
     getProfile,
     updateProfile,
     stripeConnectOnboarding,
     checkStripeAccountStatus,
+    getDetailedStatistics,
+    exportStatisticsReport,
 }
