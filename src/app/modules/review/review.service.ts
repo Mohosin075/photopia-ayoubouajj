@@ -153,6 +153,34 @@ const getReviewsByBooking = async (
   }
 }
 
+const getReviewsByProvider = async (
+  providerId: string,
+  paginationOptions: IPaginationOptions,
+) => {
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(paginationOptions)
+
+  const [result, total] = await Promise.all([
+    Review.find({ reviewee: providerId })
+      .populate('reviewer')
+      .populate('reviewee')
+      .skip(skip)
+      .limit(limit)
+      .sort({ [sortBy]: sortOrder }),
+    Review.countDocuments({ reviewee: providerId }),
+  ])
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: result,
+  }
+}
+
 const updateReview = async (
   user: JwtPayload,
   id: string,
@@ -329,4 +357,5 @@ export const ReviewServices = {
   deleteReview,
   getSingleReview,
   getReviewsByBooking,
+  getReviewsByProvider,
 }

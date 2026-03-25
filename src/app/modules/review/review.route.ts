@@ -25,6 +25,10 @@ router
     ReviewController.getReviewsByBooking,
   )
 
+router
+  .route('/provider/:providerId')
+  .get(ReviewController.getReviewsByProvider)
+
 // router.route('/:type')
 //   .get(auth(...roles), ReviewController.getAllReviews);
 
