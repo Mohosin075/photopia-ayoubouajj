@@ -10,6 +10,7 @@ const ProfessionalProfileSchema = new Schema<IProfessionalProfile>(
             unique: true,
         },
         bio: { type: String },
+        coverPhoto: { type: String },
         specialties: { type: [String] },
         experience: { type: String },
         portfolio: { type: [String] },

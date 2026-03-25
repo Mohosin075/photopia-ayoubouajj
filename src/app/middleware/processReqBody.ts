@@ -6,7 +6,7 @@ import path from 'path'
 import fs from 'fs'
 import sharp from 'sharp'
 
-type IFolderName = 'images' | 'media' | 'documents'
+type IFolderName = 'images' | 'media' | 'documents' | 'coverPhoto'
 interface ProcessedFiles {
   [key: string]: string | string[] | undefined
 }
@@ -16,6 +16,7 @@ const uploadFields = [
   { name: 'images', maxCount: 5 },
   { name: 'media', maxCount: 3 },
   { name: 'documents', maxCount: 3 },
+  { name: 'coverPhoto', maxCount: 1 },
 ] as const
 
 export const fileAndBodyProcessor = () => {
@@ -32,6 +33,7 @@ export const fileAndBodyProcessor = () => {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         media: ['video/mp4', 'audio/mpeg'],
         documents: ['application/pdf'],
+        coverPhoto: ['image/jpeg', 'image/png', 'image/jpg'],
       }
 
       const fieldType = file.fieldname as IFolderName
@@ -93,7 +95,7 @@ export const fileAndBodyProcessor = () => {
               const filePath = `/${fieldName}/${filename}`
 
               // Apply Sharp optimization for images
-              if (fieldName === 'images' && file.mimetype.startsWith('image/')) {
+              if ((fieldName === 'images' || fieldName === 'coverPhoto') && file.mimetype.startsWith('image/')) {
                 try {
                   // Create Sharp instance
                   let sharpInstance = sharp(file.buffer).resize(800)
@@ -174,6 +176,7 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
         images: ['image/jpeg', 'image/png', 'image/jpg'],
         media: ['video/mp4', 'audio/mpeg'],
         documents: ['application/pdf'],
+        coverPhoto: ['image/jpeg', 'image/png', 'image/jpg'],
       }
 
       const fieldType = file.fieldname as IFolderName
@@ -233,7 +236,10 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
               const filePath = `/${fieldName}/${file.filename}`
 
               // Apply Sharp optimization for images
-              if (fieldName === 'images' && file.mimetype.startsWith('image/')) {
+              if (
+                (fieldName === 'images' || fieldName === 'coverPhoto') &&
+                file.mimetype.startsWith('image/')
+              ) {
                 try {
                   const fullPath = path.join(
                     uploadsDir,

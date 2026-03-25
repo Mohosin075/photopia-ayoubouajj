@@ -3,6 +3,7 @@ import { Schema, Types } from 'mongoose'
 export interface IProfessionalProfile {
     user: Types.ObjectId
     bio?: string
+    coverPhoto?: string
     specialties?: string[]
     experience?: string
     portfolio?: string[]

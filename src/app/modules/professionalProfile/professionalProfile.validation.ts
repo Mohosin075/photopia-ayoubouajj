@@ -10,6 +10,7 @@ const socialLinksSchema = z.object({
 export const createProfessionalProfileSchema = z.object({
     body: z.object({
         bio: z.string().optional(),
+        coverPhoto: z.string().optional(),
         specialties: z.array(z.string()).optional(),
         experience: z.string().optional(),
         portfolio: z.array(z.string().url()).optional(),
@@ -21,6 +22,7 @@ export const createProfessionalProfileSchema = z.object({
 export const updateProfessionalProfileSchema = z.object({
     body: z.object({
         bio: z.string().optional(),
+        coverPhoto: z.string().optional(),
         specialties: z.array(z.string()).optional(),
         experience: z.string().optional(),
         portfolio: z.array(z.string().url()).optional(),
