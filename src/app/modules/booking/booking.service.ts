@@ -11,6 +11,20 @@ import { WalletService } from '../wallet/wallet.service'
 import stripe from '../../../config/stripe'
 import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
 import { PaymentServices } from '../payment/payment.service'
+import { geocodeAddress } from '../../../utils/geocodeAddress'
+
+// Helper for Haversine distance
+const calculateDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371 // Radius of the Earth in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180)
+  const dLon = (lon2 - lon1) * (Math.PI / 180)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return R * c
+}
 
 const calculatePrice = async (
   serviceId: string,
@@ -103,6 +117,39 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
   const service = await Service.findById(payload.serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
 
+  // 1.5 Geocode address if coordinates are missing
+  if (!payload.eventLocation.coordinates || !payload.eventLocation.coordinates.lat || !payload.eventLocation.coordinates.lng) {
+    const fullAddress = `${payload.eventLocation.address}, ${payload.eventLocation.city}, ${payload.eventLocation.country}`
+    const geocoded = await geocodeAddress(fullAddress)
+
+    console.log('Geocoded:', geocoded)
+    if (geocoded) {
+      payload.eventLocation.coordinates = {
+        lat: geocoded.lat,
+        lng: geocoded.lng
+      }
+    }
+  }
+
+  // 1.6 Calculate distance if not provided or 0
+  if ((!payload.eventLocation.distanceFromProviderKm || payload.eventLocation.distanceFromProviderKm === 0) &&
+      service.location?.coordinates?.lat && service.location?.coordinates?.lng &&
+      payload.eventLocation.coordinates?.lat && payload.eventLocation.coordinates?.lng) {
+    
+    const distance = calculateDistanceInKm(
+      service.location.coordinates.lat,
+      service.location.coordinates.lng,
+      payload.eventLocation.coordinates.lat,
+      payload.eventLocation.coordinates.lng
+    )
+    payload.eventLocation.distanceFromProviderKm = Number(distance.toFixed(2))
+  }
+
+  // 1.7 Ensure distance is at least 0 if still missing
+  if (payload.eventLocation.distanceFromProviderKm === undefined) {
+    payload.eventLocation.distanceFromProviderKm = 0
+  }
+
   // Ensure bookingDate is a Date object
   const bookingDate = new Date(payload.bookingDate)
   
@@ -158,7 +205,7 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
     payload.startTime,
     payload.endTime,
     bookingDate,
-    payload.eventLocation.distanceFromProviderKm,
+    payload.eventLocation.distanceFromProviderKm || 0,
     availabilityCheck.pricing
   )
 
