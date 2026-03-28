@@ -31,7 +31,15 @@ export const updateProfessionalProfileSchema = z.object({
     }),
 })
 
+export const removeItemSchema = z.object({
+    body: z.object({
+        field: z.enum(['portfolio', 'specialties', 'language']),
+        values: z.array(z.string()).min(1, 'At least one value is required'),
+    }),
+})
+
 export const ProfessionalProfileValidation = {
     createProfessionalProfileSchema,
     updateProfessionalProfileSchema,
+    removeItemSchema,
 }

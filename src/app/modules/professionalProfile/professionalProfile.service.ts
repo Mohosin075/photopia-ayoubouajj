@@ -118,9 +118,46 @@ const updateProfile = async (
     userId: string,
     payload: Partial<IProfessionalProfile>,
 ) => {
+    const existingProfile = await ProfessionalProfile.findOne({ user: userId })
+    if (!existingProfile) {
+        throw new ApiError(StatusCodes.NOT_FOUND, 'Professional profile not found')
+    }
+
+    // Append new portfolio items instead of overwriting
+    if (payload.portfolio && Array.isArray(payload.portfolio)) {
+        payload.portfolio = [...(existingProfile.portfolio || []), ...payload.portfolio]
+    }
+
+    // Append new specialties instead of overwriting (optional, but good for consistency)
+    if (payload.specialties && Array.isArray(payload.specialties)) {
+        payload.specialties = [
+            ...new Set([...(existingProfile.specialties || []), ...payload.specialties]),
+        ]
+    }
+
+    // Append new language instead of overwriting (optional, but good for consistency)
+    if (payload.language && Array.isArray(payload.language)) {
+        payload.language = [
+            ...new Set([...(existingProfile.language || []), ...payload.language]),
+        ]
+    }
+
     const profile = await ProfessionalProfile.findOneAndUpdate(
         { user: userId },
         payload,
+        { new: true },
+    )
+    return profile
+}
+
+const removeItem = async (
+    userId: string,
+    payload: { field: 'portfolio' | 'specialties' | 'language'; values: string[] },
+) => {
+    const { field, values } = payload
+    const profile = await ProfessionalProfile.findOneAndUpdate(
+        { user: userId },
+        { $pullAll: { [field]: values } } as any,
         { new: true },
     )
     if (!profile) {
@@ -342,6 +379,7 @@ export const ProfessionalProfileServices = {
     createProfile,
     getProfile,
     updateProfile,
+    removeItem,
     stripeConnectOnboarding,
     checkStripeAccountStatus,
     getDetailedStatistics,

@@ -39,6 +39,17 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const removeItem = catchAsync(async (req: Request, res: Response) => {
+    const { userId } = req.user as JwtPayload
+    const result = await ProfessionalProfileServices.removeItem(userId, req.body)
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Item removed successfully',
+        data: result,
+    })
+})
+
 const stripeConnectOnboarding = catchAsync(async (req: Request, res: Response) => {
     const { userId } = req.user as JwtPayload
     const result = await ProfessionalProfileServices.stripeConnectOnboarding(userId)
@@ -92,6 +103,7 @@ export const ProfessionalProfileController = {
     createProfile,
     getProfile,
     updateProfile,
+    removeItem,
     stripeConnectOnboarding,
     checkStripeAccountStatus,
     getDetailedStatistics,

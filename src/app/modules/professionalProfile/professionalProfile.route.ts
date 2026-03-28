@@ -42,4 +42,11 @@ router.patch(
     ProfessionalProfileController.updateProfile,
 )
 
+router.patch(
+    '/remove-items',
+    auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+    validateRequest(ProfessionalProfileValidation.removeItemSchema),
+    ProfessionalProfileController.removeItem,
+)
+
 export const ProfessionalProfileRoutes = router
