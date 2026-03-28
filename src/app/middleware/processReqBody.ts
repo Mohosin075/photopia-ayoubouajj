@@ -6,7 +6,7 @@ import path from 'path'
 import fs from 'fs'
 import sharp from 'sharp'
 
-type IFolderName = 'images' | 'media' | 'documents' | 'coverPhoto'
+type IFolderName = 'images' | 'media' | 'documents' | 'coverPhoto' | 'portfolio'
 interface ProcessedFiles {
   [key: string]: string | string[] | undefined
 }
@@ -17,6 +17,7 @@ const uploadFields = [
   { name: 'media', maxCount: 3 },
   { name: 'documents', maxCount: 3 },
   { name: 'coverPhoto', maxCount: 1 },
+  { name: 'portfolio', maxCount: 10 },
 ] as const
 
 export const fileAndBodyProcessor = () => {
@@ -34,6 +35,7 @@ export const fileAndBodyProcessor = () => {
         media: ['video/mp4', 'audio/mpeg'],
         documents: ['application/pdf'],
         coverPhoto: ['image/jpeg', 'image/png', 'image/jpg'],
+        portfolio: ['image/jpeg', 'image/png', 'image/jpg'],
       }
 
       const fieldType = file.fieldname as IFolderName
@@ -95,7 +97,12 @@ export const fileAndBodyProcessor = () => {
               const filePath = `/${fieldName}/${filename}`
 
               // Apply Sharp optimization for images
-              if ((fieldName === 'images' || fieldName === 'coverPhoto') && file.mimetype.startsWith('image/')) {
+              if (
+                (fieldName === 'images' ||
+                  fieldName === 'coverPhoto' ||
+                  fieldName === 'portfolio') &&
+                file.mimetype.startsWith('image/')
+              ) {
                 try {
                   // Create Sharp instance
                   let sharpInstance = sharp(file.buffer).resize(800)
@@ -177,6 +184,7 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
         media: ['video/mp4', 'audio/mpeg'],
         documents: ['application/pdf'],
         coverPhoto: ['image/jpeg', 'image/png', 'image/jpg'],
+        portfolio: ['image/jpeg', 'image/png', 'image/jpg'],
       }
 
       const fieldType = file.fieldname as IFolderName
@@ -237,7 +245,9 @@ export const fileAndBodyProcessorUsingDiskStorage = () => {
 
               // Apply Sharp optimization for images
               if (
-                (fieldName === 'images' || fieldName === 'coverPhoto') &&
+                (fieldName === 'images' ||
+                  fieldName === 'coverPhoto' ||
+                  fieldName === 'portfolio') &&
                 file.mimetype.startsWith('image/')
               ) {
                 try {
