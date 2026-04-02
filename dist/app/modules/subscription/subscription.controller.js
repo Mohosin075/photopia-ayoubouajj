@@ -157,6 +157,7 @@ const createCheckoutSession = (0, catchAsync_1.default)(async (req, res) => {
 const handleWebhook = (0, catchAsync_1.default)(async (req, res) => {
     const signature = req.headers['stripe-signature'];
     const payload = req.body;
+    console.log({ payload });
     // Verify webhook signature and construct event
     const event = webhook_service_1.webhookService.verifyWebhookSignature(payload, signature);
     // Process the webhook event
@@ -197,6 +198,17 @@ const getAllPlans = (0, catchAsync_1.default)(async (req, res) => {
         data: plans,
     });
 });
+// Admin: Get all user subscriptions
+const getAllSubscriptions = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await subscription_service_1.subscriptionService.getAllSubscriptions(req.query);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'All subscriptions retrieved successfully',
+        meta: result.meta,
+        data: result.result,
+    });
+});
 // Admin: Get subscription analytics
 const getSubscriptionAnalytics = (0, catchAsync_1.default)(async (req, res) => {
     const { startDate, endDate, planId, status } = req.query;
@@ -222,13 +234,12 @@ const reactivateSubscription = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const userId = user.authId.toString();
     const { subscriptionId } = req.params;
-    // This would involve creating a new subscription or updating the canceled one
-    // Implementation depends on your business logic
+    const subscription = await subscription_service_1.subscriptionService.reactivateSubscription(userId, subscriptionId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
-        message: 'Subscription reactivation initiated',
-        data: { message: 'Please contact support for subscription reactivation' },
+        message: 'Subscription reactivated successfully',
+        data: subscription,
     });
 });
 // Retry failed payment
@@ -331,6 +342,7 @@ exports.SubscriptionController = {
     createSubscriptionPlan,
     updateSubscriptionPlan,
     getAllPlans,
+    getAllSubscriptions,
     getSubscriptionAnalytics,
     retryFailedPayment,
 };

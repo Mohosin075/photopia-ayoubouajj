@@ -26,7 +26,7 @@ const auth = (...roles) => async (req, res, next) => {
         // FIRST: decode token
         try {
             verifyUser = jwtHelper_1.jwtHelper.verifyToken(token, config_1.default.jwt.jwt_secret);
-            console.log({ verifyUser });
+            // console.log({verifyUser})
             // Ensure userId is present even for older tokens
             if (!verifyUser.userId && verifyUser.authId) {
                 verifyUser.userId = verifyUser.authId;

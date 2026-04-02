@@ -151,8 +151,7 @@ const adminLogin = async (payload) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Please try again with correct credentials.');
     }
     //tokens
-    const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.roles[0], // fallback to first role if needed, but adminLogin should check roles
-    isUserExist.activeRole, isUserExist.name, isUserExist.email);
+    const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.activeRole, isUserExist.name, isUserExist.email);
     return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, `Welcome back ${isUserExist.name}`, isUserExist.activeRole, tokens.accessToken, tokens.refreshToken);
 };
 const forgetPassword = async (email, phone) => {
@@ -262,7 +261,7 @@ const verifyAccount = async (onetimeCode, email, phone) => {
     //either newly created user or existing user
     if (!isUserExist.verified) {
         await user_model_1.User.findByIdAndUpdate(isUserExist._id, { $set: { verified: true } }, { new: true });
-        const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.roles[0], isUserExist.activeRole, isUserExist.name, isUserExist.email);
+        const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.activeRole, isUserExist.name, isUserExist.email);
         return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, `Welcome ${isUserExist.name} to our platform.`, isUserExist.activeRole, tokens.accessToken, tokens.refreshToken);
     }
     else {
@@ -293,7 +292,7 @@ const getRefreshToken = async (token) => {
     try {
         const decodedToken = jwtHelper_1.jwtHelper.verifyToken(token, config_1.default.jwt.jwt_refresh_secret);
         const { userId, authId, role } = decodedToken;
-        const tokens = auth_helper_1.AuthHelper.createToken((userId || authId), role, decodedToken.activeRole || role, decodedToken.name, decodedToken.email);
+        const tokens = auth_helper_1.AuthHelper.createToken((userId || authId), decodedToken.activeRole || role, decodedToken.name, decodedToken.email);
         return {
             accessToken: tokens.accessToken,
         };

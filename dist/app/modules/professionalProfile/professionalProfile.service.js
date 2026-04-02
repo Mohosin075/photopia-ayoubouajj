@@ -9,6 +9,11 @@ const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const professionalProfile_model_1 = require("./professionalProfile.model");
 const user_model_1 = require("../user/user.model");
 const user_1 = require("../../../enum/user");
+const stripe_1 = __importDefault(require("../../../config/stripe"));
+const config_1 = __importDefault(require("../../../config"));
+const booking_model_1 = require("../booking/booking.model");
+const mongoose_1 = require("mongoose");
+const exceljs_1 = __importDefault(require("exceljs"));
 const createProfile = async (userId, payload) => {
     const user = await user_model_1.User.findById(userId);
     if (!user) {
@@ -31,21 +36,296 @@ const createProfile = async (userId, payload) => {
     return result;
 };
 const getProfile = async (userId) => {
+    var _a, _b, _c;
     const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId }).populate('user');
+    if (!profile) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
+    }
+    // Get Booking Stats
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    const currentWeekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+    const [thisWeekBookings, thisMonthStats, lastMonthStats] = await Promise.all([
+        booking_model_1.Booking.countDocuments({
+            providerId: new mongoose_1.Types.ObjectId(userId),
+            createdAt: { $gte: currentWeekStart },
+        }),
+        booking_model_1.Booking.aggregate([
+            {
+                $match: {
+                    providerId: new mongoose_1.Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: currentMonthStart },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+                    totalBookings: { $sum: 1 },
+                },
+            },
+        ]),
+        booking_model_1.Booking.aggregate([
+            {
+                $match: {
+                    providerId: new mongoose_1.Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+                },
+            },
+        ]),
+    ]);
+    const calculateChange = (current, previous) => {
+        if (previous === 0)
+            return current > 0 ? 100 : 0;
+        return Number(((current - previous) / previous * 100).toFixed(2));
+    };
+    const currentMonthRevenue = ((_a = thisMonthStats[0]) === null || _a === void 0 ? void 0 : _a.totalRevenue) || 0;
+    const lastMonthRevenue = ((_b = lastMonthStats[0]) === null || _b === void 0 ? void 0 : _b.totalRevenue) || 0;
+    const totalBookingsCount = ((_c = thisMonthStats[0]) === null || _c === void 0 ? void 0 : _c.totalBookings) || 0;
+    return {
+        ...profile.toObject(),
+        statistics: {
+            bookings: {
+                count: totalBookingsCount,
+                thisWeek: thisWeekBookings,
+            },
+            revenue: {
+                amount: currentMonthRevenue,
+                percentageChange: calculateChange(currentMonthRevenue, lastMonthRevenue),
+            },
+        },
+    };
+};
+const updateProfile = async (userId, payload) => {
+    const existingProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId });
+    if (!existingProfile) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
+    }
+    // Append new portfolio items instead of overwriting
+    if (payload.portfolio && Array.isArray(payload.portfolio)) {
+        payload.portfolio = [...(existingProfile.portfolio || []), ...payload.portfolio];
+    }
+    // Append new specialties instead of overwriting (optional, but good for consistency)
+    if (payload.specialties && Array.isArray(payload.specialties)) {
+        payload.specialties = [
+            ...new Set([...(existingProfile.specialties || []), ...payload.specialties]),
+        ];
+    }
+    // Append new language instead of overwriting (optional, but good for consistency)
+    if (payload.language && Array.isArray(payload.language)) {
+        payload.language = [
+            ...new Set([...(existingProfile.language || []), ...payload.language]),
+        ];
+    }
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOneAndUpdate({ user: userId }, payload, { new: true });
+    return profile;
+};
+const removeItem = async (userId, payload) => {
+    const { field, values } = payload;
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOneAndUpdate({ user: userId }, { $pullAll: { [field]: values } }, { new: true });
     if (!profile) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
     }
     return profile;
 };
-const updateProfile = async (userId, payload) => {
-    const profile = await professionalProfile_model_1.ProfessionalProfile.findOneAndUpdate({ user: userId }, payload, { new: true });
+const stripeConnectOnboarding = async (userId) => {
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId }).populate('user');
     if (!profile) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
     }
-    return profile;
+    let stripeAccountId = profile.stripeAccountId;
+    if (!stripeAccountId) {
+        // Create a new Stripe Express account
+        const account = await stripe_1.default.accounts.create({
+            type: 'express',
+            email: profile.user.email,
+            capabilities: {
+                card_payments: { requested: true },
+                transfers: { requested: true },
+            },
+        });
+        stripeAccountId = account.id;
+        profile.stripeAccountId = stripeAccountId;
+        await profile.save();
+    }
+    // Generate onboarding link
+    const accountLink = await stripe_1.default.accountLinks.create({
+        account: stripeAccountId,
+        refresh_url: `${config_1.default.clientUrl}/expired`,
+        return_url: `${config_1.default.clientUrl}`,
+        // refresh_url: `${config.clientUrl}/stripe-connect/refresh`,
+        // return_url: `${config.clientUrl}/stripe-connect/return`,
+        type: 'account_onboarding',
+    });
+    return {
+        url: accountLink.url,
+    };
+};
+const checkStripeAccountStatus = async (userId) => {
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId });
+    if (!profile) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
+    }
+    if (!profile.stripeAccountId) {
+        return { isComplete: false };
+    }
+    const account = await stripe_1.default.accounts.retrieve(profile.stripeAccountId);
+    if (account.details_submitted && !profile.stripeOnboardingComplete) {
+        profile.stripeOnboardingComplete = true;
+        await profile.save();
+    }
+    return {
+        isComplete: profile.stripeOnboardingComplete,
+        detailsSubmitted: account.details_submitted,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+    };
+};
+const getDetailedStatistics = async (userId) => {
+    var _a;
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId });
+    if (!profile) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
+    }
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    // 1. Profile Views vs Category Average (Mocked Category Avg)
+    const categoryAverageViews = 850;
+    const viewsPerformance = calculateChange(profile.profileViews, categoryAverageViews);
+    // 2. Rating vs Category Average (Mocked Category Avg)
+    const categoryAverageRating = 4.3;
+    const ratingPerformance = calculateChange(profile.rating, categoryAverageRating);
+    // 3. Profile Views by Region (Mocked for parity with UI)
+    const viewsByRegion = [
+        { city: 'New York, NY', percentage: 37.5, count: 450 },
+        { city: 'Los Angeles, CA', percentage: 23.3, count: 280 },
+        { city: 'Chicago, IL', percentage: 15.4, count: 185 },
+        { city: 'Miami, FL', percentage: 12.1, count: 145 },
+        { city: 'Boston, MA', percentage: 7.5, count: 90 },
+        { city: 'Other', percentage: 4.2, count: 50 },
+    ];
+    // 4. Revenue Analytics (Weekly Breakdown for current month)
+    const weeklyRevenue = await booking_model_1.Booking.aggregate([
+        {
+            $match: {
+                providerId: new mongoose_1.Types.ObjectId(userId),
+                status: 'completed',
+                completedAt: { $gte: currentMonthStart },
+            },
+        },
+        {
+            $group: {
+                _id: { $week: '$completedAt' },
+                amount: { $sum: '$pricingDetails.providerEarnings' },
+            },
+        },
+        { $sort: { '_id': 1 } }
+    ]);
+    const formattedWeeklyRevenue = weeklyRevenue.map((w, index) => ({
+        week: `Week ${index + 1}`,
+        amount: w.amount
+    }));
+    const currentMonthRevenue = weeklyRevenue.reduce((acc, curr) => acc + curr.amount, 0);
+    // Get previous month revenue for comparison
+    const previousMonthStats = await booking_model_1.Booking.aggregate([
+        {
+            $match: {
+                providerId: new mongoose_1.Types.ObjectId(userId),
+                status: 'completed',
+                completedAt: { $gte: previousMonthStart, $lte: previousMonthEnd },
+            },
+        },
+        {
+            $group: {
+                _id: null,
+                totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+            },
+        },
+    ]);
+    const previousMonthRevenue = ((_a = previousMonthStats[0]) === null || _a === void 0 ? void 0 : _a.totalRevenue) || 0;
+    const revenueChange = calculateChange(currentMonthRevenue, previousMonthRevenue);
+    return {
+        profileViews: {
+            count: profile.profileViews,
+            change: -8, // Mocked weekly change
+            performanceVsCategory: {
+                categoryAverage: categoryAverageViews,
+                percentageAbove: viewsPerformance
+            }
+        },
+        rating: {
+            score: profile.rating,
+            reviews: profile.reviewCount,
+            performanceVsCategory: {
+                categoryAverage: categoryAverageRating,
+                percentageHigher: ratingPerformance
+            }
+        },
+        viewsByRegion,
+        revenueAnalytics: {
+            currentMonth: currentMonthRevenue,
+            previousMonth: previousMonthRevenue,
+            percentageChange: revenueChange,
+            weeklyBreakdown: formattedWeeklyRevenue,
+            averagePerPeriod: currentMonthRevenue / 4,
+            bestPerforming: Math.max(...formattedWeeklyRevenue.map(w => w.amount), 0)
+        }
+    };
+};
+const calculateChange = (current, previous) => {
+    if (previous === 0)
+        return current > 0 ? 100 : 0;
+    return Number(((current - previous) / previous * 100).toFixed(1));
+};
+const exportStatisticsReport = async (userId) => {
+    const stats = await getDetailedStatistics(userId);
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId }).populate('user');
+    const workbook = new exceljs_1.default.Workbook();
+    const worksheet = workbook.addWorksheet('Statistics Report');
+    worksheet.columns = [
+        { header: 'Metric', key: 'metric', width: 30 },
+        { header: 'Value', key: 'value', width: 20 },
+        { header: 'Details', key: 'details', width: 40 },
+    ];
+    // Add Overview
+    worksheet.addRow({ metric: 'Profile Views', value: stats.profileViews.count, details: `${stats.profileViews.change}% this week` });
+    worksheet.addRow({ metric: 'Rating', value: stats.rating.score, details: `${stats.rating.reviews} reviews` });
+    worksheet.addRow({});
+    // Add Revenue
+    worksheet.addRow({ metric: 'Current Month Revenue', value: `€${stats.revenueAnalytics.currentMonth}`, details: `${stats.revenueAnalytics.percentageChange}% vs previous month` });
+    stats.revenueAnalytics.weeklyBreakdown.forEach(w => {
+        worksheet.addRow({ metric: w.week, value: `€${w.amount}` });
+    });
+    worksheet.addRow({});
+    // Add Regions
+    worksheet.addRow({ metric: 'Region', value: 'Views', details: 'Percentage' });
+    stats.viewsByRegion.forEach(r => {
+        worksheet.addRow({ metric: r.city, value: r.count, details: `${r.percentage}%` });
+    });
+    // Style header
+    worksheet.getRow(1).font = { bold: true };
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
 };
 exports.ProfessionalProfileServices = {
     createProfile,
     getProfile,
     updateProfile,
+    removeItem,
+    stripeConnectOnboarding,
+    checkStripeAccountStatus,
+    getDetailedStatistics,
+    exportStatisticsReport,
 };

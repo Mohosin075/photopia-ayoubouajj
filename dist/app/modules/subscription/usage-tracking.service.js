@@ -42,8 +42,8 @@ const subscription_model_1 = require("./subscription.model");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const http_status_codes_1 = require("http-status-codes");
 class UsageTrackingService {
-    // Check if user can add more trucks
-    async canAddTruck(userId) {
+    // Check if user can add more services
+    async canAddService(userId) {
         try {
             const subscription = await subscription_model_1.Subscription.findOne({
                 userId: new mongoose_1.Types.ObjectId(userId),
@@ -52,36 +52,33 @@ class UsageTrackingService {
             if (!subscription) {
                 return { allowed: false, reason: 'No active subscription' };
             }
-            // Ensure planId is populated, if not fetch it separately
             let plan;
             if (subscription.planId &&
                 typeof subscription.planId === 'object' &&
                 'name' in subscription.planId &&
-                'maxTrucks' in subscription.planId) {
+                'maxServices' in subscription.planId) {
                 plan = subscription.planId;
             }
             else {
-                // Fallback: fetch the plan separately if not populated
                 const { subscriptionService } = await Promise.resolve().then(() => __importStar(require('./subscription.service')));
                 plan = await subscriptionService.getPlanById(subscription.planId.toString());
             }
-            // Get current truck count (you'd implement this based on your truck model)
-            const currentTruckCount = await this.getCurrentTruckCount(userId);
-            if (currentTruckCount >= plan.maxTrucks) {
+            const currentServiceCount = await this.getCurrentServiceCount(userId);
+            if (currentServiceCount >= plan.maxServices) {
                 return {
                     allowed: false,
-                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxTrucks} trucks.`
+                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxServices} services.`
                 };
             }
             return { allowed: true };
         }
         catch (error) {
-            console.error('Error checking truck limit:', error);
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check truck limit');
+            console.error('Error checking service limit:', error);
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check service limit');
         }
     }
     // Check if user can add more team members
-    async canAddUser(userId) {
+    async canAddTeamMember(userId) {
         try {
             const subscription = await subscription_model_1.Subscription.findOne({
                 userId: new mongoose_1.Types.ObjectId(userId),
@@ -90,45 +87,42 @@ class UsageTrackingService {
             if (!subscription) {
                 return { allowed: false, reason: 'No active subscription' };
             }
-            // Ensure planId is populated, if not fetch it separately
             let plan;
             if (subscription.planId &&
                 typeof subscription.planId === 'object' &&
                 'name' in subscription.planId &&
-                'maxUsers' in subscription.planId) {
+                'maxTeamMembers' in subscription.planId) {
                 plan = subscription.planId;
             }
             else {
-                // Fallback: fetch the plan separately if not populated
                 const { subscriptionService } = await Promise.resolve().then(() => __importStar(require('./subscription.service')));
                 plan = await subscriptionService.getPlanById(subscription.planId.toString());
             }
-            // Get current user count (you'd implement this based on your user model)
-            const currentUserCount = await this.getCurrentUserCount(userId);
-            if (currentUserCount >= plan.maxUsers) {
+            const currentTeamMemberCount = await this.getCurrentTeamMemberCount(userId);
+            if (currentTeamMemberCount >= plan.maxTeamMembers) {
                 return {
                     allowed: false,
-                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxUsers} users.`
+                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxTeamMembers} team members.`
                 };
             }
             return { allowed: true };
         }
         catch (error) {
-            console.error('Error checking user limit:', error);
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check user limit');
+            console.error('Error checking team member limit:', error);
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check team member limit');
         }
     }
     // Get current usage for a user
     async getCurrentUsage(userId) {
         try {
-            const truckCount = await this.getCurrentTruckCount(userId);
-            const userCount = await this.getCurrentUserCount(userId);
+            const serviceCount = await this.getCurrentServiceCount(userId);
+            const teamMemberCount = await this.getCurrentTeamMemberCount(userId);
             return {
                 userId,
-                truckCount,
-                userCount,
-                storageUsed: 0, // Implement based on your needs
-                apiCallsThisMonth: 0, // Implement based on your needs
+                serviceCount,
+                teamMemberCount,
+                storageUsed: 0,
+                apiCallsThisMonth: 0,
             };
         }
         catch (error) {
@@ -146,17 +140,15 @@ class UsageTrackingService {
             if (!subscription) {
                 throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'No active subscription found');
             }
-            // Ensure planId is populated, if not fetch it separately
             let plan;
             if (subscription.planId &&
                 typeof subscription.planId === 'object' &&
                 'name' in subscription.planId &&
-                'maxTrucks' in subscription.planId &&
-                'maxUsers' in subscription.planId) {
+                'maxServices' in subscription.planId &&
+                'maxTeamMembers' in subscription.planId) {
                 plan = subscription.planId;
             }
             else {
-                // Fallback: fetch the plan separately if not populated
                 const { subscriptionService } = await Promise.resolve().then(() => __importStar(require('./subscription.service')));
                 plan = await subscriptionService.getPlanById(subscription.planId.toString());
             }
@@ -164,12 +156,12 @@ class UsageTrackingService {
             return {
                 usage,
                 limits: {
-                    maxTrucks: plan.maxTrucks,
-                    maxUsers: plan.maxUsers,
+                    maxServices: plan.maxServices,
+                    maxTeamMembers: plan.maxTeamMembers,
                 },
                 percentages: {
-                    trucksUsed: Math.round((usage.truckCount / plan.maxTrucks) * 100),
-                    usersUsed: Math.round((usage.userCount / plan.maxUsers) * 100),
+                    servicesUsed: Math.round((usage.serviceCount / plan.maxServices) * 100),
+                    teamMembersUsed: Math.round((usage.teamMemberCount / plan.maxTeamMembers) * 100),
                 },
             };
         }
@@ -186,12 +178,12 @@ class UsageTrackingService {
             const data = await this.getUsageWithLimits(userId);
             const warnings = [];
             const suggestions = [];
-            if (data.percentages.trucksUsed >= 80) {
-                warnings.push(`You're using ${data.percentages.trucksUsed}% of your truck limit`);
-                suggestions.push('Consider upgrading your plan to add more trucks');
+            if (data.percentages.servicesUsed >= 80) {
+                warnings.push(`You're using ${data.percentages.servicesUsed}% of your service limit`);
+                suggestions.push('Consider upgrading your plan to add more services');
             }
-            if (data.percentages.usersUsed >= 80) {
-                warnings.push(`You're using ${data.percentages.usersUsed}% of your user limit`);
+            if (data.percentages.teamMembersUsed >= 80) {
+                warnings.push(`You're using ${data.percentages.teamMembersUsed}% of your team member limit`);
                 suggestions.push('Consider upgrading your plan to add more team members');
             }
             return { warnings, suggestions };
@@ -201,41 +193,33 @@ class UsageTrackingService {
             return { warnings: [], suggestions: [] };
         }
     }
-    // Private helper methods (implement based on your data models)
-    async getCurrentTruckCount(userId) {
+    // Private helper methods
+    async getCurrentServiceCount(userId) {
         try {
-            // Replace with your actual truck counting logic
-            // const count = await Truck.countDocuments({ ownerId: userId, status: 'active' })
-            // return count
-            // Placeholder implementation
+            // This can be used to track any user-created content that is limited by plan
+            // For now returning 0, can be connected to any content model (e.g., Posts, Recipes)
             return 0;
         }
         catch (error) {
-            console.error('Error getting truck count:', error);
+            console.error('Error getting content count:', error);
             return 0;
         }
     }
-    async getCurrentUserCount(userId) {
+    async getCurrentTeamMemberCount(userId) {
         try {
-            // Replace with your actual user counting logic
-            // For companies, count team members
-            // const count = await User.countDocuments({ companyId: userId, status: 'active' })
-            // return count
-            // Placeholder implementation
-            return 1; // At least the owner
+            // For now, we assume a professional always has themselves as a member
+            // Expand this if a formal Team/Member collection is added later
+            return 1;
         }
         catch (error) {
-            console.error('Error getting user count:', error);
+            console.error('Error getting team member count:', error);
             return 1;
         }
     }
     // Track feature usage (for analytics)
     async trackFeatureUsage(userId, feature) {
         try {
-            // Implement feature usage tracking
             console.log(`Feature used: ${feature} by user: ${userId}`);
-            // You could store this in a separate collection for analytics
-            // await FeatureUsage.create({ userId, feature, timestamp: new Date() })
         }
         catch (error) {
             console.error('Error tracking feature usage:', error);

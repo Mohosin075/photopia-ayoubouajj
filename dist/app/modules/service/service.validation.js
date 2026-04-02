@@ -3,8 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.filterServiceSchema = exports.toggleServiceStatusSchema = exports.updateServiceSchema = exports.createServiceSchema = void 0;
 const zod_1 = require("zod");
 const service_constants_1 = require("./service.constants");
+const user_1 = require("../../../enum/user");
 const service_1 = require("../../../enum/service");
 // Convert enums to arrays for Zod
+const serviceTypeValues = Object.values(user_1.SERVICE_TYPE);
 const pricingTypeValues = Object.values(service_1.SERVICE_PRICING_TYPE);
 const locationTypeValues = Object.values(service_1.SERVICE_LOCATION_TYPE);
 const statusValues = Object.values(service_1.SERVICE_STATUS);
@@ -31,6 +33,9 @@ exports.createServiceSchema = zod_1.z.object({
             .min(service_constants_1.SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MIN_LENGTH)
             .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MAX_LENGTH),
         category: zod_1.z.string().min(2).max(50),
+        serviceType: zod_1.z.enum(serviceTypeValues, {
+            required_error: 'Service type is required',
+        }),
         subCategory: zod_1.z.string().optional(),
         tags: zod_1.z.array(zod_1.z.string().min(1).max(30)).optional(),
         equipment: zod_1.z.array(zod_1.z.string().min(1).max(50)).optional(),
@@ -41,7 +46,7 @@ exports.createServiceSchema = zod_1.z.object({
         pricingType: zod_1.z.enum(pricingTypeValues),
         duration: zod_1.z.string().min(1).max(100),
         location: locationSchema,
-        coverMedia: zod_1.z.string().url().optional(),
+        // coverMedia: z.string().url().optional(),
         gallery: zod_1.z.array(zod_1.z.string().url()).optional(),
         status: zod_1.z.enum(statusValues).default(service_1.SERVICE_STATUS.ACTIVE),
     }),
@@ -57,6 +62,7 @@ exports.updateServiceSchema = zod_1.z.object({
             .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.DESCRIPTION_MAX_LENGTH)
             .optional(),
         category: zod_1.z.string().min(2).max(50).optional(),
+        serviceType: zod_1.z.enum(serviceTypeValues).optional(),
         subCategory: zod_1.z.string().optional(),
         tags: zod_1.z.array(zod_1.z.string().min(1).max(30)).optional(),
         equipment: zod_1.z.array(zod_1.z.string().min(1).max(50)).optional(),
@@ -95,6 +101,7 @@ exports.filterServiceSchema = zod_1.z.object({
         status: zod_1.z.enum(statusValues).optional(),
         isVerified: zod_1.z.enum(['true', 'false']).optional(),
         providerId: zod_1.z.string().optional(),
+        serviceType: zod_1.z.enum(serviceTypeValues).optional(),
         isActive: zod_1.z.enum(['true', 'false']).optional(),
     }),
 });

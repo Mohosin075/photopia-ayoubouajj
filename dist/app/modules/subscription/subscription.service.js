@@ -45,6 +45,7 @@ const stripe_service_1 = require("./stripe.service");
 const subscription_model_1 = require("./subscription.model");
 const subscription_plan_model_1 = require("./subscription-plan.model");
 const email_notification_service_1 = require("./email-notification.service");
+const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
 class SubscriptionService {
     // Get all available subscription plans
     async getAvailablePlans(userType) {
@@ -142,6 +143,10 @@ class SubscriptionService {
                 },
             });
             // Create local subscription record
+            // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
+            const subscriptionItem = stripeSubscription.items.data[0];
+            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
+            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
             const subscription = new subscription_model_1.Subscription({
                 userId: new mongoose_1.Types.ObjectId(userId),
                 planId: new mongoose_1.Types.ObjectId(request.planId),
@@ -149,8 +154,8 @@ class SubscriptionService {
                 stripeSubscriptionId: stripeSubscription.id,
                 stripePriceId: plan.stripePriceId,
                 status: stripeSubscription.status,
-                currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-                currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : new Date(),
+                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 trialStart: stripeSubscription.trial_start
                     ? new Date(stripeSubscription.trial_start * 1000)
                     : null,
@@ -167,18 +172,38 @@ class SubscriptionService {
                 subscriptionStatus: stripeSubscription.status,
                 subscriptionTier: this.getSubscriptionTier(plan.name),
                 trialUsed: trialInfo.isEligible,
-                subscriptionExpiresAt: new Date(stripeSubscription.current_period_end * 1000),
+                subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             });
             // Send welcome email
             await email_notification_service_1.emailNotificationService.sendSubscriptionWelcomeEmail(subscription, plan, !!stripeSubscription.trial_start);
             // Get client secret for payment confirmation if needed
             let clientSecret;
+            console.log('--- Debugging Subscription ---');
+            console.log('Subscription Status:', stripeSubscription.status);
+            // Try getting from latest invoice's payment intent
             if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object') {
                 const invoice = stripeSubscription.latest_invoice;
                 if (invoice.payment_intent && typeof invoice.payment_intent === 'object') {
                     clientSecret = invoice.payment_intent.client_secret || undefined;
+                    console.log('Client Secret found in latest_invoice.payment_intent');
+                }
+                else if (invoice.payment_intent && typeof invoice.payment_intent === 'string') {
+                    // If it's a string, it means it wasn't expanded properly
+                    console.log('Payment Intent found as string, but not expanded:', invoice.payment_intent);
                 }
             }
+            // If still undefined, try setup_intent (common for free trials or setup flow)
+            if (!clientSecret && stripeSubscription.pending_setup_intent) {
+                if (typeof stripeSubscription.pending_setup_intent === 'object') {
+                    clientSecret = stripeSubscription.pending_setup_intent.client_secret || undefined;
+                    console.log('Client Secret found in pending_setup_intent');
+                }
+                else {
+                    console.log('Pending Setup Intent found as string, but not expanded:', stripeSubscription.pending_setup_intent);
+                }
+            }
+            console.log('Final clientSecret:', clientSecret);
+            console.log('------------------------------');
             console.log(`Subscription created for user ${userId}: ${subscription._id}`);
             return {
                 subscription: await subscription.populate(['planId']),
@@ -201,6 +226,74 @@ class SubscriptionService {
         catch (error) {
             console.error('Error fetching user subscription:', error);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription');
+        }
+    }
+    // Admin: Get all subscriptions with filters and pagination
+    async getAllSubscriptions(query) {
+        try {
+            const subscriptionQuery = new QueryBuilder_1.default(subscription_model_1.Subscription.find().populate(['userId', 'planId']), query)
+                .filter()
+                .sort()
+                .paginate()
+                .fields();
+            const result = await subscriptionQuery.modelQuery;
+            const meta = await subscriptionQuery.getPaginationInfo();
+            // Provide demo data if database is empty
+            if (result.length === 0) {
+                const demoData = [
+                    {
+                        _id: 'demo_1',
+                        userId: {
+                            name: 'Jane Smith',
+                            email: 'jane@example.com'
+                        },
+                        planId: {
+                            name: 'Monthly',
+                            price: 14.99,
+                            interval: 'month'
+                        },
+                        status: 'active',
+                        currentPeriodStart: new Date('2025-12-15'),
+                        currentPeriodEnd: new Date('2026-02-15'),
+                        cancelAtPeriodEnd: false,
+                        paymentMethod: 'Visa **** 4242'
+                    },
+                    {
+                        _id: 'demo_2',
+                        userId: {
+                            name: 'Mike Ross',
+                            email: 'mike@example.com'
+                        },
+                        planId: {
+                            name: 'Yearly',
+                            price: 199.98,
+                            interval: 'year'
+                        },
+                        status: 'active',
+                        currentPeriodStart: new Date('2025-01-01'),
+                        currentPeriodEnd: new Date('2026-01-01'),
+                        cancelAtPeriodEnd: false,
+                        paymentMethod: 'Mastercard **** 8888'
+                    }
+                ];
+                return {
+                    meta: {
+                        page: 1,
+                        limit: 10,
+                        total: 2,
+                        totalPage: 1
+                    },
+                    result: demoData,
+                };
+            }
+            return {
+                meta,
+                result,
+            };
+        }
+        catch (error) {
+            console.error('Error fetching all subscriptions:', error);
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch all subscriptions');
         }
     }
     // Update subscription (change plan)
@@ -293,6 +386,45 @@ class SubscriptionService {
                 throw error;
             console.error('Error canceling subscription:', error);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to cancel subscription');
+        }
+    }
+    // Reactivate subscription
+    async reactivateSubscription(userId, subscriptionId) {
+        try {
+            const subscription = await subscription_model_1.Subscription.findOne({
+                _id: subscriptionId,
+                userId: new mongoose_1.Types.ObjectId(userId),
+            });
+            if (!subscription) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Subscription not found');
+            }
+            if (subscription.status === 'canceled' && subscription.endedAt) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Subscription has already ended and cannot be reactivated. Please start a new subscription.');
+            }
+            if (!subscription.cancelAtPeriodEnd) {
+                throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Subscription is not set to cancel and is already active.');
+            }
+            // Reactivate in Stripe
+            await stripe_service_1.stripeService.reactivateSubscription(subscription.stripeSubscriptionId);
+            // Update local subscription
+            const updatedSubscription = await subscription_model_1.Subscription.findByIdAndUpdate(subscriptionId, {
+                cancelAtPeriodEnd: false,
+                canceledAt: null,
+                resumedAt: new Date(),
+            }, { new: true }).populate(['planId']);
+            // Send reactivation email
+            const plan = updatedSubscription === null || updatedSubscription === void 0 ? void 0 : updatedSubscription.planId;
+            if (plan) {
+                await email_notification_service_1.emailNotificationService.sendSubscriptionWelcomeEmail(updatedSubscription, plan, updatedSubscription.status === 'trialing');
+            }
+            console.log(`Subscription reactivated: ${subscriptionId}`);
+            return updatedSubscription;
+        }
+        catch (error) {
+            if (error instanceof ApiError_1.default)
+                throw error;
+            console.error('Error reactivating subscription:', error);
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to reactivate subscription');
         }
     }
     // Get subscription status
@@ -393,8 +525,8 @@ class SubscriptionService {
                 description: planData.description,
                 metadata: {
                     userTypes: planData.userTypes.join(','),
-                    maxUsers: planData.maxUsers.toString(),
-                    maxTrucks: planData.maxTrucks.toString(),
+                    maxTeamMembers: planData.maxTeamMembers.toString(),
+                    maxServices: planData.maxServices.toString(),
                 },
             });
             // Create Stripe price

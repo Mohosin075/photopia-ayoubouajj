@@ -161,14 +161,21 @@ class WebhookService {
                 return;
             }
             // Find the plan by Stripe price ID
+            const priceId = typeof stripeSubscription.items.data[0].price === 'string'
+                ? stripeSubscription.items.data[0].price
+                : stripeSubscription.items.data[0].price.id;
             const plan = await subscription_plan_model_1.SubscriptionPlan.findOne({
-                stripePriceId: stripeSubscription.items.data[0].price.id,
+                stripePriceId: priceId,
             });
             if (!plan) {
-                console.error(`Plan not found for price ID: ${stripeSubscription.items.data[0].price.id}`);
+                console.error(`Plan not found for price ID: ${priceId}`);
                 return;
             }
             // Create subscription record
+            // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
+            const subscriptionItem = stripeSubscription.items.data[0];
+            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
+            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
             const subscription = new subscription_model_1.Subscription({
                 userId: new mongoose_1.Types.ObjectId(userId),
                 planId: plan._id,
@@ -176,8 +183,8 @@ class WebhookService {
                 stripeSubscriptionId: stripeSubscription.id,
                 stripePriceId: stripeSubscription.items.data[0].price.id,
                 status: stripeSubscription.status,
-                currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-                currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : new Date(),
+                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 trialStart: stripeSubscription.trial_start
                     ? new Date(stripeSubscription.trial_start * 1000)
                     : null,
@@ -195,7 +202,7 @@ class WebhookService {
                 subscriptionStatus: stripeSubscription.status,
                 subscriptionTier: this.getSubscriptionTier(plan.name),
                 trialUsed: !!stripeSubscription.trial_start,
-                subscriptionExpiresAt: new Date(stripeSubscription.current_period_end * 1000),
+                subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             });
             // Send welcome email
             const { emailNotificationService } = await Promise.resolve().then(() => __importStar(require('./email-notification.service')));
@@ -219,10 +226,14 @@ class WebhookService {
                 return;
             }
             // Update subscription data
+            // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
+            const subscriptionItem = stripeSubscription.items.data[0];
+            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
+            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
             const updateData = {
                 status: stripeSubscription.status,
-                currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-                currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : undefined,
+                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
                 cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
                 lastWebhookEventId: eventId,
             };
@@ -242,21 +253,28 @@ class WebhookService {
                 updateData.endedAt = new Date(stripeSubscription.ended_at * 1000);
             }
             // Handle plan changes
-            const newPriceId = stripeSubscription.items.data[0].price.id;
+            const newPrice = stripeSubscription.items.data[0].price;
+            const newPriceId = typeof newPrice === 'string' ? newPrice : newPrice.id;
+            let newTier;
             if (subscription.stripePriceId !== newPriceId) {
                 const newPlan = await subscription_plan_model_1.SubscriptionPlan.findOne({ stripePriceId: newPriceId });
                 if (newPlan) {
                     updateData.planId = newPlan._id;
                     updateData.stripePriceId = newPriceId;
+                    newTier = this.getSubscriptionTier(newPlan.name);
                 }
             }
             await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, updateData);
             // Update user profile with new subscription info
-            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
+            const userUpdate = {
                 subscriptionStatus: stripeSubscription.status,
-                subscriptionExpiresAt: new Date(stripeSubscription.current_period_end * 1000),
+                subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(stripeSubscription.current_period_end * 1000),
                 trialUsed: !!stripeSubscription.trial_start,
-            });
+            };
+            if (newTier) {
+                userUpdate.subscriptionTier = newTier;
+            }
+            await user_model_1.User.findByIdAndUpdate(subscription.userId, userUpdate);
             console.log(`Subscription updated from webhook: ${subscription._id}`);
             console.log(`User profile updated for user: ${subscription.userId}`);
         }
@@ -280,6 +298,17 @@ class WebhookService {
                 endedAt: new Date(),
                 lastWebhookEventId: eventId,
             });
+            // Update user profile status
+            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
+                subscriptionStatus: 'canceled',
+                subscriptionTier: 'free',
+            });
+            // Send cancellation email
+            const { emailNotificationService } = await Promise.resolve().then(() => __importStar(require('./email-notification.service')));
+            const plan = await subscription_plan_model_1.SubscriptionPlan.findById(subscription.planId);
+            if (plan) {
+                await emailNotificationService.sendSubscriptionCanceledEmail(subscription, plan, new Date());
+            }
             console.log(`Subscription deleted from webhook: ${subscription._id}`);
         }
         catch (error) {
@@ -327,11 +356,18 @@ class WebhookService {
                 console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`);
                 return;
             }
+            // Fetch the latest subscription to get accurate status
+            const stripeSubscription = await stripe_service_1.stripeService.getSubscription(invoiceWithSubscription.subscription);
             // Update payment information
             await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, {
+                status: stripeSubscription.status, // Use the actual status from Stripe (trialing or active)
                 lastPaymentDate: new Date(invoice.status_transitions.paid_at * 1000),
-                paymentFailureCount: 0, // Reset failure count on successful payment
+                paymentFailureCount: 0,
                 lastWebhookEventId: eventId,
+            });
+            // Update user profile status
+            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
+                subscriptionStatus: stripeSubscription.status,
             });
             // Send payment success email
             const { emailNotificationService } = await Promise.resolve().then(() => __importStar(require('./email-notification.service')));
@@ -360,9 +396,15 @@ class WebhookService {
             }
             // Increment failure count
             const failureCount = subscription.paymentFailureCount + 1;
+            const newStatus = failureCount >= 3 ? 'unpaid' : 'past_due';
             await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, {
+                status: newStatus,
                 paymentFailureCount: failureCount,
                 lastWebhookEventId: eventId,
+            });
+            // Update user profile status
+            await user_model_1.User.findByIdAndUpdate(subscription.userId, {
+                subscriptionStatus: newStatus,
             });
             // Send payment failed email
             const { emailNotificationService } = await Promise.resolve().then(() => __importStar(require('./email-notification.service')));
@@ -422,8 +464,18 @@ class WebhookService {
                 return;
             }
             console.log('session', session);
-            // The subscription should already be created by the subscription.created webhook
-            // This is mainly for logging and additional processing if needed
+            // Update subscription and user if it's already created
+            if (session.subscription) {
+                const stripeSubscription = await stripe_service_1.stripeService.getSubscription(session.subscription);
+                await subscription_model_1.Subscription.findOneAndUpdate({ stripeSubscriptionId: stripeSubscription.id }, {
+                    status: stripeSubscription.status,
+                    lastWebhookEventId: eventId
+                });
+                await user_model_1.User.findByIdAndUpdate(userId, {
+                    subscriptionStatus: stripeSubscription.status,
+                    stripeCustomerId: session.customer,
+                });
+            }
             console.log(`Checkout completed for user: ${userId}`);
             // You can add additional logic here like:
             // - Sending welcome emails
@@ -737,6 +789,10 @@ class WebhookService {
                     pausedAt: new Date(),
                     lastWebhookEventId: eventId,
                 });
+                // Update user profile status
+                await user_model_1.User.findByIdAndUpdate(subscription.userId, {
+                    subscriptionStatus: 'paused',
+                });
                 console.log(`Subscription paused: ${subscription._id}`);
             }
         }
@@ -756,6 +812,10 @@ class WebhookService {
                     status: stripeSubscription.status,
                     resumedAt: new Date(),
                     lastWebhookEventId: eventId,
+                });
+                // Update user profile status
+                await user_model_1.User.findByIdAndUpdate(subscription.userId, {
+                    subscriptionStatus: stripeSubscription.status,
                 });
                 console.log(`Subscription resumed: ${subscription._id}`);
             }

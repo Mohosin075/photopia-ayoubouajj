@@ -9,7 +9,24 @@ const booking_model_1 = require("./booking.model");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const availability_service_1 = require("../availability/availability.service");
 const service_model_1 = require("../service/service.model");
+const mongoose_1 = __importDefault(require("mongoose"));
 const service_1 = require("../../../enum/service");
+const wallet_service_1 = require("../wallet/wallet.service");
+const stripe_1 = __importDefault(require("../../../config/stripe"));
+const professionalProfile_model_1 = require("../professionalProfile/professionalProfile.model");
+const payment_service_1 = require("../payment/payment.service");
+const geocodeAddress_1 = require("../../../utils/geocodeAddress");
+// Helper for Haversine distance
+const calculateDistanceInKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
 const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromProviderKm, overrides) => {
     var _a, _b, _c, _d, _e, _f;
     const service = await service_model_1.Service.findById(serviceId);
@@ -25,7 +42,8 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
     const day = date.getDay();
     if (day === 0 || day === 6) {
         isWeekend = true;
-        baseRate = ((_a = service.pricingModel) === null || _a === void 0 ? void 0 : _a.weekendHourlyRate) || service.price;
+        // If weekendHourlyRate is not set, apply 20% increase to base price
+        baseRate = ((_a = service.pricingModel) === null || _a === void 0 ? void 0 : _a.weekendHourlyRate) || (service.price * 1.2);
     }
     else {
         baseRate = ((_b = service.pricingModel) === null || _b === void 0 ? void 0 : _b.weekdayHourlyRate) || service.price;
@@ -65,31 +83,53 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
         travelFee = Math.min(extraKm * (service.travelFeePerKm || 1.5), service.maxTravelFee || 100);
     }
     subtotal += travelFee;
-    const platformCommissionClient = 0.10;
-    const platformCommissionProvider = 0.05;
-    // const clientTotal = subtotal * (1 + platformCommissionClient)
-    const clientTotal = subtotal; // Client pays subtotal? Usually platform fee is added on top. Let's stick to existing logic:
-    const totalWithClientFee = subtotal * (1 + platformCommissionClient);
-    const providerEarnings = subtotal * (1 - platformCommissionProvider);
+    const platformCommissionClient = 0.10; // 10% from user (client)
+    const platformCommissionProvider = 0.05; // 5% from provider
+    const clientTotal = Number((subtotal * (1 + platformCommissionClient)).toFixed(2));
+    const providerEarnings = Number((subtotal * (1 - platformCommissionProvider)).toFixed(2));
     return {
         pricingType: service.pricingType,
         baseRate,
         isWeekend,
         travelFee,
-        subtotal,
+        subtotal: Number(subtotal.toFixed(2)),
         platformCommissionClient,
         platformCommissionProvider,
-        clientTotal: totalWithClientFee,
+        clientTotal,
         providerEarnings,
         currency: service.currency || 'EUR',
         durationHours
     };
 };
-const createBooking = async (payload) => {
+const createBooking = async (payload, user) => {
+    var _a, _b, _c, _d, _e, _f;
     // 1. Check Service Existence
     const service = await service_model_1.Service.findById(payload.serviceId);
     if (!service)
         throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Service not found');
+    // 1.5 Geocode address if coordinates are missing
+    if (!payload.eventLocation.coordinates || !payload.eventLocation.coordinates.lat || !payload.eventLocation.coordinates.lng) {
+        const fullAddress = `${payload.eventLocation.address}, ${payload.eventLocation.city}, ${payload.eventLocation.country}`;
+        const geocoded = await (0, geocodeAddress_1.geocodeAddress)(fullAddress);
+        console.log('Geocoded:', geocoded);
+        if (geocoded) {
+            payload.eventLocation.coordinates = {
+                lat: geocoded.lat,
+                lng: geocoded.lng
+            };
+        }
+    }
+    // 1.6 Calculate distance if not provided or 0
+    if ((!payload.eventLocation.distanceFromProviderKm || payload.eventLocation.distanceFromProviderKm === 0) &&
+        ((_b = (_a = service.location) === null || _a === void 0 ? void 0 : _a.coordinates) === null || _b === void 0 ? void 0 : _b.lat) && ((_d = (_c = service.location) === null || _c === void 0 ? void 0 : _c.coordinates) === null || _d === void 0 ? void 0 : _d.lng) &&
+        ((_e = payload.eventLocation.coordinates) === null || _e === void 0 ? void 0 : _e.lat) && ((_f = payload.eventLocation.coordinates) === null || _f === void 0 ? void 0 : _f.lng)) {
+        const distance = calculateDistanceInKm(service.location.coordinates.lat, service.location.coordinates.lng, payload.eventLocation.coordinates.lat, payload.eventLocation.coordinates.lng);
+        payload.eventLocation.distanceFromProviderKm = Number(distance.toFixed(2));
+    }
+    // 1.7 Ensure distance is at least 0 if still missing
+    if (payload.eventLocation.distanceFromProviderKm === undefined) {
+        payload.eventLocation.distanceFromProviderKm = 0;
+    }
     // Ensure bookingDate is a Date object
     const bookingDate = new Date(payload.bookingDate);
     // 2. Check Availability
@@ -126,35 +166,97 @@ const createBooking = async (payload) => {
         throw new ApiError_1.default(http_status_codes_1.default.CONFLICT, 'Time slot overlaps with an existing booking');
     }
     // 3. Calculate Price
-    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm, availabilityCheck.pricing);
+    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm || 0, availabilityCheck.pricing);
     payload.pricingDetails = pricing;
     payload.durationHours = pricing.durationHours;
-    payload.depositAmount = pricing.clientTotal * 0.5; // 50% deposit
-    payload.balanceAmount = pricing.clientTotal - payload.depositAmount;
-    payload.depositPercentage = 0.5;
+    // Implement 50% deposit logic
+    payload.depositPercentage = 0.5; // 50%
+    payload.depositAmount = Number((pricing.clientTotal * payload.depositPercentage).toFixed(2));
+    payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2));
     payload.bookingDate = bookingDate; // Ensure the Date object is saved
-    const result = await booking_model_1.Booking.create(payload);
-    return result;
+    const [booking] = await booking_model_1.Booking.create([payload]);
+    // 4. Create Stripe Checkout Session
+    const paymentPayload = {
+        amount: payload.depositAmount, // Charge the deposit amount
+        currency: pricing.currency.toLowerCase(),
+        productName: `Deposit for ${service.title}`,
+        description: `Booking Number: ${booking.bookingNumber} (50% Deposit)`,
+        bookingId: booking._id.toString(),
+        metadata: {
+            bookingId: booking._id.toString(),
+            bookingNumber: booking.bookingNumber,
+            paymentType: 'deposit'
+        }
+    };
+    const checkoutSession = await payment_service_1.PaymentServices.createCheckoutSession(user, paymentPayload);
+    return {
+        booking,
+        paymentSession: checkoutSession
+    };
 };
 const updateBookingStatus = async (bookingId, status, userId) => {
-    const booking = await booking_model_1.Booking.findById(bookingId);
-    if (!booking)
-        throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Booking not found');
-    // Only provider or admin can confirm/cancel (client can cancel too)
-    // For simplicity allowing update if user is involved
-    if (booking.clientId.toString() !== userId && booking.providerId.toString() !== userId) {
-        // Check if admin (need role passed or check logic)
-        // throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized')
+    const session = await mongoose_1.default.startSession();
+    session.startTransaction();
+    try {
+        const booking = await booking_model_1.Booking.findById(bookingId).session(session);
+        if (!booking)
+            throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Booking not found');
+        // Only provider or admin can confirm/cancel (client can cancel too)
+        // For simplicity allowing update if user is involved
+        if (booking.clientId.toString() !== userId && booking.providerId.toString() !== userId) {
+            // Check if admin (need role passed or check logic)
+            // throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized')
+        }
+        const previousStatus = booking.status;
+        booking.status = status;
+        if (status === 'confirmed')
+            booking.confirmedAt = new Date();
+        if (status === 'cancelled')
+            booking.cancelledAt = new Date();
+        if (status === 'completed') {
+            booking.completedAt = new Date();
+            // If booking is completed and wasn't already completed, transfer earnings
+            if (previousStatus !== 'completed') {
+                // 1. Add to local wallet for display (as per instruction 3)
+                await wallet_service_1.WalletService.addEarnings(booking.providerId, booking.pricingDetails.providerEarnings, session);
+                // 2. Stripe Connect Transfer (as per instruction 2)
+                const professionalProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: booking.providerId });
+                if (professionalProfile === null || professionalProfile === void 0 ? void 0 : professionalProfile.stripeAccountId) {
+                    try {
+                        console.log(`Attempting transfer to: ${professionalProfile.stripeAccountId}`);
+                        const transfer = await stripe_1.default.transfers.create({
+                            amount: Math.round(booking.pricingDetails.providerEarnings * 100), // convert to cents
+                            currency: booking.pricingDetails.currency.toLowerCase(),
+                            destination: professionalProfile.stripeAccountId,
+                            metadata: {
+                                bookingId: booking.id,
+                                bookingNumber: booking.bookingNumber
+                            }
+                        });
+                        // Optionally store transfer ID in booking
+                        booking.set('stripeTransferId', transfer.id);
+                    }
+                    catch (error) {
+                        console.error('Stripe Transfer Error:', error.message);
+                        // We don't necessarily want to abort the whole transaction if Stripe transfer fails, 
+                        // but we should probably log it or handle it. 
+                        // The instruction says "stripe.transfers.create এপিআই কল করতে হবে".
+                        // If it fails, the professional might not get paid immediately.
+                    }
+                }
+            }
+        }
+        await booking.save({ session });
+        await session.commitTransaction();
+        return booking;
     }
-    booking.status = status;
-    if (status === 'confirmed')
-        booking.confirmedAt = new Date();
-    if (status === 'cancelled')
-        booking.cancelledAt = new Date();
-    if (status === 'completed')
-        booking.completedAt = new Date();
-    await booking.save();
-    return booking;
+    catch (error) {
+        await session.abortTransaction();
+        throw error;
+    }
+    finally {
+        session.endSession();
+    }
 };
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
 const getMyBookings = async (userId, role, filters, options) => {

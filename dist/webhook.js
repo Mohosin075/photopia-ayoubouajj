@@ -25,10 +25,13 @@ webhookApp.post('/webhook', express_1.default.raw({ type: 'application/json' }),
             : Buffer.from(req.body, 'utf8');
         const cleanSecret = config_1.default.stripe.webhookSecret.trim();
         let event;
+        console.log('🚀 Webhook hit! Signature:', sig);
         try {
             event = stripe_1.default.webhooks.constructEvent(rawBody, sig, cleanSecret);
+            console.log('✅ Webhook Event Constructed:', event.type);
         }
         catch (err) {
+            console.error('❌ Webhook Construction Error:', err.message);
             res.status(400).json({ error: `Webhook Error: ${err.message}` });
             return;
         }

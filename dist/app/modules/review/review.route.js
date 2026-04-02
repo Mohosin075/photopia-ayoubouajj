@@ -20,6 +20,9 @@ router
 router
     .route('/:bookingId/booking')
     .get((0, auth_1.default)(...Object.values(user_1.USER_ROLES)), review_controller_1.ReviewController.getReviewsByBooking);
+router
+    .route('/provider/:providerId')
+    .get(review_controller_1.ReviewController.getReviewsByProvider);
 // router.route('/:type')
 //   .get(auth(...roles), ReviewController.getAllReviews);
 router

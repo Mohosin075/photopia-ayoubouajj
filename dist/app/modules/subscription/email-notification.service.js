@@ -4,6 +4,7 @@ exports.emailNotificationService = void 0;
 const emailHelper_1 = require("../../../helpers/emailHelper");
 const emailTemplate_1 = require("../../../shared/emailTemplate");
 const user_model_1 = require("../user/user.model");
+const subscription_plan_model_1 = require("./subscription-plan.model");
 class EmailNotificationService {
     // Send welcome email when subscription is created
     async sendSubscriptionWelcomeEmail(subscription, plan, isTrialing = false) {
@@ -81,17 +82,21 @@ class EmailNotificationService {
     }
     // Send payment failed email
     async sendPaymentFailedEmail(subscription, invoice, attemptCount) {
+        var _a;
         try {
             const user = await user_model_1.User.findById(subscription.userId).select('+email');
             if (!user || !user.email)
                 return;
+            // Try to get plan name
+            const plan = await subscription_plan_model_1.SubscriptionPlan.findById(subscription.planId);
+            const planName = plan ? plan.name : 'Your Plan';
             const emailData = emailTemplate_1.emailTemplate.paymentFailed({
                 name: user.name || 'Valued Customer',
                 email: user.email,
-                planName: 'Your Plan', // We'll need to get this from subscription
+                planName,
                 amount: (invoice.amount_due / 100).toFixed(2),
                 currency: invoice.currency.toUpperCase(),
-                failureReason: 'Payment method declined',
+                failureReason: ((_a = invoice.last_payment_error) === null || _a === void 0 ? void 0 : _a.message) || 'Payment method declined',
                 retryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
                 updatePaymentUrl: `${process.env.FRONTEND_URL}/billing`,
                 dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,

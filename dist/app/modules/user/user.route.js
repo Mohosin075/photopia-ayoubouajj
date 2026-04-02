@@ -11,11 +11,16 @@ const auth_1 = __importDefault(require("../../middleware/auth"));
 const user_1 = require("../../../enum/user");
 const user_validation_1 = require("./user.validation");
 const processReqBody_1 = require("../../middleware/processReqBody");
+const professionalProfile_controller_1 = require("../professionalProfile/professionalProfile.controller");
 const router = express_1.default.Router();
 router.patch('/switch-role', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL), (0, validateRequest_1.default)(user_validation_1.switchRoleSchema), user_controller_1.UserController.switchRole);
 router.get('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.PROFESSIONAL), user_controller_1.UserController.getProfile);
 router.patch('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.PROFESSIONAL), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(user_validation_1.updateUserSchema), user_controller_1.UserController.updateProfile);
 router.delete('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER), user_controller_1.UserController.deleteProfile);
+router.post('/stripe-connect-onboarding', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL), professionalProfile_controller_1.ProfessionalProfileController.stripeConnectOnboarding);
+router.get('/stripe-connect-status', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL), professionalProfile_controller_1.ProfessionalProfileController.checkStripeAccountStatus);
+// Public route for Stripe to return to
+router.get('/stripe-connect-return', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.USER), professionalProfile_controller_1.ProfessionalProfileController.checkStripeAccountStatus);
 router
     .route('/')
     .get((0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.PROFESSIONAL), user_controller_1.UserController.getAllUsers);

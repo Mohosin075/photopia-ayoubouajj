@@ -10,9 +10,11 @@ exports.createSupportSchema = zod_1.z.object({
         message: zod_1.z.string(),
         status: zod_1.z
             .enum([
-            support_1.SUPPORT_STATUS.DELETED,
-            support_1.SUPPORT_STATUS.IN_PROGRESS,
+            support_1.SUPPORT_STATUS.PENDING,
+            support_1.SUPPORT_STATUS.UNDER_REVIEW,
             support_1.SUPPORT_STATUS.SOLVED,
+            support_1.SUPPORT_STATUS.DISMISSED,
+            support_1.SUPPORT_STATUS.DELETED,
         ])
             .optional(),
         attachments: zod_1.z.array(zod_1.z.string()).optional(),
@@ -26,10 +28,11 @@ exports.updateSupportSchema = zod_1.z.object({
         message: zod_1.z.string().optional(),
         status: zod_1.z
             .enum([
-            support_1.SUPPORT_STATUS.DELETED,
-            support_1.SUPPORT_STATUS.IN_PROGRESS,
+            support_1.SUPPORT_STATUS.PENDING,
+            support_1.SUPPORT_STATUS.UNDER_REVIEW,
             support_1.SUPPORT_STATUS.SOLVED,
             support_1.SUPPORT_STATUS.DISMISSED,
+            support_1.SUPPORT_STATUS.DELETED,
         ])
             .optional(),
         attachments: zod_1.z.array(zod_1.z.string()).optional(),

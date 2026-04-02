@@ -11,6 +11,7 @@ const geocodeAddress = async (location) => {
     try {
         const agent = new https_1.default.Agent({ family: 4 });
         const API_KEY = config_1.default.server_map_api_key;
+        console.log('Geocoding Request Location:', location);
         const response = await axios_1.default.get("https://maps.googleapis.com/maps/api/geocode/json", {
             params: {
                 address: location.trim(),
@@ -18,6 +19,10 @@ const geocodeAddress = async (location) => {
             },
             httpsAgent: agent,
         });
+        console.log('Geocoding Response Status:', response.data.status);
+        if (response.data.error_message) {
+            console.log('Geocoding Error Message:', response.data.error_message);
+        }
         if (response.data.status === "OK" && response.data.results.length > 0) {
             const result = response.data.results[0];
             const { lat, lng } = result.geometry.location;

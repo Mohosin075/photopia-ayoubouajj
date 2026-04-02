@@ -73,6 +73,9 @@ const handleLoginLogic = async (payload, isUserExist) => {
                 'authentication.wrongLoginAttempts': isUserExist.authentication.wrongLoginAttempts,
             },
         });
+        if (isUserExist.status === user_1.USER_STATUS.INACTIVE) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.TOO_MANY_REQUESTS, 'Too many incorrect password attempts. Your account has been restricted for 10 minutes.');
+        }
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Incorrect password, please try again.');
     }
     await user_model_1.User.findByIdAndUpdate(isUserExist._id, {
@@ -81,7 +84,7 @@ const handleLoginLogic = async (payload, isUserExist) => {
             'authentication.restrictionLeftAt': null,
             'authentication.wrongLoginAttempts': 0,
         },
-    }, { new: true });
+    });
     const rememberMe = payload.rememberMe || false;
     const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.activeRole, isUserExist.name, isUserExist.email, payload.deviceToken, rememberMe);
     return (0, exports.authResponse)(http_status_codes_1.StatusCodes.OK, `Welcome back ${isUserExist.name}`, isUserExist.activeRole, tokens.accessToken, tokens.refreshToken);

@@ -93,7 +93,7 @@ router.post(
 
 router.post(
   '/logout',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER),
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
   CustomAuthController.logout,
 )
 

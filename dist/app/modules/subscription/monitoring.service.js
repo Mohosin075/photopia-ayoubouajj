@@ -20,10 +20,13 @@ class MonitoringService {
                     try {
                         const stripeSubscription = await stripe_service_1.stripeService.getSubscription(subscription.stripeSubscriptionId);
                         if (stripeSubscription.status !== subscription.status) {
+                            const subscriptionItem = stripeSubscription.items.data[0];
+                            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
+                            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
                             await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, {
                                 status: stripeSubscription.status,
-                                currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-                                currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : undefined,
+                                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
                             });
                             console.log(`Synced subscription status: ${subscription._id}`);
                         }
@@ -94,11 +97,9 @@ class MonitoringService {
             }).populate(['userId', 'planId']);
             for (const subscription of activeSubscriptions) {
                 // Example usage monitoring logic
-                // const usage = await getUserUsage(subscription.userId)
-                // const plan = subscription.planId as ISubscriptionPlan
-                // if (usage.truckCount >= plan.maxTrucks * 0.8) {
-                //   console.warn(`User ${subscription.userId} approaching truck limit`)
-                //   // Send upgrade suggestion
+                // const usage = await usageTrackingService.getUsageWithLimits(subscription.userId)
+                // if (usage.percentages.servicesUsed >= 80) {
+                //   console.warn(`User ${subscription.userId} approaching service limit`)
                 // }
             }
         }
@@ -163,10 +164,13 @@ class MonitoringService {
                 for (const subscription of staleSubscriptions.slice(0, 10)) { // Limit to 10 to avoid rate limits
                     try {
                         const stripeSubscription = await stripe_service_1.stripeService.getSubscription(subscription.stripeSubscriptionId);
+                        const subscriptionItem = stripeSubscription.items.data[0];
+                        const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
+                        const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
                         await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, {
                             status: stripeSubscription.status,
-                            currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000),
-                            currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000),
+                            currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : undefined,
+                            currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
                             updatedAt: new Date(),
                         });
                         console.log(`Synced stale subscription: ${subscription._id}`);

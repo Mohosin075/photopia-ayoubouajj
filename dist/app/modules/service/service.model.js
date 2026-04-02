@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Service = void 0;
 const mongoose_1 = require("mongoose");
 const service_constants_1 = require("./service.constants");
+const user_1 = require("../../../enum/user");
 const service_1 = require("../../../enum/service");
 const locationSchema = new mongoose_1.Schema({
     type: {
@@ -136,6 +137,11 @@ const serviceSchema = new mongoose_1.Schema({
         ref: 'Category',
         required: true,
     },
+    serviceType: {
+        type: String,
+        enum: Object.values(user_1.SERVICE_TYPE),
+        required: true,
+    },
     subCategory: {
         type: String,
         trim: true,
@@ -214,9 +220,9 @@ const serviceSchema = new mongoose_1.Schema({
         type: locationSchema,
         required: true,
     },
-    coverMedia: {
-        type: String,
-    },
+    // coverMedia: {
+    //   type: String,
+    // },
     gallery: {
         type: [String],
         default: [],
@@ -243,6 +249,7 @@ const serviceSchema = new mongoose_1.Schema({
 // Indexes for better query performance
 serviceSchema.index({ providerId: 1 });
 serviceSchema.index({ category: 1 });
+serviceSchema.index({ serviceType: 1 });
 serviceSchema.index({ subCategory: 1 });
 serviceSchema.index({ tags: 1 });
 serviceSchema.index({ 'location.type': 1 });

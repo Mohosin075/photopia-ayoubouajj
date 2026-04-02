@@ -9,9 +9,11 @@ const stripe_1 = __importDefault(require("../../../config/stripe"));
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const payment_model_1 = require("./payment.model");
 const emailHelper_1 = require("../../../helpers/emailHelper");
+const booking_model_1 = require("../booking/booking.model");
 const handleCheckoutSessionCompleted = async (sessionData) => {
-    var _a;
+    var _a, _b;
     try {
+        console.log('🔔 Processing Checkout Session Completed:', sessionData.id);
         const sessionWithDetails = await stripe_1.default.checkout.sessions.retrieve(sessionData.id, {
             expand: ['payment_intent', 'line_items'],
         });
@@ -47,7 +49,17 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
             payment.status = 'succeeded';
             payment.metadata = { ...payment.metadata, ...sessionWithDetails };
             await payment.save({ session: mongoSession });
-            // No more ticket/event/attendee updates needed here
+            // Update Booking Status if bookingId exists in metadata or payment
+            const bookingId = payment.bookingId || ((_b = sessionWithDetails.metadata) === null || _b === void 0 ? void 0 : _b.bookingId);
+            console.log(`Webhook: Processing booking update for ID: ${bookingId}`);
+            if (bookingId) {
+                const updatedBooking = await booking_model_1.Booking.findByIdAndUpdate(bookingId, {
+                    status: 'confirmed',
+                    paymentStatus: 'deposit_paid',
+                    stripePaymentId: sessionWithDetails.id
+                }, { session: mongoSession, new: true });
+                console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking === null || updatedBooking === void 0 ? void 0 : updatedBooking.bookingNumber}`);
+            }
             await mongoSession.commitTransaction();
             console.log(`Successfully processed payment for session: ${sessionWithDetails.id}`);
             // Send email

@@ -8,6 +8,10 @@ const paymentSchema = new mongoose_1.Schema({
         ref: 'User',
         required: true,
     },
+    bookingId: {
+        type: mongoose_1.Schema.Types.ObjectId,
+        ref: 'Booking',
+    },
     userEmail: {
         type: String,
         required: true,

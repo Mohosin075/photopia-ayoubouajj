@@ -20,8 +20,15 @@ const favourite_route_1 = require("../app/modules/favourite/favourite.route");
 const availability_route_1 = require("../app/modules/availability/availability.route");
 const booking_route_1 = require("../app/modules/booking/booking.route");
 const subscription_route_1 = require("../app/modules/subscription/subscription.route");
+const wallet_route_1 = require("../app/modules/wallet/wallet.route");
+const withdrawal_route_1 = require("../app/modules/withdrawal/withdrawal.route");
+const dashboard_route_1 = require("../app/modules/dashboard/dashboard.route");
 const router = express_1.default.Router();
 const apiRoutes = [
+    {
+        path: '/dashboard',
+        route: dashboard_route_1.DashboardRoutes,
+    },
     {
         path: '/auth',
         route: auth_route_1.AuthRoutes,
@@ -58,7 +65,9 @@ const apiRoutes = [
     { path: '/chat', route: chat_routes_1.ChatRoutes },
     { path: '/review', route: review_route_1.ReviewRoutes },
     { path: '/category', route: category_route_1.CategoryRoutes },
-    { path: '/favourite', route: favourite_route_1.FavouriteRoutes }
+    { path: '/favourite', route: favourite_route_1.FavouriteRoutes },
+    { path: '/wallet', route: wallet_route_1.WalletRoutes },
+    { path: '/withdrawal', route: withdrawal_route_1.WithdrawalRoutes }
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

@@ -17,7 +17,7 @@ const createSupport = async (user, payload) => {
     const data = {
         ...payload,
         userId: user === null || user === void 0 ? void 0 : user.userId,
-        status: support_1.SUPPORT_STATUS.IN_PROGRESS,
+        status: support_1.SUPPORT_STATUS.PENDING,
     };
     try {
         const result = await support_model_1.Support.create(data);

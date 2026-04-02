@@ -41,11 +41,11 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
             type: String,
             required: true,
         }],
-    maxUsers: {
+    maxTeamMembers: {
         type: Number,
         default: 1,
     },
-    maxTrucks: {
+    maxServices: {
         type: Number,
         default: 1,
     },
@@ -64,7 +64,7 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
     },
     userTypes: [{
             type: String,
-            enum: ['driver', 'company', 'mechanic', 'cook', 'fuel_provider'],
+            enum: ['user', 'professional', 'admin', 'super_admin'],
             required: true,
         }],
     priority: {

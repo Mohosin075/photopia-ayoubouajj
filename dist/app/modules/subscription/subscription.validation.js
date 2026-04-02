@@ -15,9 +15,9 @@ exports.createSubscriptionPlanSchema = zod_1.z.object({
         intervalCount: zod_1.z.number().min(1, 'Interval count must be at least 1').default(1),
         trialPeriodDays: zod_1.z.number().min(0, 'Trial period must be non-negative').default(10),
         features: zod_1.z.array(zod_1.z.string().min(1, 'Feature cannot be empty')).min(1, 'At least one feature is required'),
-        maxUsers: zod_1.z.number().min(1, 'Max users must be at least 1').default(1),
-        maxTrucks: zod_1.z.number().min(1, 'Max trucks must be at least 1').default(1),
-        userTypes: zod_1.z.array(zod_1.z.enum(['driver', 'company', 'mechanic', 'cook', 'fuel_provider'], {
+        maxTeamMembers: zod_1.z.number().min(1, 'Max team members must be at least 1').default(1),
+        maxServices: zod_1.z.number().min(1, 'Max services must be at least 1').default(1),
+        userTypes: zod_1.z.array(zod_1.z.enum(['user', 'professional', 'admin', 'super_admin'], {
             errorMap: () => ({ message: 'Invalid user type' }),
         })).min(1, 'At least one user type is required'),
         priority: zod_1.z.number().default(0),
@@ -28,8 +28,8 @@ exports.updateSubscriptionPlanSchema = zod_1.z.object({
         name: zod_1.z.string().min(1, 'Plan name is required').max(100, 'Plan name too long').optional(),
         description: zod_1.z.string().min(1, 'Description is required').max(500, 'Description too long').optional(),
         features: zod_1.z.array(zod_1.z.string().min(1, 'Feature cannot be empty')).min(1, 'At least one feature is required').optional(),
-        maxUsers: zod_1.z.number().min(1, 'Max users must be at least 1').optional(),
-        maxTrucks: zod_1.z.number().min(1, 'Max trucks must be at least 1').optional(),
+        maxTeamMembers: zod_1.z.number().min(1, 'Max team members must be at least 1').optional(),
+        maxServices: zod_1.z.number().min(1, 'Max services must be at least 1').optional(),
         isActive: zod_1.z.boolean().optional(),
         priority: zod_1.z.number().optional(),
     }),
@@ -59,7 +59,7 @@ exports.createCheckoutSessionSchema = zod_1.z.object({
 // Query Validation
 exports.getPlansQuerySchema = zod_1.z.object({
     query: zod_1.z.object({
-        userType: zod_1.z.enum(['driver', 'company', 'mechanic', 'cook', 'fuel_provider']).optional(),
+        userType: zod_1.z.enum(['user', 'professional', 'admin', 'super_admin']).optional(),
     }),
 });
 // Params Validation

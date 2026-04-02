@@ -53,6 +53,16 @@ const getReviewsByBooking = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getReviewsByProvider = (0, catchAsync_1.default)(async (req, res) => {
+    const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
+    const result = await review_service_1.ReviewServices.getReviewsByProvider(req.params.providerId, paginationOptions);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Reviews retrieved successfully',
+        data: result,
+    });
+});
 const deleteReview = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
     const result = await review_service_1.ReviewServices.deleteReview(id, req.user);
@@ -80,4 +90,5 @@ exports.ReviewController = {
     deleteReview,
     getSingleReview,
     getReviewsByBooking,
+    getReviewsByProvider,
 };

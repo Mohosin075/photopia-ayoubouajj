@@ -15,6 +15,8 @@ const uploadFields = [
     { name: 'images', maxCount: 5 },
     { name: 'media', maxCount: 3 },
     { name: 'documents', maxCount: 3 },
+    { name: 'coverPhoto', maxCount: 1 },
+    { name: 'portfolio', maxCount: 10 },
 ];
 const fileAndBodyProcessor = () => {
     const storage = multer_1.default.memoryStorage();
@@ -26,6 +28,8 @@ const fileAndBodyProcessor = () => {
                 images: ['image/jpeg', 'image/png', 'image/jpg'],
                 media: ['video/mp4', 'audio/mpeg'],
                 documents: ['application/pdf'],
+                coverPhoto: ['image/jpeg', 'image/png', 'image/jpg'],
+                portfolio: ['image/jpeg', 'image/png', 'image/jpg'],
             };
             const fieldType = file.fieldname;
             if (!((_a = allowedTypes[fieldType]) === null || _a === void 0 ? void 0 : _a.includes(file.mimetype))) {
@@ -70,7 +74,10 @@ const fileAndBodyProcessor = () => {
                             const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
                             const filePath = `/${fieldName}/${filename}`;
                             // Apply Sharp optimization for images
-                            if (fieldName === 'images' && file.mimetype.startsWith('image/')) {
+                            if ((fieldName === 'images' ||
+                                fieldName === 'coverPhoto' ||
+                                fieldName === 'portfolio') &&
+                                file.mimetype.startsWith('image/')) {
                                 try {
                                     // Create Sharp instance
                                     let sharpInstance = (0, sharp_1.default)(file.buffer).resize(800);
@@ -140,6 +147,8 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
                 images: ['image/jpeg', 'image/png', 'image/jpg'],
                 media: ['video/mp4', 'audio/mpeg'],
                 documents: ['application/pdf'],
+                coverPhoto: ['image/jpeg', 'image/png', 'image/jpg'],
+                portfolio: ['image/jpeg', 'image/png', 'image/jpg'],
             };
             const fieldType = file.fieldname;
             if (!((_a = allowedTypes[fieldType]) === null || _a === void 0 ? void 0 : _a.includes(file.mimetype))) {
@@ -182,7 +191,10 @@ const fileAndBodyProcessorUsingDiskStorage = () => {
                         for (const file of fileArray) {
                             const filePath = `/${fieldName}/${file.filename}`;
                             // Apply Sharp optimization for images
-                            if (fieldName === 'images' && file.mimetype.startsWith('image/')) {
+                            if ((fieldName === 'images' ||
+                                fieldName === 'coverPhoto' ||
+                                fieldName === 'portfolio') &&
+                                file.mimetype.startsWith('image/')) {
                                 try {
                                     const fullPath = path_1.default.join(uploadsDir, fieldName, file.filename);
                                     // Create Sharp instance

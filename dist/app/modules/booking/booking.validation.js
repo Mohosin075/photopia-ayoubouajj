@@ -18,7 +18,7 @@ exports.createBookingValidationSchema = zod_1.z.object({
                 lat: zod_1.z.number(),
                 lng: zod_1.z.number()
             }).optional(),
-            distanceFromProviderKm: zod_1.z.number().min(0, { message: 'Distance must be a positive number' }),
+            distanceFromProviderKm: zod_1.z.number().min(0, { message: 'Distance must be a positive number' }).optional(),
             notes: zod_1.z.string().optional()
         }),
         clientName: zod_1.z.string({ required_error: 'Client name is required' }),

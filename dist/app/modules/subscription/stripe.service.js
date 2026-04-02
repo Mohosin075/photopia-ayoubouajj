@@ -60,7 +60,9 @@ class StripeService {
                 customer: params.customerId,
                 items: [{ price: params.priceId }],
                 metadata: params.metadata || {},
-                expand: ['latest_invoice.payment_intent'],
+                payment_behavior: 'default_incomplete',
+                payment_settings: { save_default_payment_method: 'on_subscription' },
+                expand: ['latest_invoice.payment_intent', 'pending_setup_intent'],
             };
             // Add trial period if specified
             if (params.trialPeriodDays && params.trialPeriodDays > 0) {
@@ -118,6 +120,19 @@ class StripeService {
         }
         catch (error) {
             console.error(`Error canceling Stripe subscription ${subscriptionId}:`, error);
+            throw error;
+        }
+    }
+    async reactivateSubscription(subscriptionId) {
+        try {
+            const subscription = await this.stripe.subscriptions.update(subscriptionId, {
+                cancel_at_period_end: false,
+            });
+            console.log(`Stripe subscription reactivated: ${subscriptionId}`);
+            return subscription;
+        }
+        catch (error) {
+            console.error(`Error reactivating Stripe subscription ${subscriptionId}:`, error);
             throw error;
         }
     }

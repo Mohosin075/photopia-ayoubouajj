@@ -18,11 +18,11 @@ const createBooking = (0, catchAsync_1.default)(async (req, res) => {
         ...req.body,
         clientId: user.userId
     };
-    const result = await booking_service_1.BookingService.createBooking(bookingData);
+    const result = await booking_service_1.BookingService.createBooking(bookingData, user);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.CREATED,
         success: true,
-        message: 'Booking created successfully',
+        message: 'Booking created successfully. Please complete the payment.',
         data: result,
     });
 });

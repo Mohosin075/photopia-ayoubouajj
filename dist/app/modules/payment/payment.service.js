@@ -24,10 +24,10 @@ const createCheckoutSession = async (user, payload) => {
             line_items: [
                 {
                     price_data: {
-                        currency: payload.currency || 'usd',
+                        currency: (payload.currency || 'USD').toLowerCase(),
                         product_data: {
                             name: payload.productName || 'Payment',
-                            description: payload.description || 'General Payment',
+                            description: payload.description,
                         },
                         unit_amount: Math.round(payload.amount * 100),
                     },
@@ -39,12 +39,14 @@ const createCheckoutSession = async (user, payload) => {
             cancel_url: `${config_1.default.clientUrl}/payment/cancel`,
             customer_email: user.email,
             metadata: {
-                userId: user.userId,
+                userId: user.userId.toString(),
+                bookingId: payload.bookingId.toString(),
                 ...payload.metadata
             },
         });
         await payment_model_1.Payment.create({
             userId: user.userId,
+            bookingId: payload.bookingId,
             userEmail: user.email,
             amount: payload.amount,
             currency: payload.currency || 'USD',
@@ -53,6 +55,7 @@ const createCheckoutSession = async (user, payload) => {
             status: 'pending',
             metadata: {
                 checkoutSessionId: session.id,
+                bookingId: payload.bookingId.toString(),
                 ...payload.metadata
             },
         });
@@ -169,7 +172,7 @@ const createPaymentIntent = async (user, payload) => {
  * Create Ephemeral Key for Flutter Stripe SDK
  * Required for customer-scoped operations in flutter_stripe
  */
-const createEphemeralKey = async (user, apiVersion = '2024-12-18.acacia') => {
+const createEphemeralKey = async (user, apiVersion = '2025-05-28.basil') => {
     try {
         let customerId = user.stripeCustomerId;
         // Create customer if doesn't exist
@@ -277,7 +280,10 @@ const getAllPayments = async (user, filterables, pagination) => {
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder })
-            .populate('userId', 'name email'),
+            .populate('userId', 'name email')
+            .populate({
+            path: 'bookingId'
+        }),
         payment_model_1.Payment.countDocuments(whereConditions),
     ]);
     return {

@@ -117,6 +117,27 @@ const getReviewsByBooking = async (user, bookingId, type, paginationOptions) => 
         data: result,
     };
 };
+const getReviewsByProvider = async (providerId, paginationOptions) => {
+    const { page, limit, skip, sortBy, sortOrder } = paginationHelper_1.paginationHelper.calculatePagination(paginationOptions);
+    const [result, total] = await Promise.all([
+        review_model_1.Review.find({ reviewee: providerId })
+            .populate('reviewer')
+            .populate('reviewee')
+            .skip(skip)
+            .limit(limit)
+            .sort({ [sortBy]: sortOrder }),
+        review_model_1.Review.countDocuments({ reviewee: providerId }),
+    ]);
+    return {
+        meta: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+        },
+        data: result,
+    };
+};
 const updateReview = async (user, id, payload) => {
     var _a;
     const session = await mongoose_1.default.startSession();
@@ -255,4 +276,5 @@ exports.ReviewServices = {
     deleteReview,
     getSingleReview,
     getReviewsByBooking,
+    getReviewsByProvider,
 };

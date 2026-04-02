@@ -23,6 +23,7 @@ const getProviderAvailability = async (providerId) => {
     return result;
 };
 const checkAvailabilityForDate = async (providerId, date) => {
+    var _a;
     const availability = await availability_model_1.Availability.findOne({ providerId });
     if (!availability) {
         return { isAvailable: false, reason: 'Provider has not set availability' };
@@ -82,9 +83,10 @@ const checkAvailabilityForDate = async (providerId, date) => {
             // 3. Check default schedule
             const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
             const dayName = days[targetDate.getDay()];
-            const daySchedule = availability.defaultSchedule[dayName];
+            const defaultSchedule = availability.defaultSchedule;
+            const daySchedule = defaultSchedule[dayName] || ((_a = defaultSchedule.get) === null || _a === void 0 ? void 0 : _a.call(defaultSchedule, dayName));
             if (!daySchedule || !daySchedule.isActive) {
-                return { isAvailable: false, reason: 'Day is not a working day in default schedule' };
+                return { isAvailable: false, reason: `Day (${dayName}) is not a working day in default schedule` };
             }
             workingHours = { start: daySchedule.start, end: daySchedule.end };
             if (daySchedule.maxBookings)

@@ -42,6 +42,8 @@ const UserSchema = new mongoose_1.Schema({
     },
     subscribe: { type: Boolean, default: false },
     stripeCustomerId: { type: String },
+    stripeConnectedAccountId: { type: String },
+    isStripeConnected: { type: Boolean, default: false },
     subscriptionStatus: { type: String },
     subscriptionTier: { type: String },
     trialUsed: { type: Boolean, default: false },
