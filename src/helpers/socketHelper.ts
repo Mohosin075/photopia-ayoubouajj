@@ -13,6 +13,14 @@ const socket = (io: Server) => {
       }
     })
 
+    // Join notification room (user specific)
+    socket.on('join-notification', (userId: string) => {
+      if (userId) {
+        socket.join(userId)
+        console.log(colors.green(`User ${socket.id} joined notification room:${userId}`))
+      }
+    })
+
     // Leave stream room
     socket.on('leave-stream', (streamId: string) => {
       if (streamId) {
