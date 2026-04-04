@@ -19,6 +19,7 @@ const handleCheckoutSessionCompleted = async (
         expand: ['payment_intent', 'line_items'],
       },
     )
+    console.log('✅ Session Details Retrieved. Payment Intent:', sessionWithDetails.payment_intent)
     let lookupId: string
 
     if (typeof sessionWithDetails.payment_intent === 'string') {
@@ -152,17 +153,17 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
       paymentIntentId: paymentIntent.id,
     }).session(mongoSession)
 
-    // FALLBACK LOOKUP: If not found by ID (common if DB has SessionID stored instead of PI ID),
-    // try to find by ticketId from metadata + status=pending.
-    if (!payment && paymentIntent.metadata && paymentIntent.metadata.ticketId) {
-      console.log(`Payment not found by ID ${paymentIntent.id}. Trying fallback lookup by ticketId: ${paymentIntent.metadata.ticketId}`)
+    // FALLBACK LOOKUP: Use bookingId from metadata
+    if (!payment && paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+      console.log(`🔍 Payment not found by ID ${paymentIntent.id}. Trying fallback lookup by bookingId: ${paymentIntent.metadata.bookingId}`)
       payment = await Payment.findOne({
-        ticketId: paymentIntent.metadata.ticketId,
+        bookingId: paymentIntent.metadata.bookingId,
         status: 'pending',
       }).session(mongoSession)
-
-      // If we found it via fallback, update the paymentIntentId to the correct one immediately
+ 
+      // If found via fallback, update the paymentIntentId to the correct PI ID
       if (payment) {
+        console.log(`✅ Found record via bookingId fallback. Updating ID to: ${paymentIntent.id}`)
         payment.paymentIntentId = paymentIntent.id
       }
     }
@@ -237,16 +238,21 @@ const handlePaymentFailure = async (paymentIntent: any): Promise<void> => {
   mongoSession.startTransaction()
 
   try {
-    const payment = await Payment.findOne({
+    let payment = await Payment.findOne({
       paymentIntentId: paymentIntent.id,
     }).session(mongoSession)
+
+    // Fallback for failure too
+    if (!payment && paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+       payment = await Payment.findOne({
+         bookingId: paymentIntent.metadata.bookingId
+       }).session(mongoSession)
+    }
 
     if (payment) {
       payment.status = 'failed'
       payment.metadata = { ...payment.metadata, ...paymentIntent }
       await payment.save({ session: mongoSession })
-
-
     }
 
     await mongoSession.commitTransaction()
