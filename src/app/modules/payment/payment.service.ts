@@ -164,6 +164,7 @@ const createPaymentIntent = async (
       metadata: {
         userId: user.userId,
         userEmail: user.email,
+        bookingId: payload.bookingId,
         ...payload.metadata
       },
     })
@@ -171,6 +172,7 @@ const createPaymentIntent = async (
     // Create payment record
     await Payment.create({
       userId: user.userId,
+      bookingId: payload.bookingId,
       userEmail: user.email,
       amount: payload.amount,
       currency: (payload.currency || 'USD').toUpperCase(),
@@ -179,6 +181,7 @@ const createPaymentIntent = async (
       status: 'pending',
       metadata: {
         userId: user.userId,
+        bookingId: payload.bookingId,
         ...payload.metadata
       },
     })
