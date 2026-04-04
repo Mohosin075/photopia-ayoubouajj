@@ -143,9 +143,66 @@ const refundBalance = async (
   return wallet
 }
 
+const addPendingEarnings = async (
+  userId: string | Types.ObjectId,
+  amount: number,
+  session?: any
+): Promise<IWallet | null> => {
+  const wallet = await Wallet.findOneAndUpdate(
+    { userId },
+    { 
+      $inc: { pendingBalance: amount } 
+    },
+    { session, new: true, upsert: true }
+  )
+  return wallet
+}
+
+const completePendingEarnings = async (
+  userId: string | Types.ObjectId,
+  amount: number,
+  session?: any
+): Promise<IWallet | null> => {
+  const wallet = await Wallet.findOneAndUpdate(
+    { userId, pendingBalance: { $gte: amount } },
+    { 
+      $inc: { pendingBalance: -amount, balance: amount, totalEarnings: amount } 
+    },
+    { session, new: true }
+  )
+  
+  if (!wallet) {
+     // If pending balance is less than amount (edge case), just add to balance
+     return await Wallet.findOneAndUpdate(
+       { userId },
+       { $inc: { balance: amount, totalEarnings: amount } },
+       { session, new: true }
+     )
+  }
+  return wallet
+}
+
+const cancelPendingEarnings = async (
+  userId: string | Types.ObjectId,
+  amount: number,
+  session?: any
+): Promise<IWallet | null> => {
+  const wallet = await Wallet.findOneAndUpdate(
+    { userId, pendingBalance: { $gte: amount } },
+    { 
+      $inc: { pendingBalance: -amount } 
+    },
+    { session, new: true }
+  )
+  return wallet
+}
+
 export const WalletService = {
   getWalletByUserId,
   addEarnings,
   deductBalance,
-  refundBalance
+  refundBalance,
+  addPendingEarnings,
+  completePendingEarnings,
+  cancelPendingEarnings
 }

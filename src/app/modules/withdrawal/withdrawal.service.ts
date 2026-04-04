@@ -22,16 +22,17 @@ const createWithdrawal = async (payload: Partial<IWithdrawal>): Promise<IWithdra
 
   try {
     // 1. Deduct from local wallet first to ensure they have balance
-    await WalletService.deductBalance(userId.toString(), amount, session)
+    const wallet = await WalletService.deductBalance(userId.toString(), amount, session)
+    const currency = (payload.currency || wallet?.currency || 'EUR').toLowerCase()
 
-    let withdrawalData = { ...payload }
+    let withdrawalData = { ...payload, currency: currency.toUpperCase() }
 
     if (isStripeConnected) {
       // 2. Trigger Stripe Payout from Connected Account to their Bank
       try {
         const payout = await stripe.payouts.create({
           amount: Math.round(amount * 100),
-          currency: (payload.currency || 'eur').toLowerCase(),
+          currency: currency,
         }, {
           stripeAccount: professionalProfile.stripeAccountId as string,
         })

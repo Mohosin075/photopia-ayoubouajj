@@ -28,7 +28,7 @@ const createCheckoutSession = async (
       line_items: [
         {
           price_data: {
-            currency: (payload.currency || 'USD').toLowerCase(),
+            currency: (payload.currency || 'EUR').toLowerCase(),
             product_data: {
               name: payload.productName || 'Payment',
               description: payload.description,
@@ -54,7 +54,7 @@ const createCheckoutSession = async (
       bookingId: payload.bookingId,
       userEmail: user.email,
       amount: payload.amount,
-      currency: payload.currency || 'USD',
+      currency: payload.currency || 'EUR',
       paymentMethod: 'stripe',
       paymentIntentId: session.payment_intent || session.id,
       status: 'pending',
@@ -160,7 +160,7 @@ const createPaymentIntent = async (
   try {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(payload.amount * 100), // Convert to cents
-      currency: payload.currency || 'usd',
+      currency: payload.currency || 'eur',
       metadata: {
         userId: user.userId,
         userEmail: user.email,
@@ -175,7 +175,7 @@ const createPaymentIntent = async (
       bookingId: payload.bookingId,
       userEmail: user.email,
       amount: payload.amount,
-      currency: (payload.currency || 'USD').toUpperCase(),
+      currency: (payload.currency || 'EUR').toUpperCase(),
       paymentMethod: 'stripe',
       paymentIntentId: paymentIntent.id,
       status: 'pending',

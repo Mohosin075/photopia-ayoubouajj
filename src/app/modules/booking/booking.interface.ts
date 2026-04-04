@@ -47,6 +47,8 @@ export interface IBooking extends Document {
   balanceAmount: number
   stripePaymentId?: string
   stripeClientSecret?: string
+  stripeTransferId?: string
+  stripeTransferStatus?: 'pending' | 'succeeded' | 'failed'
   
   // Status
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'

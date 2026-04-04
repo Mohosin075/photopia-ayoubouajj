@@ -6,6 +6,7 @@ import { Payment } from './payment.model'
 import { emailHelper } from '../../../helpers/emailHelper'
 import { emailTemplate } from '../../../shared/emailTemplate'
 import { Booking } from '../booking/booking.model'
+import { WalletService } from '../wallet/wallet.service'
 
 const handleCheckoutSessionCompleted = async (
   sessionData: any,
@@ -72,7 +73,16 @@ const handleCheckoutSessionCompleted = async (
           },
           { session: mongoSession, new: true }
         )
-        console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking?.bookingNumber}`)
+        
+        if (updatedBooking) {
+          console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking.bookingNumber}`)
+          // Add to pending balance for the provider
+          await WalletService.addPendingEarnings(
+            updatedBooking.providerId,
+            updatedBooking.pricingDetails.providerEarnings,
+            mongoSession
+          )
+        }
       }
 
       await mongoSession.commitTransaction()
@@ -183,7 +193,7 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
     const bookingId = payment.bookingId || paymentIntent.metadata?.bookingId
     
     if (bookingId) {
-      await Booking.findByIdAndUpdate(
+      const updatedBooking = await Booking.findByIdAndUpdate(
         bookingId,
         { 
           status: 'confirmed',
@@ -192,7 +202,16 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
         },
         { session: mongoSession, new: true }
       )
-      console.log(`Webhook: Booking status updated to confirmed for: ${bookingId}`)
+      
+      if (updatedBooking) {
+        console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking.bookingNumber}`)
+        // Add to pending balance for the provider
+        await WalletService.addPendingEarnings(
+          updatedBooking.providerId,
+          updatedBooking.pricingDetails.providerEarnings,
+          mongoSession
+        )
+      }
     }
     await mongoSession.commitTransaction()
     console.log(`Successfully processed payment intent: ${paymentIntent.id}`)
