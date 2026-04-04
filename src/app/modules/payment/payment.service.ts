@@ -84,6 +84,10 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
       expand: ['payment_intent'],
     })
 
+    console.log('🔍 Verifying Checkout Session:', session.id)
+    console.log('🔍 Payment Intent:', session.payment_intent)
+    console.log('🔍 Metadata:', session.metadata)
+
     // Find payment record using either paymentIntentId (legacy/direct) or metadata.checkoutSessionId (correct for checkout)
     const payment = await Payment.findOne({
       $or: [

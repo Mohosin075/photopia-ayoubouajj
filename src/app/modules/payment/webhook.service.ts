@@ -145,7 +145,6 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
   mongoSession.startTransaction()
 
 
-  console.log(paymentIntent)
 
   try {
     // STRICT LOOKUP: First try paymentIntentId
@@ -154,26 +153,28 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
     }).session(mongoSession)
 
     // FALLBACK LOOKUP: Use bookingId from metadata
-    if (!payment && paymentIntent.metadata && paymentIntent.metadata.bookingId) {
-      console.log(`🔍 Payment not found by ID ${paymentIntent.id}. Trying fallback lookup by bookingId: ${paymentIntent.metadata.bookingId}`)
-      payment = await Payment.findOne({
-        bookingId: paymentIntent.metadata.bookingId,
-        status: 'pending',
-      }).session(mongoSession)
- 
-      // If found via fallback, update the paymentIntentId to the correct PI ID
-      if (payment) {
-        console.log(`✅ Found record via bookingId fallback. Updating ID to: ${paymentIntent.id}`)
-        payment.paymentIntentId = paymentIntent.id
+    if (!payment) {
+      const metadata = paymentIntent.metadata || {}
+      const bookingId = metadata.bookingId
+      
+      
+      if (bookingId) {
+        payment = await Payment.findOne({
+          bookingId: bookingId,
+          status: 'pending',
+        }).session(mongoSession)
+   
+        if (payment) {
+          payment.paymentIntentId = paymentIntent.id
+        } else {
+          console.log(`⚠️ No record found for bookingId: ${bookingId} with status: pending`)
+        }
+      } else {
+        console.log('❌ No bookingId found in metadata. Cannot perform fallback lookup.')
       }
     }
 
     if (!payment) {
-      // If payment not found by ID, it might be that the checkout session creation
-      // hasn't synced yet, OR this event is irrelevant because we primarily rely on
-      // checkout.session.completed for initial fulfillment.
-      // We will simply log and return.
-      console.log(`Payment not found for intent: ${paymentIntent.id}. Skipping payment_intent.succeeded handler.`)
       await mongoSession.commitTransaction()
       return
     }
