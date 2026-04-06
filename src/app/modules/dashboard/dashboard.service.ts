@@ -323,11 +323,12 @@ const handleModerationAction = async (
   }
 
   const report = await Support.findById(reportId)
+  console.log({report})
   if (!report) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Report not found.')
   }
 
-  const reportedUserId = report.reportedUser?.toString()
+  const reportedUserId = report.userId?.toString()
 
   switch (action) {
     case 'warning':
@@ -985,6 +986,18 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
       { name: 'Portrait Photography', bookings: 456, growthPercentage: 15.2 },
       { name: 'Product Photography', bookings: 321, growthPercentage: 12.8 },
     ],
+    acquisitionByChannel: [
+      { channel: 'Social Media', users: 456, cac: 12.5 },
+      { channel: 'SEO/Organic', users: 892, cac: 4.2 },
+      { channel: 'Partnerships', users: 234, cac: 18.3 },
+      { channel: 'Paid Ads', users: 378, cac: 22.8 },
+      { channel: 'Referrals', users: 567, cac: 6.7 },
+    ],
+    retentionEngagement: {
+      intervals: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'D+30', 'D+90'],
+      retentionRate: [92, 80, 75, 70, 65, 58],
+      usageFrequency: [8, 6, 4, 3, 2, 1],
+    },
   }
 }
 
@@ -1235,6 +1248,18 @@ const getDetailedStats = async (
     countryRanking: countryRanking.length ? countryRanking : [
       { country: 'N/A', revenue: 0, growth: 0, rankCurrent: 1, rankPrev1: 1, rankPrev2: 1 }
     ],
+    acquisitionByChannel: [
+      { channel: 'Social Media', users: 456, cac: 12.5 },
+      { channel: 'SEO/Organic', users: 892, cac: 4.2 },
+      { channel: 'Partnerships', users: 234, cac: 18.3 },
+      { channel: 'Paid Ads', users: 378, cac: 22.8 },
+      { channel: 'Referrals', users: 567, cac: 6.7 },
+    ],
+    retentionEngagement: {
+      intervals: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'D+30', 'D+90'],
+      retentionRate: [92, 80, 75, 70, 65, 58],
+      usageFrequency: [8, 6, 4, 3, 2, 1],
+    },
   }
 }
 

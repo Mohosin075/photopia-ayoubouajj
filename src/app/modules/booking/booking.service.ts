@@ -346,6 +346,7 @@ const getMyBookings = async (
 
   const andConditions = []
 
+
   // Role-based filter
   if (role === 'professional') {
     andConditions.push({ providerId: userId })

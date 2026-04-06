@@ -241,6 +241,20 @@ export type IDetailedDashboardStats = {
     rankPrev1: number
     rankPrev2: number
   }>
+  acquisitionByChannel: IAcquisitionChannel[]
+  retentionEngagement: IRetentionEngagement
+}
+
+export type IAcquisitionChannel = {
+  channel: string
+  users: number
+  cac: number
+}
+
+export type IRetentionEngagement = {
+  intervals: string[]
+  retentionRate: number[]
+  usageFrequency: number[]
 }
 
 export type IAdvancedAnalyticsStats = {
@@ -292,4 +306,6 @@ export type IAdvancedAnalyticsStats = {
     bookings: number
     growthPercentage: number
   }>
+  acquisitionByChannel: IAcquisitionChannel[]
+  retentionEngagement: IRetentionEngagement
 }

@@ -160,9 +160,11 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
       
       if (bookingId) {
         payment = await Payment.findOne({
-          bookingId: bookingId,
+          bookingId,
           status: 'pending',
-        }).session(mongoSession)
+        })
+        .sort({ createdAt: -1 }) 
+        .session(mongoSession)
    
         if (payment) {
           payment.paymentIntentId = paymentIntent.id
