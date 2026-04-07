@@ -13,10 +13,4 @@ router.post(
   AnalyticsController.trackVisit
 )
 
-router.get(
-  '/premium',
-  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  AnalyticsController.getPremiumAnalytics
-)
-
 export const AnalyticsRoutes = router
