@@ -17,6 +17,8 @@ export const sendPushNotification = async (
   data: NotificationData,
   icon?: string
 ) => {
+  console.log('Sending push notification to:', deviceToken);
+  console.log('Notification data:', data);
   const message: admin.messaging.Message = {
     token: deviceToken,
     notification: { title, body },

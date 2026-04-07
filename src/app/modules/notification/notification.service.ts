@@ -70,13 +70,13 @@ const createNotification = async (
     }
 
     // Send push notification if requested
-    if (
-      (sendPush &&
-        (notification.channel === NotificationChannel.PUSH ||
-          notification.channel === NotificationChannel.ALL))
-    ) {
+    // if (
+    //   (sendPush &&
+    //     (notification.channel === NotificationChannel.PUSH ||
+    //       notification.channel === NotificationChannel.ALL))
+    // ) {
       await sendNotificationPush(notification)
-    }
+    // }
 
     return notification
   } catch (error: any) {
