@@ -45,11 +45,11 @@ export const NOTIFICATION_CONFIG = {
   // Priority levels with default channel
   PRIORITY_CONFIG: {
     [NotificationPriority.URGENT]: {
-      channel: NotificationChannel.BOTH,
+      channel: NotificationChannel.ALL,
       retryAttempts: 3,
     },
     [NotificationPriority.HIGH]: {
-      channel: NotificationChannel.BOTH,
+      channel: NotificationChannel.ALL,
       retryAttempts: 2,
     },
     [NotificationPriority.MEDIUM]: {

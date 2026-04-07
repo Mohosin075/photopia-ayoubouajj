@@ -323,7 +323,6 @@ const handleModerationAction = async (
   }
 
   const report = await Support.findById(reportId)
-  console.log({report})
   if (!report) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Report not found.')
   }

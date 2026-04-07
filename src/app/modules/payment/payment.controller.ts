@@ -154,13 +154,41 @@ const getMyPayments = catchAsync(async (req: Request, res: Response) => {
   const paginationOptions = pick(req.query, paginationFields)
 
   const result = await PaymentServices.getMyPayments(user, paginationOptions)
-
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
     message: 'My payments retrieved successfully',
     meta: result.meta,
     data: result.data,
+  })
+})
+
+const generateInvoice = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const result = await PaymentServices.generateInvoice(id)
+
+  if (Buffer.isBuffer(result)) {
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `attachment; filename=invoice-${id.substring(0, 8)}.pdf`)
+    res.status(StatusCodes.OK).send(result)
+    return
+  }
+
+  if (typeof result === 'string' && result.startsWith('http')) {
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Invoice URL retrieved successfully',
+      data: { url: result },
+    })
+    return
+  }
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Invoice generated successfully',
+    data: result,
   })
 })
 
@@ -176,4 +204,5 @@ export const PaymentController = {
   // Flutter Stripe controllers
   createPaymentIntent,
   createEphemeralKey,
+  generateInvoice,
 }

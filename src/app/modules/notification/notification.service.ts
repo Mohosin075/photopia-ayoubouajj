@@ -24,10 +24,12 @@ import { Payment } from '../payment/payment.model'
 
 import config from '../../../config'
 import { io } from '../../../server'
+import { sendPushNotification } from '../../../helpers/pushnotificationHelper'
 
 const createNotification = async (
   payload: CreateNotificationDto,
   sendEmail: boolean = false,
+  sendPush: boolean = true,
 ): Promise<INotification> => {
   try {
     const notificationData: any = {
@@ -51,21 +53,29 @@ const createNotification = async (
 
     // Send real-time notification via socket
     if (notification.channel !== NotificationChannel.EMAIL) {
-      // Emit socket event for real-time notification
-      // const io = (global as any).io
-
       if (io) {
         io.to(notification.userId.toString()).emit('notification', {
           type: 'NEW_NOTIFICATION',
           data: notification,
         })
-        console.log({ notification })
       }
     }
 
     // Send email if requested
-    if (sendEmail && notification.channel !== NotificationChannel.IN_APP) {
+    if (
+      (sendEmail && notification.channel !== NotificationChannel.IN_APP) ||
+      notification.channel === NotificationChannel.ALL
+    ) {
       await sendNotificationEmail(notification)
+    }
+
+    // Send push notification if requested
+    if (
+      (sendPush &&
+        (notification.channel === NotificationChannel.PUSH ||
+          notification.channel === NotificationChannel.ALL))
+    ) {
+      await sendNotificationPush(notification)
     }
 
     return notification
@@ -74,6 +84,61 @@ const createNotification = async (
       StatusCodes.INTERNAL_SERVER_ERROR,
       `Failed to create notification: ${error.message}`,
     )
+  }
+}
+
+const sendNotificationPush = async (
+  notification: INotification,
+): Promise<void> => {
+  try {
+    const user = await User.findById(notification.userId)
+    if (!user) {
+      throw new Error('User not found')
+    }
+
+    // Skip if user has no device token
+    if (!user.deviceToken) {
+      return
+    }
+
+    // Skip if user has disabled push notifications but check if it's an urgent notification
+    if (
+      user.settings?.pushNotification === false &&
+      notification.priority !== NotificationPriority.URGENT
+    ) {
+      return
+    }
+
+    const pushPayload: any = {
+      notificationId: notification._id.toString(),
+      type: notification.type,
+    }
+
+    if (notification.actionUrl) {
+      pushPayload.actionUrl = notification.actionUrl
+    }
+
+    if (notification.metadata) {
+      Object.keys(notification.metadata).forEach(key => {
+        pushPayload[key] = String(notification.metadata![key])
+      })
+    }
+
+    await sendPushNotification(
+      user.deviceToken,
+      notification.title,
+      notification.content,
+      pushPayload,
+    )
+  } catch (error: any) {
+    console.error('Failed to send push notification:', error)
+
+    // Update notification metadata with push error
+    await Notification.findByIdAndUpdate(notification._id, {
+      $set: {
+        'metadata.pushError': error.message,
+      },
+    })
   }
 }
 

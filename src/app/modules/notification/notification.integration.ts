@@ -26,7 +26,7 @@ export class NotificationIntegration {
           title: 'Payment Successful',
           content: `Your payment of ${payment.amount} ${payment.currency} was successful.`,
           type: NotificationType.PAYMENT_SUCCESS,
-          channel: NotificationChannel.BOTH,
+          channel: NotificationChannel.ALL,
           priority: NotificationPriority.HIGH,
           metadata: {
             paymentId: payment._id,
@@ -56,7 +56,7 @@ export class NotificationIntegration {
           title: 'Payment Failed',
           content: `Your payment failed. Please try again.`,
           type: NotificationType.PAYMENT_FAILED,
-          channel: NotificationChannel.BOTH,
+          channel: NotificationChannel.ALL,
           priority: NotificationPriority.URGENT,
           metadata: {
             paymentId: payment._id,
@@ -84,7 +84,7 @@ export class NotificationIntegration {
         title: 'New Message',
         content: `You have a new message: "${message.substring(0, 100)}..."`,
         type: NotificationType.NEW_MESSAGE,
-        channel: NotificationChannel.IN_APP,
+        channel: NotificationChannel.PUSH,
         priority: NotificationPriority.MEDIUM,
         metadata: {
           senderId,

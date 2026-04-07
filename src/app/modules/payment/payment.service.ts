@@ -16,6 +16,7 @@ import config from '../../../config'
 import { WebhookService } from './webhook.service'
 import { emailHelper } from '../../../helpers/emailHelper'
 import { emailTemplate } from '../../../shared/emailTemplate'
+import { generatePDFInvoice } from '../../../helpers/invoiceHelper'
 
 const createCheckoutSession = async (
   user: any,
@@ -485,6 +486,36 @@ const getMyPayments = async (
   }
 }
 
+const generateInvoice = async (id: string): Promise<string | Buffer> => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Payment ID')
+  }
+
+  const payment = await Payment.findById(id).populate('userId').populate('bookingId')
+
+  if (!payment) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Payment not found')
+  }
+
+  // 1. If it's a Stripe payment, try to get the official receipt URL
+  if (payment.paymentIntentId && payment.status === 'succeeded' && payment.paymentMethod === 'stripe') {
+    try {
+      const pi = await stripe.paymentIntents.retrieve(payment.paymentIntentId)
+      if (pi.latest_charge) {
+        const charge = await stripe.charges.retrieve(pi.latest_charge as string)
+        if (charge.receipt_url) {
+          return charge.receipt_url
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch stripe receipt:', error)
+    }
+  }
+
+  // 2. Fallback to custom PDF invoice generation
+  return await generatePDFInvoice(payment as any)
+}
+
 export const PaymentServices = {
   getAllPayments,
   getSinglePayment,
@@ -494,8 +525,8 @@ export const PaymentServices = {
   createCheckoutSession,
   verifyCheckoutSession,
   handleWebhook: WebhookService.handleWebhook,
-  // Flutter Stripe methods
   createPaymentIntent,
   createEphemeralKey,
   handlePaymentIntentWebhook,
+  generateInvoice,
 }

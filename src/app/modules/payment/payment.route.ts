@@ -38,6 +38,17 @@ router.get(
   PaymentController.getSinglePayment,
 )
 
+router.get(
+  '/:id/invoice',
+  auth(
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
+  ),
+  PaymentController.generateInvoice,
+)
+
 // ✅ ONLY THIS - Checkout Session
 router.post(
   '/create-checkout-session',
