@@ -68,6 +68,7 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/wallet', route: WalletRoutes },
   { path: '/withdrawal', route: WithdrawalRoutes },
   { path: '/analytics', route: AnalyticsRoutes }
+  , { path: '/public', route: PublicRoutes }
 ]
 
 apiRoutes.forEach(route => {
