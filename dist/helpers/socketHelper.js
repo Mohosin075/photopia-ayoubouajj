@@ -15,6 +15,13 @@ const socket = (io) => {
                 console.log(colors_1.default.green(`User ${socket.id} joined stream:${streamId}`));
             }
         });
+        // Join notification room (user specific)
+        socket.on('join-notification', (userId) => {
+            if (userId) {
+                socket.join(userId);
+                console.log(colors_1.default.green(`User ${socket.id} joined notification room:${userId}`));
+            }
+        });
         // Leave stream room
         socket.on('leave-stream', (streamId) => {
             if (streamId) {

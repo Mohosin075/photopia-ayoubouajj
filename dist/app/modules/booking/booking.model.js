@@ -80,6 +80,12 @@ const bookingSchema = new mongoose_1.Schema({
     balanceAmount: { type: Number, default: 0, min: 0 },
     stripePaymentId: String,
     stripeClientSecret: String,
+    stripeTransferId: String,
+    stripeTransferStatus: {
+        type: String,
+        enum: ['pending', 'succeeded', 'failed'],
+        default: 'pending'
+    },
     status: {
         type: String,
         enum: ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'],

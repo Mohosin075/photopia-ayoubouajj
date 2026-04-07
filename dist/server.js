@@ -12,6 +12,7 @@ const config_1 = __importDefault(require("./config"));
 const os_1 = __importDefault(require("os"));
 const user_service_1 = require("./app/modules/user/user.service");
 const socketHelper_1 = require("./helpers/socketHelper");
+const subscription_seed_1 = require("./app/modules/subscription/subscription.seed");
 // Uncaught exceptions
 process.on('uncaughtException', error => {
     console.error('🔥 UncaughtException Detected:', error);
@@ -49,6 +50,8 @@ async function main() {
         });
         // Create admin user
         await user_service_1.UserServices.createAdmin();
+        // Seed subscription plans
+        await (0, subscription_seed_1.seedSubscriptionPlans)();
         // Socket helper
         socketHelper_1.socketHelper.socket(exports.io);
         global.io = exports.io;

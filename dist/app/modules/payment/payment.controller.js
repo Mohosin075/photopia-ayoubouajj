@@ -126,6 +126,31 @@ const getMyPayments = (0, catchAsync_1.default)(async (req, res) => {
         data: result.data,
     });
 });
+const generateInvoice = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const result = await payment_service_1.PaymentServices.generateInvoice(id);
+    if (Buffer.isBuffer(result)) {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=invoice-${id.substring(0, 8)}.pdf`);
+        res.status(http_status_codes_1.StatusCodes.OK).send(result);
+        return;
+    }
+    if (typeof result === 'string' && result.startsWith('http')) {
+        (0, sendResponse_1.default)(res, {
+            statusCode: http_status_codes_1.StatusCodes.OK,
+            success: true,
+            message: 'Invoice URL retrieved successfully',
+            data: { url: result },
+        });
+        return;
+    }
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Invoice generated successfully',
+        data: result,
+    });
+});
 exports.PaymentController = {
     handleWebhook,
     getAllPayments,
@@ -138,4 +163,5 @@ exports.PaymentController = {
     // Flutter Stripe controllers
     createPaymentIntent,
     createEphemeralKey,
+    generateInvoice,
 };

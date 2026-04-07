@@ -9,6 +9,15 @@ import config from '../../../config'
 import { Booking } from '../booking/booking.model'
 import { Types } from 'mongoose'
 import ExcelJS from 'exceljs'
+import { AnalyticsService } from '../analytics/analytics.service'
+
+/**
+ * Helper to calculate percentage change between two values
+ */
+const calculateChange = (current: number, previous: number): number => {
+    if (previous === 0) return current > 0 ? 100 : 0
+    return Number(((current - previous) / previous * 100).toFixed(1))
+}
 
 const createProfile = async (
     userId: string,
@@ -26,7 +35,7 @@ const createProfile = async (
 
     const result = await ProfessionalProfile.create({
         ...payload,
-        user: userId,
+        user: new Types.ObjectId(userId),
     })
 
     // Add PROFESSIONAL role to user if not already present
@@ -90,7 +99,7 @@ const getProfile = async (userId: string) => {
         ]),
     ])
 
-    const calculateChange = (current: number, previous: number) => {
+    const calculateChangeValue = (current: number, previous: number) => {
         if (previous === 0) return current > 0 ? 100 : 0
         return Number(((current - previous) / previous * 100).toFixed(2))
     }
@@ -108,7 +117,7 @@ const getProfile = async (userId: string) => {
             },
             revenue: {
                 amount: currentMonthRevenue,
-                percentageChange: calculateChange(currentMonthRevenue, lastMonthRevenue),
+                percentageChange: calculateChangeValue(currentMonthRevenue, lastMonthRevenue),
             },
         },
     }
@@ -230,116 +239,128 @@ const checkStripeAccountStatus = async (userId: string) => {
 }
 
 const getDetailedStatistics = async (userId: string) => {
-    const profile = await ProfessionalProfile.findOne({ user: userId })
-    if (!profile) {
-        throw new ApiError(StatusCodes.NOT_FOUND, 'Professional profile not found')
-    }
+    const profile = await ProfessionalProfile.findOne({ user: userId }).populate('user').lean() as any
+    if (!profile) throw new ApiError(StatusCodes.NOT_FOUND, 'Professional profile not found')
+
+    const user = profile.user
+    const isPremium = user?.subscriptionStatus === 'active' || user?.subscriptionStatus === 'trialing'
+
 
     const now = new Date()
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
 
-    // 1. Profile Views vs Category Average (Mocked Category Avg)
-    const categoryAverageViews = 850
-    const viewsPerformance = calculateChange(profile.profileViews, categoryAverageViews)
+    // 1. Core Profile Stats (Common for all)
+    const categoryAverageViews = 450
+    const viewsPerformance = calculateChange(profile.profileViews || 0, categoryAverageViews)
+    const categoryAverageRating = 4.2
+    const ratingPerformance = calculateChange(profile.rating || 0, categoryAverageRating)
 
-    // 2. Rating vs Category Average (Mocked Category Avg)
-    const categoryAverageRating = 4.3
-    const ratingPerformance = calculateChange(profile.rating, categoryAverageRating)
-
-    // 3. Profile Views by Region (Mocked for parity with UI)
-    const viewsByRegion = [
-        { city: 'New York, NY', percentage: 37.5, count: 450 },
-        { city: 'Los Angeles, CA', percentage: 23.3, count: 280 },
-        { city: 'Chicago, IL', percentage: 15.4, count: 185 },
-        { city: 'Miami, FL', percentage: 12.1, count: 145 },
-        { city: 'Boston, MA', percentage: 7.5, count: 90 },
-        { city: 'Other', percentage: 4.2, count: 50 },
+    // 2. Data Fetching (Parallelized & Conditional)
+    const queries: any[] = [
+        // Current Month Revenue Stats
+        Booking.aggregate([
+            {
+                $match: {
+                    providerId: new Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: currentMonthStart },
+                },
+            },
+            {
+                $group: {
+                    _id: isPremium ? { $week: '$completedAt' } : null,
+                    amount: { $sum: '$pricingDetails.providerEarnings' },
+                },
+            },
+            { $sort: { '_id': 1 } }
+        ]),
+        // Previous Month Revenue Stats
+        Booking.aggregate([
+            {
+                $match: {
+                    providerId: new Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: previousMonthStart, $lte: previousMonthEnd },
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+                },
+            },
+        ])
     ]
 
-    // 4. Revenue Analytics (Weekly Breakdown for current month)
-    const weeklyRevenue = await Booking.aggregate([
-        {
-            $match: {
-                providerId: new Types.ObjectId(userId),
-                status: 'completed',
-                completedAt: { $gte: currentMonthStart },
-            },
-        },
-        {
-            $group: {
-                _id: { $week: '$completedAt' },
-                amount: { $sum: '$pricingDetails.providerEarnings' },
-            },
-        },
-        { $sort: { '_id': 1 } }
-    ])
+    // Only add heavy premium queries if the user is premium
+    if (isPremium) {
+        queries.push(AnalyticsService.getPremiumAnalytics(userId))
+    }
 
-    const formattedWeeklyRevenue = weeklyRevenue.map((w, index) => ({
-        week: `Week ${index + 1}`,
-        amount: w.amount
-    }))
+    const [currentMonthData, previousMonthData, premiumMetrics] = await Promise.all(queries)
 
-    const currentMonthRevenue = weeklyRevenue.reduce((acc, curr) => acc + curr.amount, 0)
-
-    // Get previous month revenue for comparison
-    const previousMonthStats = await Booking.aggregate([
-        {
-            $match: {
-                providerId: new Types.ObjectId(userId),
-                status: 'completed',
-                completedAt: { $gte: previousMonthStart, $lte: previousMonthEnd },
-            },
-        },
-        {
-            $group: {
-                _id: null,
-                totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
-            },
-        },
-    ])
-
-    const previousMonthRevenue = previousMonthStats[0]?.totalRevenue || 0
+    // 3. Process Revenue
+    const currentMonthRevenue = currentMonthData.reduce((acc: number, curr: any) => acc + curr.amount, 0)
+    const previousMonthRevenue = previousMonthData[0]?.totalRevenue || 0
     const revenueChange = calculateChange(currentMonthRevenue, previousMonthRevenue)
 
-    return {
+    const formattedWeeklyRevenue = isPremium 
+        ? currentMonthData.map((w: any, index: number) => ({
+            week: `Week ${index + 1}`,
+            amount: w.amount
+        }))
+        : []
+
+    // 4. Final Response Construction
+    const response: any = {
+        isPremium,
         profileViews: {
-            count: profile.profileViews,
-            change: -8, // Mocked weekly change
+            count: profile.profileViews || 0,
+            change: -8, // Weekly trend (mocked for now)
             performanceVsCategory: {
                 categoryAverage: categoryAverageViews,
                 percentageAbove: viewsPerformance
             }
         },
         rating: {
-            score: profile.rating,
-            reviews: profile.reviewCount,
+            score: profile.rating || 0,
+            reviews: profile.reviewCount || 0,
             performanceVsCategory: {
                 categoryAverage: categoryAverageRating,
                 percentageHigher: ratingPerformance
             }
         },
-        viewsByRegion,
         revenueAnalytics: {
             currentMonth: currentMonthRevenue,
             previousMonth: previousMonthRevenue,
             percentageChange: revenueChange,
-            weeklyBreakdown: formattedWeeklyRevenue,
             averagePerPeriod: currentMonthRevenue / 4,
-            bestPerforming: Math.max(...formattedWeeklyRevenue.map(w => w.amount), 0)
+            bestPerforming: isPremium && formattedWeeklyRevenue.length > 0 
+                ? Math.max(...formattedWeeklyRevenue.map((w: any) => w.amount)) 
+                : 0,
+            weeklyBreakdown: formattedWeeklyRevenue // Only populated if premium
         }
     }
-}
 
-const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return current > 0 ? 100 : 0
-    return Number(((current - previous) / previous * 100).toFixed(1))
+    if (isPremium) {
+        response.viewsByRegion = [
+            { city: 'New York, NY', percentage: 37.5, count: 450 },
+            { city: 'Los Angeles, CA', percentage: 23.3, count: 280 },
+            { city: 'Chicago, IL', percentage: 15.4, count: 185 },
+            { city: 'Miami, FL', percentage: 12.1, count: 145 },
+            { city: 'Boston, MA', percentage: 7.5, count: 90 },
+            { city: 'Other', percentage: 4.2, count: 50 },
+        ]
+        response.premiumMetrics = premiumMetrics
+    }
+
+    return response
 }
 
 const exportStatisticsReport = async (userId: string) => {
-    const stats = await getDetailedStatistics(userId)
-    const profile = await ProfessionalProfile.findOne({ user: userId }).populate('user')
+    const stats = await getDetailedStatistics(userId) as any
 
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet('Statistics Report')
@@ -357,16 +378,18 @@ const exportStatisticsReport = async (userId: string) => {
 
     // Add Revenue
     worksheet.addRow({ metric: 'Current Month Revenue', value: `€${stats.revenueAnalytics.currentMonth}`, details: `${stats.revenueAnalytics.percentageChange}% vs previous month` })
-    stats.revenueAnalytics.weeklyBreakdown.forEach(w => {
+    stats.revenueAnalytics.weeklyBreakdown.forEach((w: { week: string; amount: number }) => {
         worksheet.addRow({ metric: w.week, value: `€${w.amount}` })
     })
     worksheet.addRow({})
 
     // Add Regions
-    worksheet.addRow({ metric: 'Region', value: 'Views', details: 'Percentage' })
-    stats.viewsByRegion.forEach(r => {
-        worksheet.addRow({ metric: r.city, value: r.count, details: `${r.percentage}%` })
-    })
+    if (stats.viewsByRegion && Array.isArray(stats.viewsByRegion)) {
+        worksheet.addRow({ metric: 'Region', value: 'Views', details: 'Percentage' })
+        stats.viewsByRegion.forEach((r: any) => {
+            worksheet.addRow({ metric: r.city, value: r.count, details: `${r.percentage}%` })
+        })
+    }
 
     // Style header
     worksheet.getRow(1).font = { bold: true }

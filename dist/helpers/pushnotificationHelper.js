@@ -12,6 +12,8 @@ firebase_admin_1.default.initializeApp({
     credential: firebase_admin_1.default.credential.cert(serviceAccount),
 });
 const sendPushNotification = async (deviceToken, title, body, data, icon) => {
+    console.log('Sending push notification to:', deviceToken);
+    console.log('Notification data:', data);
     const message = {
         token: deviceToken,
         notification: { title, body },

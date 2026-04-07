@@ -16,6 +16,7 @@ const stripe_1 = __importDefault(require("../../../config/stripe"));
 const config_1 = __importDefault(require("../../../config"));
 const webhook_service_1 = require("./webhook.service");
 const emailHelper_1 = require("../../../helpers/emailHelper");
+const invoiceHelper_1 = require("../../../helpers/invoiceHelper");
 const createCheckoutSession = async (user, payload) => {
     try {
         // Basic checkout session creation without ticket dependency
@@ -24,7 +25,7 @@ const createCheckoutSession = async (user, payload) => {
             line_items: [
                 {
                     price_data: {
-                        currency: (payload.currency || 'USD').toLowerCase(),
+                        currency: (payload.currency || 'EUR').toLowerCase(),
                         product_data: {
                             name: payload.productName || 'Payment',
                             description: payload.description,
@@ -35,8 +36,8 @@ const createCheckoutSession = async (user, payload) => {
                 },
             ],
             mode: 'payment',
-            success_url: `${config_1.default.clientUrl}?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${config_1.default.clientUrl}/payment/cancel`,
+            success_url: `${config_1.default.clientUrl}?session_id={CHECKOUT_SESSION_ID}&success=true`,
+            cancel_url: `${config_1.default.clientUrl}/payment/cancel?success=false`,
             customer_email: user.email,
             metadata: {
                 userId: user.userId.toString(),
@@ -49,7 +50,7 @@ const createCheckoutSession = async (user, payload) => {
             bookingId: payload.bookingId,
             userEmail: user.email,
             amount: payload.amount,
-            currency: payload.currency || 'USD',
+            currency: payload.currency || 'EUR',
             paymentMethod: 'stripe',
             paymentIntentId: session.payment_intent || session.id,
             status: 'pending',
@@ -74,6 +75,9 @@ const verifyCheckoutSession = async (sessionId) => {
         const session = await stripe_1.default.checkout.sessions.retrieve(sessionId, {
             expand: ['payment_intent'],
         });
+        console.log('🔍 Verifying Checkout Session:', session.id);
+        console.log('🔍 Payment Intent:', session.payment_intent);
+        console.log('🔍 Metadata:', session.metadata);
         // Find payment record using either paymentIntentId (legacy/direct) or metadata.checkoutSessionId (correct for checkout)
         const payment = await payment_model_1.Payment.findOne({
             $or: [
@@ -137,24 +141,27 @@ const createPaymentIntent = async (user, payload) => {
     try {
         const paymentIntent = await stripe_1.default.paymentIntents.create({
             amount: Math.round(payload.amount * 100), // Convert to cents
-            currency: payload.currency || 'usd',
+            currency: payload.currency || 'eur',
             metadata: {
                 userId: user.userId,
                 userEmail: user.email,
+                bookingId: payload.bookingId,
                 ...payload.metadata
             },
         });
         // Create payment record
         await payment_model_1.Payment.create({
             userId: user.userId,
+            bookingId: payload.bookingId,
             userEmail: user.email,
             amount: payload.amount,
-            currency: (payload.currency || 'USD').toUpperCase(),
+            currency: (payload.currency || 'EUR').toUpperCase(),
             paymentMethod: 'stripe',
             paymentIntentId: paymentIntent.id,
             status: 'pending',
             metadata: {
                 userId: user.userId,
+                bookingId: payload.bookingId,
                 ...payload.metadata
             },
         });
@@ -372,6 +379,32 @@ const getMyPayments = async (user, pagination) => {
         data: result,
     };
 };
+const generateInvoice = async (id) => {
+    if (!mongoose_1.Types.ObjectId.isValid(id)) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Payment ID');
+    }
+    const payment = await payment_model_1.Payment.findById(id).populate('userId').populate('bookingId');
+    if (!payment) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Payment not found');
+    }
+    // 1. If it's a Stripe payment, try to get the official receipt URL
+    if (payment.paymentIntentId && payment.status === 'succeeded' && payment.paymentMethod === 'stripe') {
+        try {
+            const pi = await stripe_1.default.paymentIntents.retrieve(payment.paymentIntentId);
+            if (pi.latest_charge) {
+                const charge = await stripe_1.default.charges.retrieve(pi.latest_charge);
+                if (charge.receipt_url) {
+                    return charge.receipt_url;
+                }
+            }
+        }
+        catch (error) {
+            console.error('Failed to fetch stripe receipt:', error);
+        }
+    }
+    // 2. Fallback to custom PDF invoice generation
+    return await (0, invoiceHelper_1.generatePDFInvoice)(payment);
+};
 exports.PaymentServices = {
     getAllPayments,
     getSinglePayment,
@@ -381,8 +414,8 @@ exports.PaymentServices = {
     createCheckoutSession,
     verifyCheckoutSession,
     handleWebhook: webhook_service_1.WebhookService.handleWebhook,
-    // Flutter Stripe methods
     createPaymentIntent,
     createEphemeralKey,
     handlePaymentIntentWebhook,
+    generateInvoice,
 };

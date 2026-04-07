@@ -41,6 +41,7 @@ const mongoose_1 = require("mongoose");
 const subscription_model_1 = require("./subscription.model");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const http_status_codes_1 = require("http-status-codes");
+const service_model_1 = require("../service/service.model");
 class UsageTrackingService {
     // Check if user can add more services
     async canAddService(userId) {
@@ -196,12 +197,15 @@ class UsageTrackingService {
     // Private helper methods
     async getCurrentServiceCount(userId) {
         try {
-            // This can be used to track any user-created content that is limited by plan
-            // For now returning 0, can be connected to any content model (e.g., Posts, Recipes)
-            return 0;
+            // Count active services created by the professional
+            const count = await service_model_1.Service.countDocuments({
+                providerId: new mongoose_1.Types.ObjectId(userId),
+                isActive: true
+            });
+            return count;
         }
         catch (error) {
-            console.error('Error getting content count:', error);
+            console.error('Error getting service count:', error);
             return 0;
         }
     }

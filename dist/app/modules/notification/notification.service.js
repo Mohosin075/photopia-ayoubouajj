@@ -17,7 +17,8 @@ const user_model_1 = require("../user/user.model");
 const payment_model_1 = require("../payment/payment.model");
 const config_1 = __importDefault(require("../../../config"));
 const server_1 = require("../../../server");
-const createNotification = async (payload, sendEmail = false) => {
+const pushnotificationHelper_1 = require("../../../helpers/pushnotificationHelper");
+const createNotification = async (payload, sendEmail = false, sendPush = true) => {
     try {
         const notificationData = {
             userId: payload.userId,
@@ -37,24 +38,70 @@ const createNotification = async (payload, sendEmail = false) => {
         const notification = await notification_model_1.Notification.create(notificationData);
         // Send real-time notification via socket
         if (notification.channel !== notification_interface_1.NotificationChannel.EMAIL) {
-            // Emit socket event for real-time notification
-            // const io = (global as any).io
             if (server_1.io) {
                 server_1.io.to(notification.userId.toString()).emit('notification', {
                     type: 'NEW_NOTIFICATION',
                     data: notification,
                 });
-                console.log({ notification });
             }
         }
         // Send email if requested
-        if (sendEmail && notification.channel !== notification_interface_1.NotificationChannel.IN_APP) {
+        if ((sendEmail && notification.channel !== notification_interface_1.NotificationChannel.IN_APP) ||
+            notification.channel === notification_interface_1.NotificationChannel.ALL) {
             await sendNotificationEmail(notification);
         }
+        // Send push notification if requested
+        // if (
+        //   (sendPush &&
+        //     (notification.channel === NotificationChannel.PUSH ||
+        //       notification.channel === NotificationChannel.ALL))
+        // ) {
+        await sendNotificationPush(notification);
+        // }
         return notification;
     }
     catch (error) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Failed to create notification: ${error.message}`);
+    }
+};
+const sendNotificationPush = async (notification) => {
+    var _a;
+    try {
+        const user = await user_model_1.User.findById(notification.userId);
+        if (!user) {
+            throw new Error('User not found');
+        }
+        // Skip if user has no device token
+        if (!user.deviceToken) {
+            return;
+        }
+        // Skip if user has disabled push notifications but check if it's an urgent notification
+        if (((_a = user.settings) === null || _a === void 0 ? void 0 : _a.pushNotification) === false &&
+            notification.priority !== notification_interface_1.NotificationPriority.URGENT) {
+            return;
+        }
+        const pushPayload = {
+            notificationId: notification._id.toString(),
+            type: notification.type,
+        };
+        if (notification.actionUrl) {
+            pushPayload.actionUrl = notification.actionUrl;
+        }
+        if (notification.metadata) {
+            Object.keys(notification.metadata).forEach(key => {
+                pushPayload[key] = String(notification.metadata[key]);
+            });
+        }
+        await (0, pushnotificationHelper_1.sendPushNotification)(user.deviceToken, notification.title, notification.content, pushPayload);
+    }
+    catch (error) {
+        console.error('Failed to send push notification:', error);
+        // Update notification metadata with push error
+        await notification_model_1.Notification.findByIdAndUpdate(notification._id, {
+            $set: {
+                'metadata.pushError': error.message,
+            },
+        });
     }
 };
 const sendNotificationEmail = async (notification) => {

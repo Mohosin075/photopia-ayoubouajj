@@ -16,7 +16,9 @@ var NotificationChannel;
 (function (NotificationChannel) {
     NotificationChannel["IN_APP"] = "IN_APP";
     NotificationChannel["EMAIL"] = "EMAIL";
+    NotificationChannel["PUSH"] = "PUSH";
     NotificationChannel["BOTH"] = "BOTH";
+    NotificationChannel["ALL"] = "ALL";
 })(NotificationChannel || (exports.NotificationChannel = NotificationChannel = {}));
 var NotificationStatus;
 (function (NotificationStatus) {

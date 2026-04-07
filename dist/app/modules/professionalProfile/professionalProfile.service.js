@@ -14,6 +14,15 @@ const config_1 = __importDefault(require("../../../config"));
 const booking_model_1 = require("../booking/booking.model");
 const mongoose_1 = require("mongoose");
 const exceljs_1 = __importDefault(require("exceljs"));
+const analytics_service_1 = require("../analytics/analytics.service");
+/**
+ * Helper to calculate percentage change between two values
+ */
+const calculateChange = (current, previous) => {
+    if (previous === 0)
+        return current > 0 ? 100 : 0;
+    return Number(((current - previous) / previous * 100).toFixed(1));
+};
 const createProfile = async (userId, payload) => {
     const user = await user_model_1.User.findById(userId);
     if (!user) {
@@ -25,7 +34,7 @@ const createProfile = async (userId, payload) => {
     }
     const result = await professionalProfile_model_1.ProfessionalProfile.create({
         ...payload,
-        user: userId,
+        user: new mongoose_1.Types.ObjectId(userId),
     });
     // Add PROFESSIONAL role to user if not already present
     if (!user.roles.includes(user_1.USER_ROLES.PROFESSIONAL)) {
@@ -84,7 +93,7 @@ const getProfile = async (userId) => {
             },
         ]),
     ]);
-    const calculateChange = (current, previous) => {
+    const calculateChangeValue = (current, previous) => {
         if (previous === 0)
             return current > 0 ? 100 : 0;
         return Number(((current - previous) / previous * 100).toFixed(2));
@@ -101,7 +110,7 @@ const getProfile = async (userId) => {
             },
             revenue: {
                 amount: currentMonthRevenue,
-                percentageChange: calculateChange(currentMonthRevenue, lastMonthRevenue),
+                percentageChange: calculateChangeValue(currentMonthRevenue, lastMonthRevenue),
             },
         },
     };
@@ -193,30 +202,21 @@ const checkStripeAccountStatus = async (userId) => {
 };
 const getDetailedStatistics = async (userId) => {
     var _a;
-    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId });
-    if (!profile) {
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId }).populate('user').lean();
+    if (!profile)
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
-    }
+    const user = profile.user;
+    const isPremium = (user === null || user === void 0 ? void 0 : user.subscriptionStatus) === 'active' || (user === null || user === void 0 ? void 0 : user.subscriptionStatus) === 'trialing';
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    // 1. Profile Views vs Category Average (Mocked Category Avg)
-    const categoryAverageViews = 850;
-    const viewsPerformance = calculateChange(profile.profileViews, categoryAverageViews);
-    // 2. Rating vs Category Average (Mocked Category Avg)
-    const categoryAverageRating = 4.3;
-    const ratingPerformance = calculateChange(profile.rating, categoryAverageRating);
-    // 3. Profile Views by Region (Mocked for parity with UI)
-    const viewsByRegion = [
-        { city: 'New York, NY', percentage: 37.5, count: 450 },
-        { city: 'Los Angeles, CA', percentage: 23.3, count: 280 },
-        { city: 'Chicago, IL', percentage: 15.4, count: 185 },
-        { city: 'Miami, FL', percentage: 12.1, count: 145 },
-        { city: 'Boston, MA', percentage: 7.5, count: 90 },
-        { city: 'Other', percentage: 4.2, count: 50 },
-    ];
-    // 4. Revenue Analytics (Weekly Breakdown for current month)
+    // 1. Core Profile Stats (Available for all)
+    const categoryAverageViews = 450;
+    const viewsPerformance = calculateChange(profile.profileViews || 0, categoryAverageViews);
+    const categoryAverageRating = 4.2;
+    const ratingPerformance = calculateChange(profile.rating || 0, categoryAverageRating);
+    // 2. Revenue Analytics (Basic for Free, Detailed for Premium)
     const weeklyRevenue = await booking_model_1.Booking.aggregate([
         {
             $match: {
@@ -238,7 +238,6 @@ const getDetailedStatistics = async (userId) => {
         amount: w.amount
     }));
     const currentMonthRevenue = weeklyRevenue.reduce((acc, curr) => acc + curr.amount, 0);
-    // Get previous month revenue for comparison
     const previousMonthStats = await booking_model_1.Booking.aggregate([
         {
             $match: {
@@ -256,42 +255,54 @@ const getDetailedStatistics = async (userId) => {
     ]);
     const previousMonthRevenue = ((_a = previousMonthStats[0]) === null || _a === void 0 ? void 0 : _a.totalRevenue) || 0;
     const revenueChange = calculateChange(currentMonthRevenue, previousMonthRevenue);
-    return {
+    const baseStats = {
+        isPremium,
         profileViews: {
-            count: profile.profileViews,
-            change: -8, // Mocked weekly change
+            count: profile.profileViews || 0,
+            change: -8,
             performanceVsCategory: {
                 categoryAverage: categoryAverageViews,
                 percentageAbove: viewsPerformance
             }
         },
         rating: {
-            score: profile.rating,
-            reviews: profile.reviewCount,
+            score: profile.rating || 0,
+            reviews: profile.reviewCount || 0,
             performanceVsCategory: {
                 categoryAverage: categoryAverageRating,
                 percentageHigher: ratingPerformance
             }
         },
-        viewsByRegion,
         revenueAnalytics: {
             currentMonth: currentMonthRevenue,
             previousMonth: previousMonthRevenue,
             percentageChange: revenueChange,
-            weeklyBreakdown: formattedWeeklyRevenue,
+            weeklyBreakdown: isPremium ? formattedWeeklyRevenue : [],
             averagePerPeriod: currentMonthRevenue / 4,
             bestPerforming: Math.max(...formattedWeeklyRevenue.map(w => w.amount), 0)
         }
     };
-};
-const calculateChange = (current, previous) => {
-    if (previous === 0)
-        return current > 0 ? 100 : 0;
-    return Number(((current - previous) / previous * 100).toFixed(1));
+    // 3. Premium Only Metrics
+    if (isPremium) {
+        const premiumMetrics = await analytics_service_1.AnalyticsService.getPremiumAnalytics(userId);
+        const viewsByRegion = [
+            { city: 'New York, NY', percentage: 37.5, count: 450 },
+            { city: 'Los Angeles, CA', percentage: 23.3, count: 280 },
+            { city: 'Chicago, IL', percentage: 15.4, count: 185 },
+            { city: 'Miami, FL', percentage: 12.1, count: 145 },
+            { city: 'Boston, MA', percentage: 7.5, count: 90 },
+            { city: 'Other', percentage: 4.2, count: 50 },
+        ];
+        return {
+            ...baseStats,
+            viewsByRegion,
+            premiumMetrics
+        };
+    }
+    return baseStats;
 };
 const exportStatisticsReport = async (userId) => {
     const stats = await getDetailedStatistics(userId);
-    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId }).populate('user');
     const workbook = new exceljs_1.default.Workbook();
     const worksheet = workbook.addWorksheet('Statistics Report');
     worksheet.columns = [
@@ -305,15 +316,17 @@ const exportStatisticsReport = async (userId) => {
     worksheet.addRow({});
     // Add Revenue
     worksheet.addRow({ metric: 'Current Month Revenue', value: `€${stats.revenueAnalytics.currentMonth}`, details: `${stats.revenueAnalytics.percentageChange}% vs previous month` });
-    stats.revenueAnalytics.weeklyBreakdown.forEach(w => {
+    stats.revenueAnalytics.weeklyBreakdown.forEach((w) => {
         worksheet.addRow({ metric: w.week, value: `€${w.amount}` });
     });
     worksheet.addRow({});
     // Add Regions
-    worksheet.addRow({ metric: 'Region', value: 'Views', details: 'Percentage' });
-    stats.viewsByRegion.forEach(r => {
-        worksheet.addRow({ metric: r.city, value: r.count, details: `${r.percentage}%` });
-    });
+    if (stats.viewsByRegion && Array.isArray(stats.viewsByRegion)) {
+        worksheet.addRow({ metric: 'Region', value: 'Views', details: 'Percentage' });
+        stats.viewsByRegion.forEach((r) => {
+            worksheet.addRow({ metric: r.city, value: r.count, details: `${r.percentage}%` });
+        });
+    }
     // Style header
     worksheet.getRow(1).font = { bold: true };
     const buffer = await workbook.xlsx.writeBuffer();

@@ -1,0 +1,5 @@
+
+> photopia@1.0.0 build
+> tsc
+
+src/app/modules/professionalProfile/professionalProfile.service.ts(374,52): error TS7006: Parameter 'w' implicitly has an 'any' type.

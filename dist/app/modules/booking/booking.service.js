@@ -211,15 +211,20 @@ const updateBookingStatus = async (bookingId, status, userId) => {
         booking.status = status;
         if (status === 'confirmed')
             booking.confirmedAt = new Date();
-        if (status === 'cancelled')
+        if (status === 'cancelled' && previousStatus !== 'cancelled') {
             booking.cancelledAt = new Date();
+            // Refund pending balance if it was already credited as pending
+            if (['confirmed', 'deposit_paid', 'in_progress'].includes(previousStatus)) {
+                await wallet_service_1.WalletService.cancelPendingEarnings(booking.providerId, booking.pricingDetails.providerEarnings, session);
+            }
+        }
         if (status === 'completed') {
             booking.completedAt = new Date();
             // If booking is completed and wasn't already completed, transfer earnings
             if (previousStatus !== 'completed') {
-                // 1. Add to local wallet for display (as per instruction 3)
-                await wallet_service_1.WalletService.addEarnings(booking.providerId, booking.pricingDetails.providerEarnings, session);
-                // 2. Stripe Connect Transfer (as per instruction 2)
+                // 1. Move from pending to actual balance in local wallet
+                await wallet_service_1.WalletService.completePendingEarnings(booking.providerId, booking.pricingDetails.providerEarnings, session);
+                // 2. Stripe Connect Transfer
                 const professionalProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: booking.providerId });
                 if (professionalProfile === null || professionalProfile === void 0 ? void 0 : professionalProfile.stripeAccountId) {
                     try {
@@ -233,15 +238,14 @@ const updateBookingStatus = async (bookingId, status, userId) => {
                                 bookingNumber: booking.bookingNumber
                             }
                         });
-                        // Optionally store transfer ID in booking
-                        booking.set('stripeTransferId', transfer.id);
+                        booking.stripeTransferId = transfer.id;
+                        booking.stripeTransferStatus = 'succeeded';
                     }
                     catch (error) {
                         console.error('Stripe Transfer Error:', error.message);
-                        // We don't necessarily want to abort the whole transaction if Stripe transfer fails, 
-                        // but we should probably log it or handle it. 
-                        // The instruction says "stripe.transfers.create এপিআই কল করতে হবে".
-                        // If it fails, the professional might not get paid immediately.
+                        booking.stripeTransferStatus = 'failed';
+                        // We still let the DB transaction complete so the provider gets local credit
+                        // but we mark the Stripe transfer as failed for admin manual retry.
                     }
                 }
             }

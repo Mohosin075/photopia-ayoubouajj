@@ -18,6 +18,7 @@ import { BookingRoutes } from '../app/modules/booking/booking.route'
 import { SubscriptionRoutes } from '../app/modules/subscription/subscription.route'
 import { WalletRoutes } from '../app/modules/wallet/wallet.route'
 import { WithdrawalRoutes } from '../app/modules/withdrawal/withdrawal.route'
+import { AnalyticsRoutes } from '../app/modules/analytics/analytics.route'
 import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route'
 
 const router = express.Router()
@@ -65,7 +66,8 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/category', route: CategoryRoutes },
   { path: '/favourite', route: FavouriteRoutes },
   { path: '/wallet', route: WalletRoutes },
-  { path: '/withdrawal', route: WithdrawalRoutes }
+  { path: '/withdrawal', route: WithdrawalRoutes },
+  { path: '/analytics', route: AnalyticsRoutes }
 ]
 
 apiRoutes.forEach(route => {

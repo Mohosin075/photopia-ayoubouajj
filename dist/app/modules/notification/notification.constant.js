@@ -34,11 +34,11 @@ exports.NOTIFICATION_CONFIG = {
     // Priority levels with default channel
     PRIORITY_CONFIG: {
         [notification_interface_1.NotificationPriority.URGENT]: {
-            channel: notification_interface_1.NotificationChannel.BOTH,
+            channel: notification_interface_1.NotificationChannel.ALL,
             retryAttempts: 3,
         },
         [notification_interface_1.NotificationPriority.HIGH]: {
-            channel: notification_interface_1.NotificationChannel.BOTH,
+            channel: notification_interface_1.NotificationChannel.ALL,
             retryAttempts: 2,
         },
         [notification_interface_1.NotificationPriority.MEDIUM]: {
