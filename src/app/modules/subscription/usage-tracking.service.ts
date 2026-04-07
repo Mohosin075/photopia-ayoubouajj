@@ -3,6 +3,7 @@ import { Subscription } from './subscription.model'
 import { ISubscriptionPlan } from './subscription.interface'
 import ApiError from '../../../errors/ApiError'
 import { StatusCodes } from 'http-status-codes'
+import { Service } from '../service/service.model'
 
 interface UsageData {
     userId: string
@@ -200,11 +201,14 @@ class UsageTrackingService {
     // Private helper methods
     private async getCurrentServiceCount(userId: string): Promise<number> {
         try {
-            // This can be used to track any user-created content that is limited by plan
-            // For now returning 0, can be connected to any content model (e.g., Posts, Recipes)
-            return 0
+            // Count active services created by the professional
+            const count = await Service.countDocuments({ 
+                providerId: new Types.ObjectId(userId),
+                isActive: true 
+            })
+            return count
         } catch (error) {
-            console.error('Error getting content count:', error)
+            console.error('Error getting service count:', error)
             return 0
         }
     }

@@ -8,6 +8,7 @@ import os from 'os'
 import { Server as SocketServer } from 'socket.io'
 import { UserServices } from './app/modules/user/user.service'
 import { socketHelper } from './helpers/socketHelper'
+import { seedSubscriptionPlans } from './app/modules/subscription/subscription.seed'
 import { geocodeAddress } from './utils/geocodeAddress'
 
 // Uncaught exceptions
@@ -60,6 +61,9 @@ async function main() {
 
     // Create admin user
     await UserServices.createAdmin()
+
+    // Seed subscription plans
+    await seedSubscriptionPlans()
 
     // Socket helper
     socketHelper.socket(io)
