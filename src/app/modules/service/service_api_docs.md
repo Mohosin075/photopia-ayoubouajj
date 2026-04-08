@@ -32,9 +32,25 @@
   "subCategory": "Wedding",                          // Optional (string)
   "tags": ["wedding", "photo", "4k"],                // Optional (Array of strings)
   "equipment": ["Sony A7III", "Gimbal"],             // Optional (Array of strings)
-  "price": 500,                                      // Required (Number)
+  "price": 500,                                      // Required (Number) - Base Price or Hourly Rate
   "currency": "USD",                                 // Optional (String, default usually 'EUR')
-  "pricingType": "fixed",                            // Required (Enum mapping to SERVICE_PRICING_TYPE)
+  "pricingType": "PACKAGE",                          // Required ('DAILY', 'HOURLY', 'PACKAGE')
+  "pricingModel": {                                  // Conditional Required
+     "type": "PACKAGE",
+     "packages": [                                   // Required if type is PACKAGE
+        {
+          "name": "Silver",
+          "price": 500,
+          "duration": 4,
+          "description": "4 hours coverage",
+          "includes": ["Soft copy"]
+        }
+     ],
+     "dailyRate": 1000,                              // Required if type is DAILY
+     "dailyHours": 8,                                // Optional (Default 8)
+     "weekdayHourlyRate": 50,                        // Optional for HOURLY
+     "weekendHourlyRate": 70                         // Optional for HOURLY
+  },
   "duration": "2 hours",                             // Required (String)
   "location": {                                      // Required (Object)
     "type": "physical",                              // Required Enum ('physical', 'virtual', etc.)

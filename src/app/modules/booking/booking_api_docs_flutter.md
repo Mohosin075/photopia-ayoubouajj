@@ -30,7 +30,8 @@
   "serviceId": "651a...abc2",        // Required: সার্ভিসের ID (String)
   "bookingDate": "2023-11-20T00:00:00.000Z", // Required: ISO Date String
   "startTime": "10:30",              // Required: HH:MM Format 
-  "endTime": "12:30",                // Required: HH:MM Format
+  "endTime": "12:30",                // Required: HH:MM Format (Optional for Package/Daily as system calculates)
+  "packageName": "Gold",             // Optional: Required if pricingType is PACKAGE
   "eventLocation": {                 // Required: Object
     "address": "123 Main St",        // Required: String
     "city": "Dhaka",                 // Required: String
@@ -66,7 +67,8 @@
   "startTime": "10:30",                      // Required: HH:MM string
   "endTime": "12:30",                        // Required: HH:MM string
   "date": "2023-11-20T00:00:00.000Z",        // Required: ISO Date string
-  "distanceFromProviderKm": 10.5             // Optional: Number (default is 0)
+  "distanceFromProviderKm": 10.5,            // Optional: Number (default is 0)
+  "packageName": "Gold"                      // Optional: Package name
 }
 ```
 

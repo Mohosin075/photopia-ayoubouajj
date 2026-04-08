@@ -69,6 +69,26 @@ export const createServiceSchema = z.object({
     // coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),
     status: z.enum(statusValues).default(SERVICE_STATUS.ACTIVE),
+  }).superRefine((data, ctx) => {
+    if (data.pricingType === SERVICE_PRICING_TYPE.DAILY) {
+      if (!data.pricingModel?.dailyRate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Daily rate is required for DAILY pricing type',
+          path: ['pricingModel', 'dailyRate'],
+        })
+      }
+    }
+    
+    if (data.pricingType === SERVICE_PRICING_TYPE.PACKAGE) {
+      if (!data.pricingModel?.packages || data.pricingModel.packages.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'At least one package is required for PACKAGE pricing type',
+          path: ['pricingModel', 'packages'],
+        })
+      }
+    }
   }),
 })
 
@@ -101,6 +121,26 @@ export const updateServiceSchema = z.object({
     status: z.enum(statusValues).optional(),
     isVerified: z.boolean().optional(),
     isActive: z.boolean().optional(),
+  }).superRefine((data, ctx) => {
+    if (data.pricingType === SERVICE_PRICING_TYPE.DAILY) {
+      if (data.pricingModel && !data.pricingModel.dailyRate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Daily rate is required when changing to DAILY pricing type',
+          path: ['pricingModel', 'dailyRate'],
+        })
+      }
+    }
+    
+    if (data.pricingType === SERVICE_PRICING_TYPE.PACKAGE) {
+      if (data.pricingModel && (!data.pricingModel.packages || data.pricingModel.packages.length === 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'At least one package is required when changing to PACKAGE pricing type',
+          path: ['pricingModel', 'packages'],
+        })
+      }
+    }
   }),
 })
 
