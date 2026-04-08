@@ -9,6 +9,7 @@ export const createBookingValidationSchema = z.object({
     bookingDate: z.string().or(z.date()).transform(val => new Date(val)),
     startTime: timeStringSchema,
     endTime: timeStringSchema,
+    packageName: z.string().optional(),
     eventLocation: z.object({
       address: z.string({ required_error: 'Address is required' }),
       city: z.string({ required_error: 'City is required' }),

@@ -28,6 +28,21 @@ const locationSchema = z.object({
     .optional(),
 })
 
+const pricingModelSchema = z.object({
+  type: z.enum(pricingTypeValues),
+  weekdayHourlyRate: z.number().min(0).optional(),
+  weekendHourlyRate: z.number().min(0).optional(),
+  dailyRate: z.number().min(0).optional(),
+  dailyHours: z.number().min(1).optional(),
+  packages: z.array(z.object({
+    name: z.string().min(1),
+    price: z.number().min(0),
+    duration: z.number().min(1),
+    description: z.string().optional(),
+    includes: z.array(z.string()).optional(),
+  })).optional(),
+})
+
 export const createServiceSchema = z.object({
   body: z.object({
     title: z.string()
@@ -48,6 +63,7 @@ export const createServiceSchema = z.object({
       .max(SERVICE_CONSTANTS.VALIDATION.PRICE_MAX),
     currency: z.string().length(3).default('EUR'),
     pricingType: z.enum(pricingTypeValues),
+    pricingModel: pricingModelSchema.optional(),
     duration: z.string().min(1).max(100),
     location: locationSchema,
     // coverMedia: z.string().url().optional(),
@@ -77,6 +93,7 @@ export const updateServiceSchema = z.object({
       .optional(),
     currency: z.string().length(3).optional(),
     pricingType: z.enum(pricingTypeValues).optional(),
+    pricingModel: pricingModelSchema.partial().optional(),
     duration: z.string().min(1).max(100).optional(),
     location: locationSchema.partial().optional(),
     coverMedia: z.string().url().optional(),

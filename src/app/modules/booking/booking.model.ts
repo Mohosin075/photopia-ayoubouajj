@@ -47,6 +47,10 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
       type: String,
       default: 'Europe/Paris'
     },
+    
+    packageName: {
+      type: String
+    },
     eventLocation: {
       address: { type: String, required: true },
       city: { type: String, required: true },

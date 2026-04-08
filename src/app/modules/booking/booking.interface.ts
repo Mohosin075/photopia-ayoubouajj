@@ -12,6 +12,7 @@ export interface IBooking extends Document {
   endTime: string
   durationHours: number
   timezone: string
+  packageName?: string
   
   // Location
   eventLocation: {

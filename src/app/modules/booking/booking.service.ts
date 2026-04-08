@@ -32,14 +32,15 @@ const calculatePrice = async (
   endTime: string,
   date: Date,
   distanceFromProviderKm: number,
-  overrides?: { priceOverride?: number; rateMultiplier?: number }
+  overrides?: { priceOverride?: number; rateMultiplier?: number },
+  packageName?: string
 ) => {
   const service = await Service.findById(serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
 
   const start = parseInt(startTime.split(':')[0]) + parseInt(startTime.split(':')[1]) / 60
   const end = parseInt(endTime.split(':')[0]) + parseInt(endTime.split(':')[1]) / 60
-  const durationHours = end - start
+  let durationHours = end - start
 
   if (durationHours <= 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid duration')
 
@@ -48,35 +49,41 @@ const calculatePrice = async (
   const day = date.getDay()
   if (day === 0 || day === 6) {
     isWeekend = true
-    // If weekendHourlyRate is not set, apply 20% increase to base price
     baseRate = service.pricingModel?.weekendHourlyRate || (service.price * 1.2)
   } else {
     baseRate = service.pricingModel?.weekdayHourlyRate || service.price
   }
 
-  // Fallback if specific hourly rates are 0
-  if (service.pricingType === SERVICE_PRICING_TYPE.HOURLY && (!baseRate || baseRate === 0)) {
-     baseRate = service.price
-  }
-
-  // Apply Overrides
-  if (overrides?.priceOverride !== undefined) {
-    baseRate = overrides.priceOverride
-  } else if (overrides?.rateMultiplier !== undefined) {
-    baseRate = baseRate * overrides.rateMultiplier
-  }
-
   // Calculate subtotal
   let subtotal = 0
+  
   if (service.pricingType === SERVICE_PRICING_TYPE.HOURLY) {
+    // Apply Overrides for hourly only
+    if (overrides?.priceOverride !== undefined) {
+      baseRate = overrides.priceOverride
+    } else if (overrides?.rateMultiplier !== undefined) {
+      baseRate = baseRate * overrides.rateMultiplier
+    }
     subtotal = baseRate * durationHours
   } else if (service.pricingType === SERVICE_PRICING_TYPE.DAILY) {
-     // For daily, one booking usually means one day? Or fraction? 
-     // Assuming daily rate applies once per day regardless of hours, unless spanning multiple days (which our logic doesn't support yet, strict single day)
-     subtotal = service.pricingModel?.dailyRate || service.price
-  } else {
-     // Default fallthrough (e.g. PACKAGE)
-     subtotal = service.price
+    subtotal = service.pricingModel?.dailyRate || service.price
+    durationHours = service.pricingModel?.dailyHours || 8
+  } else if (service.pricingType === SERVICE_PRICING_TYPE.PACKAGE) {
+    if (packageName && service.pricingModel?.packages) {
+      const selectedPackage = service.pricingModel.packages.find(p => p.name === packageName)
+      if (selectedPackage) {
+        subtotal = selectedPackage.price
+        durationHours = selectedPackage.duration
+      } else {
+        throw new ApiError(httpStatus.BAD_REQUEST, `Package '${packageName}' not found in this service`)
+      }
+    } else {
+      subtotal = service.price
+      // Use service duration if available, otherwise default to what user selected
+      if (service.duration && !isNaN(parseInt(service.duration))) {
+        durationHours = parseInt(service.duration)
+      }
+    }
   }
 
   // Travel fee
@@ -99,6 +106,7 @@ const calculatePrice = async (
 
   return {
     pricingType: service.pricingType,
+    packageName,
     baseRate,
     isWeekend,
     travelFee,
@@ -165,52 +173,58 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
     throw new ApiError(httpStatus.BAD_REQUEST, `Provider is not available: ${availabilityCheck.reason}`)
   }
 
-  // Validate request time is within working hours
-  if (availabilityCheck.workingHours) {
-    const workStart = parseInt(availabilityCheck.workingHours.start.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.start.split(':')[1])
-    const workEnd = parseInt(availabilityCheck.workingHours.end.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.end.split(':')[1])
-    
-    const reqStart = parseInt(payload.startTime.split(':')[0]) * 60 + parseInt(payload.startTime.split(':')[1])
-    const reqEnd = parseInt(payload.endTime.split(':')[0]) * 60 + parseInt(payload.endTime.split(':')[1])
-
-    if (reqStart < workStart || reqEnd > workEnd) {
-      throw new ApiError(httpStatus.BAD_REQUEST, `Requested time is outside working hours (${availabilityCheck.workingHours.start} - ${availabilityCheck.workingHours.end})`)
-    }
-  }
-  
-  // TODO: Check specific time slot availability (overlap with existing bookings)
-  const existingBookings = await Booking.find({
-    providerId: payload.providerId,
-    bookingDate: payload.bookingDate,
-    status: { $in: ['confirmed', 'pending', 'deposit_paid'] }
-  })
-
-  // Simple overlap check
-  const newStart = parseInt(payload.startTime.split(':')[0]) * 60 + parseInt(payload.startTime.split(':')[1])
-  const newEnd = parseInt(payload.endTime.split(':')[0]) * 60 + parseInt(payload.endTime.split(':')[1])
-
-  const hasOverlap = existingBookings.some(booking => {
-     const existStart = parseInt(booking.startTime.split(':')[0]) * 60 + parseInt(booking.startTime.split(':')[1])
-     const existEnd = parseInt(booking.endTime.split(':')[0]) * 60 + parseInt(booking.endTime.split(':')[1])
-     return (newStart < existEnd && newEnd > existStart)
-  })
-
-  if (hasOverlap) {
-    throw new ApiError(httpStatus.CONFLICT, 'Time slot overlaps with an existing booking')
-  }
-
-  // 3. Calculate Price
+  // 3. Calculate Price (First, to get the correct duration)
   const pricing = await calculatePrice(
     payload.serviceId.toString(),
     payload.startTime,
     payload.endTime,
     bookingDate,
     payload.eventLocation.distanceFromProviderKm || 0,
-    availabilityCheck.pricing
+    availabilityCheck.pricing,
+    payload.packageName
   )
 
+  // Calculate actual end time based on the duration returned from pricing
+  const [startHour, startMinute] = payload.startTime.split(':').map(Number)
+  const startTotalMinutes = startHour * 60 + startMinute
+  const durationMinutes = pricing.durationHours * 60
+  const endTotalMinutes = startTotalMinutes + durationMinutes
+  
+  const endH = Math.floor(endTotalMinutes / 60)
+  const endM = endTotalMinutes % 60
+  const actualEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+
+  // Update payload with actual calculated values
+  payload.endTime = actualEndTime
   payload.pricingDetails = pricing
   payload.durationHours = pricing.durationHours
+
+  // Validate request time is within working hours
+  if (availabilityCheck.workingHours) {
+    const workStart = parseInt(availabilityCheck.workingHours.start.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.start.split(':')[1])
+    const workEnd = parseInt(availabilityCheck.workingHours.end.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.end.split(':')[1])
+    
+    if (startTotalMinutes < workStart || endTotalMinutes > workEnd) {
+      throw new ApiError(httpStatus.BAD_REQUEST, `Requested duration (${pricing.durationHours}h starting at ${payload.startTime}) exceeds provider working hours (${availabilityCheck.workingHours.start} - ${availabilityCheck.workingHours.end})`)
+    }
+  }
+  
+  // Check specific time slot availability (overlap with existing bookings)
+  const existingBookings = await Booking.find({
+    providerId: payload.providerId,
+    bookingDate: payload.bookingDate,
+    status: { $in: ['confirmed', 'pending', 'deposit_paid'] }
+  })
+
+  const hasOverlap = existingBookings.some(booking => {
+     const existStart = parseInt(booking.startTime.split(':')[0]) * 60 + parseInt(booking.startTime.split(':')[1])
+     const existEnd = parseInt(booking.endTime.split(':')[0]) * 60 + parseInt(booking.endTime.split(':')[1])
+     return (startTotalMinutes < existEnd && endTotalMinutes > existStart)
+  })
+
+  if (hasOverlap) {
+    throw new ApiError(httpStatus.CONFLICT, 'Time slot overlaps with an existing booking')
+  }
   
   // Implement 50% deposit logic
    payload.depositPercentage = 0.5 // 50%
