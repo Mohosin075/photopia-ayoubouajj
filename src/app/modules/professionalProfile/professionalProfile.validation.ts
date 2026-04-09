@@ -14,6 +14,7 @@ export const createProfessionalProfileSchema = z.object({
         specialties: z.array(z.string()).optional(),
         experience: z.string().optional(),
         portfolio: z.array(z.string()).optional(),
+        documents: z.array(z.string()).optional(),
         language: z.array(z.string()).optional(),
         socialLinks: socialLinksSchema.optional(),
     }),
@@ -26,6 +27,7 @@ export const updateProfessionalProfileSchema = z.object({
         specialties: z.array(z.string()).optional(),
         experience: z.string().optional(),
         portfolio: z.array(z.string()).optional(),
+        documents: z.array(z.string()).optional(),
         language: z.array(z.string()).optional(),
         socialLinks: socialLinksSchema.optional(),
     }),
@@ -33,7 +35,7 @@ export const updateProfessionalProfileSchema = z.object({
 
 export const removeItemSchema = z.object({
     body: z.object({
-        field: z.enum(['portfolio', 'specialties', 'language']),
+        field: z.enum(['portfolio', 'specialties', 'language', 'documents']),
         values: z.array(z.string()).min(1, 'At least one value is required'),
     }),
 })

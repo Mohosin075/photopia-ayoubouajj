@@ -151,6 +151,11 @@ const updateProfile = async (
         ]
     }
 
+    // Append new documents instead of overwriting
+    if (payload.documents && Array.isArray(payload.documents)) {
+        payload.documents = [...(existingProfile.documents || []), ...payload.documents]
+    }
+
     const profile = await ProfessionalProfile.findOneAndUpdate(
         { user: userId },
         payload,
@@ -161,7 +166,7 @@ const updateProfile = async (
 
 const removeItem = async (
     userId: string,
-    payload: { field: 'portfolio' | 'specialties' | 'language'; values: string[] },
+    payload: { field: 'portfolio' | 'specialties' | 'language' | 'documents'; values: string[] },
 ) => {
     const { field, values } = payload
     const profile = await ProfessionalProfile.findOneAndUpdate(

@@ -7,6 +7,7 @@ export interface IProfessionalProfile {
     specialties?: string[]
     experience?: string
     portfolio?: string[]
+    documents?: string[]
     language?: string[]
     socialLinks?: {
         instagram?: string
