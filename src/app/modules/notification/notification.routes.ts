@@ -9,7 +9,7 @@ const router = express.Router()
 
 router.get(
   '/',
-  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
   validateRequest(NotificationValidations.filter),
   NotificationController.getAllNotifications,
 )
@@ -19,6 +19,8 @@ router.get(
   auth(
     USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
   ),
   NotificationController.getMyNotifications,
 )

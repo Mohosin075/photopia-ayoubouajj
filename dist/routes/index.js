@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const user_route_1 = require("../app/modules/user/user.route");
 const auth_route_1 = require("../app/modules/auth/auth.route");
 const express_1 = __importDefault(require("express"));
+const public_route_1 = require("../app/modules/public/public.route");
 const support_route_1 = require("../app/modules/support/support.route");
 const upload_route_1 = require("../app/modules/upload/upload.route");
 const payment_route_1 = require("../app/modules/payment/payment.route");
@@ -69,7 +70,8 @@ const apiRoutes = [
     { path: '/favourite', route: favourite_route_1.FavouriteRoutes },
     { path: '/wallet', route: wallet_route_1.WalletRoutes },
     { path: '/withdrawal', route: withdrawal_route_1.WithdrawalRoutes },
-    { path: '/analytics', route: analytics_route_1.AnalyticsRoutes }
+    { path: '/analytics', route: analytics_route_1.AnalyticsRoutes },
+    { path: '/public', route: public_route_1.PublicRoutes }
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

@@ -77,10 +77,26 @@ const getSingleBooking = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getMyBookingsByDate = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    if (!user)
+        throw new ApiError_1.default(http_status_codes_1.default.UNAUTHORIZED, 'User not found');
+    const date = req.query.date;
+    if (!date)
+        throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Date is required');
+    const result = await booking_service_1.BookingService.getMyBookingsByDate(user.userId, user.role, date);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: 'Bookings retrieved successfully',
+        data: result,
+    });
+});
 exports.BookingController = {
     createBooking,
     updateBookingStatus,
     getMyBookings,
     calculatePrice,
-    getSingleBooking
+    getSingleBooking,
+    getMyBookingsByDate
 };

@@ -28,6 +28,12 @@ router.get(
 )
 
 router.get(
+  '/my-bookings-by-date',
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  BookingController.getMyBookingsByDate
+)
+
+router.get(
   '/:id',
   auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   BookingController.getSingleBooking

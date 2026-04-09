@@ -95,10 +95,28 @@ const getSingleBooking = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getMyBookingsByDate = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+
+  const date = req.query.date as string
+  if (!date) throw new ApiError(httpStatus.BAD_REQUEST, 'Date is required')
+
+  const result = await BookingService.getMyBookingsByDate(user.userId, user.role, date)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Bookings retrieved successfully',
+    data: result,
+  })
+})
+
 export const BookingController = {
   createBooking,
   updateBookingStatus,
   getMyBookings,
   calculatePrice,
-  getSingleBooking
+  getSingleBooking,
+  getMyBookingsByDate
 }

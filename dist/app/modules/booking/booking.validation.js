@@ -10,6 +10,7 @@ exports.createBookingValidationSchema = zod_1.z.object({
         bookingDate: zod_1.z.string().or(zod_1.z.date()).transform(val => new Date(val)),
         startTime: timeStringSchema,
         endTime: timeStringSchema,
+        packageName: zod_1.z.string().optional(),
         eventLocation: zod_1.z.object({
             address: zod_1.z.string({ required_error: 'Address is required' }),
             city: zod_1.z.string({ required_error: 'City is required' }),

@@ -211,55 +211,68 @@ const getDetailedStatistics = async (userId) => {
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const previousMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    // 1. Core Profile Stats (Available for all)
+    // 1. Core Profile Stats (Common for all)
     const categoryAverageViews = 450;
     const viewsPerformance = calculateChange(profile.profileViews || 0, categoryAverageViews);
     const categoryAverageRating = 4.2;
     const ratingPerformance = calculateChange(profile.rating || 0, categoryAverageRating);
-    // 2. Revenue Analytics (Basic for Free, Detailed for Premium)
-    const weeklyRevenue = await booking_model_1.Booking.aggregate([
-        {
-            $match: {
-                providerId: new mongoose_1.Types.ObjectId(userId),
-                status: 'completed',
-                completedAt: { $gte: currentMonthStart },
+    // 2. Data Fetching (Parallelized & Conditional)
+    const queries = [
+        // Current Month Revenue Stats
+        booking_model_1.Booking.aggregate([
+            {
+                $match: {
+                    providerId: new mongoose_1.Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: currentMonthStart },
+                },
             },
-        },
-        {
-            $group: {
-                _id: { $week: '$completedAt' },
-                amount: { $sum: '$pricingDetails.providerEarnings' },
+            {
+                $group: {
+                    _id: isPremium ? { $week: '$completedAt' } : null,
+                    amount: { $sum: '$pricingDetails.providerEarnings' },
+                },
             },
-        },
-        { $sort: { '_id': 1 } }
-    ]);
-    const formattedWeeklyRevenue = weeklyRevenue.map((w, index) => ({
-        week: `Week ${index + 1}`,
-        amount: w.amount
-    }));
-    const currentMonthRevenue = weeklyRevenue.reduce((acc, curr) => acc + curr.amount, 0);
-    const previousMonthStats = await booking_model_1.Booking.aggregate([
-        {
-            $match: {
-                providerId: new mongoose_1.Types.ObjectId(userId),
-                status: 'completed',
-                completedAt: { $gte: previousMonthStart, $lte: previousMonthEnd },
+            { $sort: { '_id': 1 } }
+        ]),
+        // Previous Month Revenue Stats
+        booking_model_1.Booking.aggregate([
+            {
+                $match: {
+                    providerId: new mongoose_1.Types.ObjectId(userId),
+                    status: 'completed',
+                    completedAt: { $gte: previousMonthStart, $lte: previousMonthEnd },
+                },
             },
-        },
-        {
-            $group: {
-                _id: null,
-                totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
+                },
             },
-        },
-    ]);
-    const previousMonthRevenue = ((_a = previousMonthStats[0]) === null || _a === void 0 ? void 0 : _a.totalRevenue) || 0;
+        ])
+    ];
+    // Only add heavy premium queries if the user is premium
+    if (isPremium) {
+        queries.push(analytics_service_1.AnalyticsService.getPremiumAnalytics(userId));
+    }
+    const [currentMonthData, previousMonthData, premiumMetrics] = await Promise.all(queries);
+    // 3. Process Revenue
+    const currentMonthRevenue = currentMonthData.reduce((acc, curr) => acc + curr.amount, 0);
+    const previousMonthRevenue = ((_a = previousMonthData[0]) === null || _a === void 0 ? void 0 : _a.totalRevenue) || 0;
     const revenueChange = calculateChange(currentMonthRevenue, previousMonthRevenue);
-    const baseStats = {
+    const formattedWeeklyRevenue = isPremium
+        ? currentMonthData.map((w, index) => ({
+            week: `Week ${index + 1}`,
+            amount: w.amount
+        }))
+        : [];
+    // 4. Final Response Construction
+    const response = {
         isPremium,
         profileViews: {
             count: profile.profileViews || 0,
-            change: -8,
+            change: -8, // Weekly trend (mocked for now)
             performanceVsCategory: {
                 categoryAverage: categoryAverageViews,
                 percentageAbove: viewsPerformance
@@ -277,15 +290,15 @@ const getDetailedStatistics = async (userId) => {
             currentMonth: currentMonthRevenue,
             previousMonth: previousMonthRevenue,
             percentageChange: revenueChange,
-            weeklyBreakdown: isPremium ? formattedWeeklyRevenue : [],
             averagePerPeriod: currentMonthRevenue / 4,
-            bestPerforming: Math.max(...formattedWeeklyRevenue.map(w => w.amount), 0)
+            bestPerforming: isPremium && formattedWeeklyRevenue.length > 0
+                ? Math.max(...formattedWeeklyRevenue.map((w) => w.amount))
+                : 0,
+            weeklyBreakdown: formattedWeeklyRevenue // Only populated if premium
         }
     };
-    // 3. Premium Only Metrics
     if (isPremium) {
-        const premiumMetrics = await analytics_service_1.AnalyticsService.getPremiumAnalytics(userId);
-        const viewsByRegion = [
+        response.viewsByRegion = [
             { city: 'New York, NY', percentage: 37.5, count: 450 },
             { city: 'Los Angeles, CA', percentage: 23.3, count: 280 },
             { city: 'Chicago, IL', percentage: 15.4, count: 185 },
@@ -293,13 +306,9 @@ const getDetailedStatistics = async (userId) => {
             { city: 'Boston, MA', percentage: 7.5, count: 90 },
             { city: 'Other', percentage: 4.2, count: 50 },
         ];
-        return {
-            ...baseStats,
-            viewsByRegion,
-            premiumMetrics
-        };
+        response.premiumMetrics = premiumMetrics;
     }
-    return baseStats;
+    return response;
 };
 const exportStatisticsReport = async (userId) => {
     const stats = await getDetailedStatistics(userId);

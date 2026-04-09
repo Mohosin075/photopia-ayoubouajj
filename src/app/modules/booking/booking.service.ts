@@ -450,10 +450,42 @@ const getSingleBooking = async (bookingId: string): Promise<IBooking | null> => 
   return booking
 }
 
+const getMyBookingsByDate = async (
+  userId: string,
+  role: string,
+  date: string
+): Promise<IBooking[]> => {
+  const targetDate = new Date(date)
+  const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate())
+  const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1)
+
+  const query: any = {
+    bookingDate: {
+      $gte: startOfDay,
+      $lt: endOfDay,
+    },
+  }
+
+  if (role === 'professional') {
+    query.providerId = userId
+  } else {
+    query.clientId = userId
+  }
+
+  const result = await Booking.find(query)
+    .populate('serviceId')
+    .populate('providerId', 'name email')
+    .populate('clientId', 'name email')
+    .sort({ startTime: 1 })
+
+  return result
+}
+
 export const BookingService = {
   createBooking,
   updateBookingStatus,
   getMyBookings,
   calculatePrice,
-  getSingleBooking
+  getSingleBooking,
+  getMyBookingsByDate
 }

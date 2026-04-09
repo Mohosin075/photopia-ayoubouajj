@@ -27,14 +27,14 @@ const calculateDistanceInKm = (lat1, lon1, lat2, lon2) => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 };
-const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromProviderKm, overrides) => {
-    var _a, _b, _c, _d, _e, _f;
+const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromProviderKm, overrides, packageName) => {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     const service = await service_model_1.Service.findById(serviceId);
     if (!service)
         throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Service not found');
     const start = parseInt(startTime.split(':')[0]) + parseInt(startTime.split(':')[1]) / 60;
     const end = parseInt(endTime.split(':')[0]) + parseInt(endTime.split(':')[1]) / 60;
-    const durationHours = end - start;
+    let durationHours = end - start;
     if (durationHours <= 0)
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Invalid duration');
     let baseRate = 0;
@@ -42,44 +42,53 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
     const day = date.getDay();
     if (day === 0 || day === 6) {
         isWeekend = true;
-        // If weekendHourlyRate is not set, apply 20% increase to base price
         baseRate = ((_a = service.pricingModel) === null || _a === void 0 ? void 0 : _a.weekendHourlyRate) || (service.price * 1.2);
     }
     else {
         baseRate = ((_b = service.pricingModel) === null || _b === void 0 ? void 0 : _b.weekdayHourlyRate) || service.price;
     }
-    // Fallback if specific hourly rates are 0
-    if (service.pricingType === service_1.SERVICE_PRICING_TYPE.HOURLY && (!baseRate || baseRate === 0)) {
-        baseRate = service.price;
-    }
-    // Apply Overrides
-    if ((overrides === null || overrides === void 0 ? void 0 : overrides.priceOverride) !== undefined) {
-        baseRate = overrides.priceOverride;
-    }
-    else if ((overrides === null || overrides === void 0 ? void 0 : overrides.rateMultiplier) !== undefined) {
-        baseRate = baseRate * overrides.rateMultiplier;
-    }
     // Calculate subtotal
     let subtotal = 0;
     if (service.pricingType === service_1.SERVICE_PRICING_TYPE.HOURLY) {
+        // Apply Overrides for hourly only
+        if ((overrides === null || overrides === void 0 ? void 0 : overrides.priceOverride) !== undefined) {
+            baseRate = overrides.priceOverride;
+        }
+        else if ((overrides === null || overrides === void 0 ? void 0 : overrides.rateMultiplier) !== undefined) {
+            baseRate = baseRate * overrides.rateMultiplier;
+        }
         subtotal = baseRate * durationHours;
     }
     else if (service.pricingType === service_1.SERVICE_PRICING_TYPE.DAILY) {
-        // For daily, one booking usually means one day? Or fraction? 
-        // Assuming daily rate applies once per day regardless of hours, unless spanning multiple days (which our logic doesn't support yet, strict single day)
         subtotal = ((_c = service.pricingModel) === null || _c === void 0 ? void 0 : _c.dailyRate) || service.price;
+        durationHours = ((_d = service.pricingModel) === null || _d === void 0 ? void 0 : _d.dailyHours) || 8;
     }
-    else {
-        // Default fallthrough (e.g. PACKAGE)
-        subtotal = service.price;
+    else if (service.pricingType === service_1.SERVICE_PRICING_TYPE.PACKAGE) {
+        if (packageName && ((_e = service.pricingModel) === null || _e === void 0 ? void 0 : _e.packages)) {
+            const selectedPackage = service.pricingModel.packages.find(p => p.name === packageName);
+            if (selectedPackage) {
+                subtotal = selectedPackage.price;
+                durationHours = selectedPackage.duration;
+            }
+            else {
+                throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Package '${packageName}' not found in this service`);
+            }
+        }
+        else {
+            subtotal = service.price;
+            // Use service duration if available, otherwise default to what user selected
+            if (service.duration && !isNaN(parseInt(service.duration))) {
+                durationHours = parseInt(service.duration);
+            }
+        }
     }
     // Travel fee
     let travelFee = 0;
-    if (distanceFromProviderKm > (((_d = service.location) === null || _d === void 0 ? void 0 : _d.serviceRadiusKm) || 25)) {
+    if (distanceFromProviderKm > (((_f = service.location) === null || _f === void 0 ? void 0 : _f.serviceRadiusKm) || 25)) {
         if (!service.allowOutsideRadius) {
-            throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Location is outside service radius (${(_e = service.location) === null || _e === void 0 ? void 0 : _e.serviceRadiusKm}km)`);
+            throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Location is outside service radius (${(_g = service.location) === null || _g === void 0 ? void 0 : _g.serviceRadiusKm}km)`);
         }
-        const extraKm = distanceFromProviderKm - (((_f = service.location) === null || _f === void 0 ? void 0 : _f.serviceRadiusKm) || 25);
+        const extraKm = distanceFromProviderKm - (((_h = service.location) === null || _h === void 0 ? void 0 : _h.serviceRadiusKm) || 25);
         travelFee = Math.min(extraKm * (service.travelFeePerKm || 1.5), service.maxTravelFee || 100);
     }
     subtotal += travelFee;
@@ -89,6 +98,7 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
     const providerEarnings = Number((subtotal * (1 - platformCommissionProvider)).toFixed(2));
     return {
         pricingType: service.pricingType,
+        packageName,
         baseRate,
         isWeekend,
         travelFee,
@@ -138,37 +148,42 @@ const createBooking = async (payload, user) => {
     if (!availabilityCheck.isAvailable) {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Provider is not available: ${availabilityCheck.reason}`);
     }
+    // 3. Calculate Price (First, to get the correct duration)
+    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm || 0, availabilityCheck.pricing, payload.packageName);
+    // Calculate actual end time based on the duration returned from pricing
+    const [startHour, startMinute] = payload.startTime.split(':').map(Number);
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const durationMinutes = pricing.durationHours * 60;
+    const endTotalMinutes = startTotalMinutes + durationMinutes;
+    const endH = Math.floor(endTotalMinutes / 60);
+    const endM = endTotalMinutes % 60;
+    const actualEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+    // Update payload with actual calculated values
+    payload.endTime = actualEndTime;
+    payload.pricingDetails = pricing;
+    payload.durationHours = pricing.durationHours;
     // Validate request time is within working hours
     if (availabilityCheck.workingHours) {
         const workStart = parseInt(availabilityCheck.workingHours.start.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.start.split(':')[1]);
         const workEnd = parseInt(availabilityCheck.workingHours.end.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.end.split(':')[1]);
-        const reqStart = parseInt(payload.startTime.split(':')[0]) * 60 + parseInt(payload.startTime.split(':')[1]);
-        const reqEnd = parseInt(payload.endTime.split(':')[0]) * 60 + parseInt(payload.endTime.split(':')[1]);
-        if (reqStart < workStart || reqEnd > workEnd) {
-            throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Requested time is outside working hours (${availabilityCheck.workingHours.start} - ${availabilityCheck.workingHours.end})`);
+        if (startTotalMinutes < workStart || endTotalMinutes > workEnd) {
+            throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Requested duration (${pricing.durationHours}h starting at ${payload.startTime}) exceeds provider working hours (${availabilityCheck.workingHours.start} - ${availabilityCheck.workingHours.end})`);
         }
     }
-    // TODO: Check specific time slot availability (overlap with existing bookings)
+    // Check specific time slot availability (overlap with existing bookings)
     const existingBookings = await booking_model_1.Booking.find({
         providerId: payload.providerId,
         bookingDate: payload.bookingDate,
         status: { $in: ['confirmed', 'pending', 'deposit_paid'] }
     });
-    // Simple overlap check
-    const newStart = parseInt(payload.startTime.split(':')[0]) * 60 + parseInt(payload.startTime.split(':')[1]);
-    const newEnd = parseInt(payload.endTime.split(':')[0]) * 60 + parseInt(payload.endTime.split(':')[1]);
     const hasOverlap = existingBookings.some(booking => {
         const existStart = parseInt(booking.startTime.split(':')[0]) * 60 + parseInt(booking.startTime.split(':')[1]);
         const existEnd = parseInt(booking.endTime.split(':')[0]) * 60 + parseInt(booking.endTime.split(':')[1]);
-        return (newStart < existEnd && newEnd > existStart);
+        return (startTotalMinutes < existEnd && endTotalMinutes > existStart);
     });
     if (hasOverlap) {
         throw new ApiError_1.default(http_status_codes_1.default.CONFLICT, 'Time slot overlaps with an existing booking');
     }
-    // 3. Calculate Price
-    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm || 0, availabilityCheck.pricing);
-    payload.pricingDetails = pricing;
-    payload.durationHours = pricing.durationHours;
     // Implement 50% deposit logic
     payload.depositPercentage = 0.5; // 50%
     payload.depositAmount = Number((pricing.clientTotal * payload.depositPercentage).toFixed(2));
@@ -348,10 +363,34 @@ const getSingleBooking = async (bookingId) => {
         throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Booking not found');
     return booking;
 };
+const getMyBookingsByDate = async (userId, role, date) => {
+    const targetDate = new Date(date);
+    const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
+    const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+    const query = {
+        bookingDate: {
+            $gte: startOfDay,
+            $lt: endOfDay,
+        },
+    };
+    if (role === 'professional') {
+        query.providerId = userId;
+    }
+    else {
+        query.clientId = userId;
+    }
+    const result = await booking_model_1.Booking.find(query)
+        .populate('serviceId')
+        .populate('providerId', 'name email')
+        .populate('clientId', 'name email')
+        .sort({ startTime: 1 });
+    return result;
+};
 exports.BookingService = {
     createBooking,
     updateBookingStatus,
     getMyBookings,
     calculatePrice,
-    getSingleBooking
+    getSingleBooking,
+    getMyBookingsByDate
 };

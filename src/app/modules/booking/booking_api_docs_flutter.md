@@ -109,7 +109,22 @@
 
 ---
 
-## 5. Update Booking Status (স্ট্যাটাস আপডেট / ক্যানসেল করা)
+## 5. Get My Bookings By Date (নির্দিষ্ট তারিখ অনুযায়ী বুকিং লিস্ট নেওয়া)
+ইউজার বা প্রোভাইডার একটি নির্দিষ্ট তারিখের সমস্ত বুকিং দেখার জন্য এই API ব্যবহার করবে।
+
+**Endpoint:** `/my-bookings-by-date`
+**Method:** `GET`
+**Authorized Roles:** User, Professional, Admin, Super Admin
+
+**Query Parameters:** 
+- `date` (Required: String, Format: `YYYY-MM-DD` or ISO Date String)
+
+**Example URL:**
+`{{BASE_URL}}/api/v1/booking/my-bookings-by-date?date=2024-04-10`
+
+---
+
+## 6. Update Booking Status (স্ট্যাটাস আপডেট / ক্যানসেল করা)
 বুকিং এর অবস্থা পরিবর্তন করার জন্য (যেমন- pending থেকে confirmed বা cancelled করা)।
 
 **Endpoint:** `/:id/status`

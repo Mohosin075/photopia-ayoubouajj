@@ -11,8 +11,8 @@ const validateRequest_1 = __importDefault(require("../../middleware/validateRequ
 const auth_1 = __importDefault(require("../../middleware/auth"));
 const user_1 = require("../../../enum/user");
 const router = express_1.default.Router();
-router.get('/', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(notification_validation_1.NotificationValidations.filter), notification_controller_1.NotificationController.getAllNotifications);
-router.get('/my', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.USER), notification_controller_1.NotificationController.getMyNotifications);
+router.get('/', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.USER), (0, validateRequest_1.default)(notification_validation_1.NotificationValidations.filter), notification_controller_1.NotificationController.getAllNotifications);
+router.get('/my', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.USER, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), notification_controller_1.NotificationController.getMyNotifications);
 router.get('/stats', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.USER), notification_controller_1.NotificationController.getNotificationStats);
 router.get('/:id', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.USER), notification_controller_1.NotificationController.getNotificationById);
 router.post('/', (0, auth_1.default)(user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.ADMIN), (0, validateRequest_1.default)(notification_validation_1.NotificationValidations.create), notification_controller_1.NotificationController.createNotification);

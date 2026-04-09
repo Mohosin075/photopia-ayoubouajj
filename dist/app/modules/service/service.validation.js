@@ -24,6 +24,20 @@ const locationSchema = zod_1.z.object({
         .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.SERVICE_RADIUS_MAX)
         .optional(),
 });
+const pricingModelSchema = zod_1.z.object({
+    type: zod_1.z.enum(pricingTypeValues),
+    weekdayHourlyRate: zod_1.z.number().min(0).optional(),
+    weekendHourlyRate: zod_1.z.number().min(0).optional(),
+    dailyRate: zod_1.z.number().min(0).optional(),
+    dailyHours: zod_1.z.number().min(1).optional(),
+    packages: zod_1.z.array(zod_1.z.object({
+        name: zod_1.z.string().min(1),
+        price: zod_1.z.number().min(0),
+        duration: zod_1.z.number().min(1),
+        description: zod_1.z.string().optional(),
+        includes: zod_1.z.array(zod_1.z.string()).optional(),
+    })).optional(),
+});
 exports.createServiceSchema = zod_1.z.object({
     body: zod_1.z.object({
         title: zod_1.z.string()
@@ -44,11 +58,32 @@ exports.createServiceSchema = zod_1.z.object({
             .max(service_constants_1.SERVICE_CONSTANTS.VALIDATION.PRICE_MAX),
         currency: zod_1.z.string().length(3).default('EUR'),
         pricingType: zod_1.z.enum(pricingTypeValues),
+        pricingModel: pricingModelSchema.optional(),
         duration: zod_1.z.string().min(1).max(100),
         location: locationSchema,
         // coverMedia: z.string().url().optional(),
         gallery: zod_1.z.array(zod_1.z.string().url()).optional(),
         status: zod_1.z.enum(statusValues).default(service_1.SERVICE_STATUS.ACTIVE),
+    }).superRefine((data, ctx) => {
+        var _a, _b;
+        if (data.pricingType === service_1.SERVICE_PRICING_TYPE.DAILY) {
+            if (!((_a = data.pricingModel) === null || _a === void 0 ? void 0 : _a.dailyRate)) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: 'Daily rate is required for DAILY pricing type',
+                    path: ['pricingModel', 'dailyRate'],
+                });
+            }
+        }
+        if (data.pricingType === service_1.SERVICE_PRICING_TYPE.PACKAGE) {
+            if (!((_b = data.pricingModel) === null || _b === void 0 ? void 0 : _b.packages) || data.pricingModel.packages.length === 0) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: 'At least one package is required for PACKAGE pricing type',
+                    path: ['pricingModel', 'packages'],
+                });
+            }
+        }
     }),
 });
 exports.updateServiceSchema = zod_1.z.object({
@@ -72,6 +107,7 @@ exports.updateServiceSchema = zod_1.z.object({
             .optional(),
         currency: zod_1.z.string().length(3).optional(),
         pricingType: zod_1.z.enum(pricingTypeValues).optional(),
+        pricingModel: pricingModelSchema.partial().optional(),
         duration: zod_1.z.string().min(1).max(100).optional(),
         location: locationSchema.partial().optional(),
         coverMedia: zod_1.z.string().url().optional(),
@@ -79,6 +115,25 @@ exports.updateServiceSchema = zod_1.z.object({
         status: zod_1.z.enum(statusValues).optional(),
         isVerified: zod_1.z.boolean().optional(),
         isActive: zod_1.z.boolean().optional(),
+    }).superRefine((data, ctx) => {
+        if (data.pricingType === service_1.SERVICE_PRICING_TYPE.DAILY) {
+            if (data.pricingModel && !data.pricingModel.dailyRate) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: 'Daily rate is required when changing to DAILY pricing type',
+                    path: ['pricingModel', 'dailyRate'],
+                });
+            }
+        }
+        if (data.pricingType === service_1.SERVICE_PRICING_TYPE.PACKAGE) {
+            if (data.pricingModel && (!data.pricingModel.packages || data.pricingModel.packages.length === 0)) {
+                ctx.addIssue({
+                    code: zod_1.z.ZodIssueCode.custom,
+                    message: 'At least one package is required when changing to PACKAGE pricing type',
+                    path: ['pricingModel', 'packages'],
+                });
+            }
+        }
     }),
 });
 exports.toggleServiceStatusSchema = zod_1.z.object({
