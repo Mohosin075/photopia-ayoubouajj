@@ -1,4 +1,8 @@
 import mongoose from 'mongoose';
+import { StatusCodes } from 'http-status-codes';
+import ApiError from '../../../errors/ApiError';
+import { USER_ROLES, USER_STATUS } from '../../../enum/user';
+import { User } from '../user/user.model';
 import { Message } from '../message/message.model'
 import { IChat } from './chat.interface'
 import { Chat } from './chat.model'
@@ -12,6 +16,32 @@ const createChatToDB = async (payload: any): Promise<IChat> => {
     return isExistChat
   }
   const chat: IChat = await Chat.create({ participants: payload })
+  return chat
+}
+
+const createAdminChat = async (userId: string): Promise<IChat> => {
+  // Find a super admin or admin (excluding the current user if they are an admin)
+  const admin = await User.findOne({
+    _id: { $ne: userId },
+    roles: { $in: [USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN] },
+    status: USER_STATUS.ACTIVE,
+  })
+
+  if (!admin) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'No active admin found to chat with')
+  }
+
+  const participants = [userId, admin._id]
+
+  const isExistChat: IChat | null = await Chat.findOne({
+    participants: { $all: participants },
+  })
+
+  if (isExistChat) {
+    return isExistChat
+  }
+
+  const chat: IChat = await Chat.create({ participants })
   return chat
 }
 
@@ -152,4 +182,4 @@ const getChatFromDB = async (user: any, search: string): Promise<any> => {
   }
 }
 
-export const ChatService = { createChatToDB, getChatFromDB }
+export const ChatService = { createChatToDB, getChatFromDB, createAdminChat }

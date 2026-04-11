@@ -136,6 +136,10 @@ const updateProfile = async (userId, payload) => {
             ...new Set([...(existingProfile.language || []), ...payload.language]),
         ];
     }
+    // Append new documents instead of overwriting
+    if (payload.documents && Array.isArray(payload.documents)) {
+        payload.documents = [...(existingProfile.documents || []), ...payload.documents];
+    }
     const profile = await professionalProfile_model_1.ProfessionalProfile.findOneAndUpdate({ user: userId }, payload, { new: true });
     return profile;
 };

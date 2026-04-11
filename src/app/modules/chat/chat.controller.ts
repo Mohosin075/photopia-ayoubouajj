@@ -20,6 +20,18 @@ const createChat = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const createAdminChat = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  const chat = await ChatService.createAdminChat(user?.userId)
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Chat with Admin created successfully',
+    data: chat,
+  })
+})
+
 const getChat = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const search = req.query.search as string
@@ -33,4 +45,4 @@ const getChat = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-export const ChatController = { createChat, getChat }
+export const ChatController = { createChat, getChat, createAdminChat }

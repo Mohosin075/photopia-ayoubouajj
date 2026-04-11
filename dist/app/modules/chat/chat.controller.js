@@ -20,6 +20,16 @@ const createChat = (0, catchAsync_1.default)(async (req, res) => {
         data: chat,
     });
 });
+const createAdminChat = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const chat = await chat_service_1.ChatService.createAdminChat(user === null || user === void 0 ? void 0 : user.userId);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Chat with Admin created successfully',
+        data: chat,
+    });
+});
 const getChat = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     const search = req.query.search;
@@ -31,4 +41,4 @@ const getChat = (0, catchAsync_1.default)(async (req, res) => {
         data: chatList,
     });
 });
-exports.ChatController = { createChat, getChat };
+exports.ChatController = { createChat, getChat, createAdminChat };

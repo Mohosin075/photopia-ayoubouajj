@@ -14,6 +14,7 @@ const ProfessionalProfileSchema = new mongoose_1.Schema({
     specialties: { type: [String] },
     experience: { type: String },
     portfolio: { type: [String] },
+    documents: { type: [String] },
     language: { type: [String] },
     socialLinks: {
         instagram: String,

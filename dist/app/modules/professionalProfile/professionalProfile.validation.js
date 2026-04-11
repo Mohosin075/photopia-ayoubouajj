@@ -15,6 +15,7 @@ exports.createProfessionalProfileSchema = zod_1.z.object({
         specialties: zod_1.z.array(zod_1.z.string()).optional(),
         experience: zod_1.z.string().optional(),
         portfolio: zod_1.z.array(zod_1.z.string()).optional(),
+        documents: zod_1.z.array(zod_1.z.string()).optional(),
         language: zod_1.z.array(zod_1.z.string()).optional(),
         socialLinks: socialLinksSchema.optional(),
     }),
@@ -26,13 +27,14 @@ exports.updateProfessionalProfileSchema = zod_1.z.object({
         specialties: zod_1.z.array(zod_1.z.string()).optional(),
         experience: zod_1.z.string().optional(),
         portfolio: zod_1.z.array(zod_1.z.string()).optional(),
+        documents: zod_1.z.array(zod_1.z.string()).optional(),
         language: zod_1.z.array(zod_1.z.string()).optional(),
         socialLinks: socialLinksSchema.optional(),
     }),
 });
 exports.removeItemSchema = zod_1.z.object({
     body: zod_1.z.object({
-        field: zod_1.z.enum(['portfolio', 'specialties', 'language']),
+        field: zod_1.z.enum(['portfolio', 'specialties', 'language', 'documents']),
         values: zod_1.z.array(zod_1.z.string()).min(1, 'At least one value is required'),
     }),
 });
