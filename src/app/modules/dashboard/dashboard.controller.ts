@@ -16,6 +16,7 @@ import {
   ITransactionDetails,
   IUserDetailsStats,
   IUserManagementStats,
+  ICategoryStats,
 } from './dashboard.interface'
 import ApiError from '../../../errors/ApiError'
 import { JwtPayload } from 'jsonwebtoken'
@@ -228,6 +229,16 @@ const getDetailedStats = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const getCategoryStats = catchAsync(async (req: Request, res: Response) => {
+  const result = await DashboardService.getCategoryStats()
+  sendResponse<ICategoryStats>(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Category stats retrieved successfully',
+    data: result,
+  })
+})
+
 export const DashboardController = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -247,4 +258,5 @@ export const DashboardController = {
   exportPayments,
   getLocationList,
   getDetailedStats,
+  getCategoryStats,
 }

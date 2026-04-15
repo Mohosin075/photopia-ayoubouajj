@@ -11,9 +11,11 @@ import { Payment } from '../payment/payment.model'
 import { Subscription } from '../subscription/subscription.model'
 import { SubscriptionPlan } from '../subscription/subscription-plan.model'
 import { Category } from '../category/category.model'
+import { Service } from '../service/service.model'
 import {
   IActivityHistory,
   IAdvancedAnalyticsStats,
+  ICategoryStats,
   IContentModerationStats,
   IDetailedDashboardStats,
   IModerationLog,
@@ -1262,6 +1264,40 @@ const getDetailedStats = async (
   }
 }
 
+const getCategoryStats = async (): Promise<ICategoryStats> => {
+  const [totalCategories, totalSubCategories, themeAggregation, popularCategoriesData] = await Promise.all([
+    Category.countDocuments({ type: 'category' }),
+    Category.countDocuments({ type: 'subcategory' }),
+    Category.aggregate([
+      { $match: { type: 'category' } },
+      { $group: { _id: '$theme', count: { $sum: 1 } } },
+    ]),
+    Category.find({ isPopular: true, type: 'category' }).limit(5).lean(),
+  ])
+
+  const popularCategories = await Promise.all(
+    popularCategoriesData.map(async (cat: any) => {
+      const serviceCount = await Service.countDocuments({ category: cat._id })
+      return {
+        id: cat._id.toString(),
+        name: cat.name,
+        serviceCount,
+        theme: cat.theme || 'N/A',
+      }
+    }),
+  )
+
+  return {
+    totalCategories,
+    totalSubCategories,
+    categoriesByTheme: themeAggregation.map(item => ({
+      theme: item._id || 'N/A',
+      count: item.count,
+    })),
+    popularCategories,
+  }
+}
+
 export const DashboardService = {
   getUserManagementStats,
   getUserDetailsStats,
@@ -1281,4 +1317,5 @@ export const DashboardService = {
   exportPayments,
   getLocationList,
   getDetailedStats,
+  getCategoryStats,
 }

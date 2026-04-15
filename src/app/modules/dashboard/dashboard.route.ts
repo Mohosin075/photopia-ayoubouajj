@@ -120,4 +120,10 @@ router.get(
   DashboardController.getAdvancedAnalyticsStats,
 )
 
+router.get(
+  '/category-stats',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  DashboardController.getCategoryStats,
+)
+
 export const DashboardRoutes = router

@@ -245,6 +245,21 @@ export type IDetailedDashboardStats = {
   retentionEngagement: IRetentionEngagement
 }
 
+export type ICategoryStats = {
+  totalCategories: number
+  totalSubCategories: number
+  categoriesByTheme: Array<{
+    theme: string
+    count: number
+  }>
+  popularCategories: Array<{
+    id: string
+    name: string
+    serviceCount: number
+    theme: string
+  }>
+}
+
 export type IAcquisitionChannel = {
   channel: string
   users: number
