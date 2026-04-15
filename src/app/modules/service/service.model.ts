@@ -150,8 +150,8 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       required: true,
     },
     subCategory: {
-      type: String,
-      trim: true,
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
     },
     tags: {
       type: [String],

@@ -20,7 +20,14 @@ const createCategory = catchAsync(async (req: Request, res: Response) => {
 
 const getAllCategories = catchAsync(async (req: Request, res: Response) => {
     const paginationOptions = pick(req.query, paginationFields)
-    const filters = pick(req.query, ['searchTerm', 'name', 'isActive'])
+    const filters = pick(req.query, [
+        'searchTerm',
+        'name',
+        'theme',
+        'parent',
+        'type',
+        'isActive',
+    ])
     const result = await CategoryServices.getAllCategories(
         filters,
         paginationOptions,

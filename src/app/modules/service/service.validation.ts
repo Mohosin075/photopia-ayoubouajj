@@ -56,6 +56,7 @@ export const createServiceSchema = z.object({
       required_error: 'Service type is required',
     }),
     subCategory: z.string().optional(),
+    theme: z.string().optional(),
     tags: z.array(z.string().min(1).max(30)).optional(),
     equipment: z.array(z.string().min(1).max(50)).optional(),
     price: z.number()
@@ -105,6 +106,7 @@ export const updateServiceSchema = z.object({
     category: z.string().min(2).max(50).optional(),
     serviceType: z.enum(serviceTypeValues).optional(),
     subCategory: z.string().optional(),
+    theme: z.string().optional(),
     tags: z.array(z.string().min(1).max(30)).optional(),
     equipment: z.array(z.string().min(1).max(50)).optional(),
     price: z.number()

@@ -15,6 +15,19 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
         image: {
             type: String,
         },
+        theme: {
+            type: String,
+            trim: true,
+        },
+        parent: {
+            type: Schema.Types.ObjectId,
+            ref: 'Category',
+        },
+        type: {
+            type: String,
+            enum: ['category', 'subcategory'],
+            default: 'category',
+        },
         isActive: {
             type: Boolean,
             default: true,
@@ -27,6 +40,9 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
     },
 )
 
-categorySchema.index({ name: 1 })
+categorySchema.index({ name: 1, theme: 1, parent: 1 }, { unique: true })
+categorySchema.index({ theme: 1 })
+categorySchema.index({ parent: 1 })
+categorySchema.index({ type: 1 })
 
 export const Category = model<ICategory, CategoryModel>('Category', categorySchema)

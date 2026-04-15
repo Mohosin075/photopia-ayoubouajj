@@ -65,6 +65,7 @@ const getAllCategories = async (
 
     const [result, total] = await Promise.all([
         Category.find(whereConditions)
+            .populate('parent')
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder }),
@@ -83,7 +84,7 @@ const getAllCategories = async (
 }
 
 const getSingleCategory = async (id: string) => {
-    const result = await Category.findById(id)
+    const result = await Category.findById(id).populate('parent')
 
     if (!result) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Category not found')

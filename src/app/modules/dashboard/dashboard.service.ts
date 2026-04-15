@@ -547,11 +547,11 @@ const getPaymentAndCommissionStats = async (
       months: trendsMonths,
     },
     categories: categoryStats.length ? categoryStats : [
-      { category: 'Wedding', amount: 12000 },
-      { category: 'Portrait', amount: 8000 },
-      { category: 'Event', amount: 15000 },
-      { category: 'Commercial', amount: 22000 },
-      { category: 'Product', amount: 9000 },
+      { category: 'Portrait & People', amount: 12000 },
+      { category: 'Events', amount: 15000 },
+      { category: 'Fashion & Beauty', amount: 8000 },
+      { category: 'Real Estate & Architecture', amount: 22000 },
+      { category: 'Product & Packshot', amount: 9000 },
     ],
   }
 }
@@ -881,8 +881,8 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
   // 2. Revenue Trends (Last 6 Months)
   const trendMonths: string[] = []
   const trendData: Record<string, number[]> = {}
-  const activeCategories = await Category.find({ isActive: true }).limit(4).lean()
-  const catNames = activeCategories.length ? activeCategories.map(c => c.name) : ['Commercial', 'Event', 'Portrait', 'Wedding']
+  const activeCategories = await Category.find({ type: 'category', isActive: true }).limit(4).lean()
+  const catNames = activeCategories.length ? activeCategories.map(c => c.name) : ['Real Estate & Architecture', 'Events', 'Portrait & People', 'Fashion & Beauty']
 
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
@@ -927,12 +927,12 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
       commission: item.grossRevenue - item.netRevenue,
       netRevenue: item.netRevenue,
     })) : [
-      { serviceType: 'Wedding Photography', bookings: 234, avgPrice: 250, grossRevenue: 58500, commission: 2925, netRevenue: 55575 },
-      { serviceType: 'Portrait Photography', bookings: 456, avgPrice: 100, grossRevenue: 45600, commission: 2280, netRevenue: 43320 },
-      { serviceType: 'Event Photography', bookings: 189, avgPrice: 380, grossRevenue: 71820, commission: 3591, netRevenue: 68229 },
-      { serviceType: 'Commercial Photography', bookings: 145, avgPrice: 600, grossRevenue: 87000, commission: 2610, netRevenue: 84390 },
-      { serviceType: 'Product Photography', bookings: 321, avgPrice: 120, grossRevenue: 38520, commission: 1666, netRevenue: 36854 },
-      { serviceType: 'Real Estate', bookings: 278, avgPrice: 150, grossRevenue: 41700, commission: 1785, netRevenue: 39915 },
+      { serviceType: 'Events', bookings: 234, avgPrice: 250, grossRevenue: 58500, commission: 2925, netRevenue: 55575 },
+      { serviceType: 'Portrait & People', bookings: 456, avgPrice: 100, grossRevenue: 45600, commission: 2280, netRevenue: 43320 },
+      { serviceType: 'Fashion & Beauty', bookings: 189, avgPrice: 380, grossRevenue: 71820, commission: 3591, netRevenue: 68229 },
+      { serviceType: 'Real Estate & Architecture', bookings: 145, avgPrice: 600, grossRevenue: 87000, commission: 2610, netRevenue: 84390 },
+      { serviceType: 'Product & Packshot', bookings: 321, avgPrice: 120, grossRevenue: 38520, commission: 1666, netRevenue: 36854 },
+      { serviceType: 'Drone & Aerial', bookings: 278, avgPrice: 150, grossRevenue: 41700, commission: 1785, netRevenue: 39915 },
     ],
     revenueTrends: {
       months: trendMonths,
@@ -979,11 +979,11 @@ const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => 
       bookings: item.bookings,
       growthPercentage: Math.floor(Math.random() * 20) + 10,
     })) : [
-      { name: 'Commercial Photography', bookings: 145, growthPercentage: 28.5 },
-      { name: 'Event Photography', bookings: 189, growthPercentage: 22.3 },
-      { name: 'Wedding Photography', bookings: 234, growthPercentage: 18.7 },
-      { name: 'Portrait Photography', bookings: 456, growthPercentage: 15.2 },
-      { name: 'Product Photography', bookings: 321, growthPercentage: 12.8 },
+      { name: 'Real Estate & Architecture', bookings: 145, growthPercentage: 28.5 },
+      { name: 'Events', bookings: 189, growthPercentage: 22.3 },
+      { name: 'Portrait & People', bookings: 234, growthPercentage: 18.7 },
+      { name: 'Fashion & Beauty', bookings: 456, growthPercentage: 15.2 },
+      { name: 'Product & Packshot', bookings: 321, growthPercentage: 12.8 },
     ],
     acquisitionByChannel: [
       { channel: 'Social Media', users: 456, cac: 12.5 },

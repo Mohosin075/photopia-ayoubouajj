@@ -55,7 +55,8 @@ export const SERVICE_CONSTANTS = {
     'isVerified',
     'providerId',
     'serviceType',
-    'isActive'
+    'isActive',
+    'theme'
   ],
   SORTABLE_FIELDS: ['createdAt', 'updatedAt', 'price'],
   PAGINATION: {

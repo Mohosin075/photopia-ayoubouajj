@@ -9,6 +9,7 @@ import { Types } from 'mongoose'
 import { SERVICE_CONSTANTS, serviceFilterableFields, serviceSearchableFields, SERVICE_LIST_PROJECTION } from './service.constants'
 import { User } from '../user/user.model'
 import { SERVICE_STATUS } from '../../../enum/service'
+import { Category } from '../category/category.model'
 
 const createService = async (payload: IService & { providerId: string }) => {
   // Check if providerId already has a service with same title
@@ -36,7 +37,8 @@ const createService = async (payload: IService & { providerId: string }) => {
 
   const result = (await Service.create(payload)).populate([
     { path: 'providerId', select: 'name email profile' },
-    { path: 'category', select: 'name image' },
+    { path: 'category', select: 'name image theme' },
+    { path: 'subCategory', select: 'name theme' },
   ])
 
   if (!result) {
@@ -49,8 +51,8 @@ const createService = async (payload: IService & { providerId: string }) => {
   return result
 }
 
-const buildWhereConditions = (filters: IServiceFilterables) => {
-  const { searchTerm, minPrice, maxPrice, isVerified, isActive, status, ...filterData } = filters
+const buildWhereConditions = async (filters: IServiceFilterables) => {
+  const { searchTerm, minPrice, maxPrice, isVerified, isActive, status, theme, ...filterData } = filters
   const conditions: any = {}
 
   // Exclude DELETED services by default unless explicitly filtering for them
@@ -58,6 +60,17 @@ const buildWhereConditions = (filters: IServiceFilterables) => {
     conditions.status = status
   } else {
     conditions.status = { $ne: SERVICE_STATUS.DELETED }
+  }
+
+  // Handle theme filtering by finding all categories with that theme
+  if (theme) {
+    const categories = await Category.find({ theme }).select('_id').lean();
+    if (categories.length > 0) {
+      conditions.category = { $in: categories.map(c => c._id) };
+    } else {
+      // If theme provided but no categories found, force empty result
+      conditions.category = new Types.ObjectId();
+    }
   }
 
   // Text search optimization or partial regex match
@@ -103,7 +116,7 @@ const getAllServices = async (
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
 
-  const whereConditions = buildWhereConditions(filters)
+  const whereConditions = await buildWhereConditions(filters)
 
   // Default sort by createdAt descending
   const sortConditions: any = {}
@@ -117,7 +130,8 @@ const getAllServices = async (
     Service.find(whereConditions)
       .select(SERVICE_LIST_PROJECTION)
       .populate('providerId', 'name email profile')
-      .populate('category', 'name image')
+      .populate('category', 'name image theme')
+      .populate('subCategory', 'name theme')
       .skip(skip)
       .limit(limit)
       .sort(sortConditions)
@@ -139,7 +153,8 @@ const getAllServices = async (
 const getSingleService = async (id: string) => {
   const result = await Service.findById(id)
     .populate('providerId', 'name email profile')
-    .populate('category', 'name image')
+    .populate('category', 'name image theme')
+    .populate('subCategory', 'name theme')
 
   if (!result || result.status === SERVICE_STATUS.DELETED) {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)

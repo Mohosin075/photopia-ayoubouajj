@@ -36,6 +36,7 @@ export interface IServiceFilterables {
   providerId?: string
   serviceType?: SERVICE_TYPE | string
   isActive?: boolean | string
+  theme?: string
 }
 
 export interface IService {
@@ -45,7 +46,7 @@ export interface IService {
   description: string
   category: Types.ObjectId
   serviceType: SERVICE_TYPE
-  subCategory?: string
+  subCategory?: Types.ObjectId
   tags?: string[]
   equipment?: string[]
   price: number
