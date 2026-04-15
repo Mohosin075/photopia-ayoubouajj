@@ -15,9 +15,13 @@ export interface ICategory {
     name: string
     description?: string
     image?: string
+    icon?: string
     theme?: string
     parent?: Types.ObjectId | ICategory
     type?: 'category' | 'subcategory'
+    isPopular?: boolean
+    isTrending?: boolean
+    trendingBadge?: string
     isActive: boolean
     createdAt: Date
     updatedAt: Date

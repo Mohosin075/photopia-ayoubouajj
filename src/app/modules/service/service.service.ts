@@ -100,6 +100,10 @@ const buildWhereConditions = async (filters: IServiceFilterables) => {
     if (value !== undefined && value !== '') {
       if (field === 'tags' || field === 'equipment') {
         conditions[field] = { $in: Array.isArray(value) ? value : [value] }
+      } else if (['category', 'subCategory', 'providerId'].includes(field)) {
+        if (Types.ObjectId.isValid(value as string)) {
+          conditions[field] = value
+        }
       } else {
         conditions[field] = value
       }
@@ -151,6 +155,9 @@ const getAllServices = async (
 }
 
 const getSingleService = async (id: string) => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+  }
   const result = await Service.findById(id)
     .populate('providerId', 'name email profile')
     .populate('category', 'name image theme')
@@ -168,6 +175,9 @@ const updateService = async (
   payload: Partial<IService>,
   userId?: string
 ) => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+  }
   const service = await Service.findById(id)
 
   if (!service) {
@@ -223,6 +233,9 @@ const updateService = async (
 }
 
 const deleteService = async (id: string, userId?: string) => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+  }
   const service = await Service.findById(id)
 
   if (!service) {
@@ -261,7 +274,7 @@ const getServicesByProvider = async (
     paginationHelper.calculatePagination(paginationOptions)
 
   // Merge providerId into filters
-  const whereConditions = buildWhereConditions({ ...filters, providerId })
+  const whereConditions = await buildWhereConditions({ ...filters, providerId })
 
   // Sort conditions
   const sortConditions: any = {}
@@ -295,6 +308,9 @@ const getServicesByProvider = async (
 }
 
 const toggleServiceStatus = async (id: string, status: SERVICE_STATUS) => {
+  if (!Types.ObjectId.isValid(id)) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'Service not found')
+  }
   const service = await Service.findById(id)
 
   if (!service) {

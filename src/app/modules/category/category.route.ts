@@ -8,6 +8,9 @@ import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processRe
 
 const router = express.Router()
 
+router.get('/popular-categories', CategoryController.getPopularCategories)
+router.get('/trending-subcategories', CategoryController.getTrendingSubcategories)
+
 router
     .route('/')
     .get(CategoryController.getAllCategories)

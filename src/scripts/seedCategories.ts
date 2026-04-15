@@ -12,6 +12,8 @@ const categoryData = [
     categories: [
       {
         name: 'Portrait & People',
+        icon: '📸',
+        isPopular: true,
         subcategories: [
           'Studio portrait',
           'Lifestyle / natural portrait',
@@ -25,6 +27,8 @@ const categoryData = [
       },
       {
         name: 'Events',
+        icon: '🎓',
+        isPopular: true,
         subcategories: [
           'Wedding',
           'Birthday & private party',
@@ -38,6 +42,8 @@ const categoryData = [
       },
       {
         name: 'Fashion & Beauty',
+        icon: '🎨',
+        isPopular: true,
         subcategories: [
           'Shooting mode (lookbook)',
           'Fashion advertising',
@@ -51,6 +57,8 @@ const categoryData = [
       },
       {
         name: 'Real Estate & Architecture',
+        icon: '🏠',
+        isPopular: true,
         subcategories: [
           'Interior architecture',
           'Exterior architecture',
@@ -77,6 +85,8 @@ const categoryData = [
       },
       {
         name: 'Culinary & Gastronomy',
+        icon: '🍔',
+        isPopular: true,
         subcategories: [
           'Food photography',
           'Drinks & cocktails',
@@ -103,6 +113,8 @@ const categoryData = [
       },
       {
         name: 'Sport & Action',
+        icon: '🏋️',
+        isPopular: true,
         subcategories: [
           'Individual sport',
           'Team sport',
@@ -116,6 +128,8 @@ const categoryData = [
       },
       {
         name: 'Corporate & Corporate',
+        icon: '🏢',
+        isPopular: true,
         subcategories: [
           'Team photo',
           'Direction & portrait CEO',
@@ -129,6 +143,8 @@ const categoryData = [
       },
       {
         name: 'Air & Drone',
+        icon: '✈️',
+        isPopular: true,
         subcategories: [
           'Overhead immobilage',
           'Aerial Landscape',
@@ -147,6 +163,8 @@ const categoryData = [
     categories: [
       {
         name: 'Cinematography',
+        icon: '🎬',
+        isPopular: true,
         subcategories: [
           'Short film',
           'Feature film',
@@ -198,6 +216,8 @@ const categoryData = [
       },
       {
         name: 'Creative Content & Social Media',
+        icon: '🎮',
+        isPopular: true,
         subcategories: [
           'YouTube (long form)',
           'TikTok & Reels',
@@ -413,6 +433,15 @@ const categoryData = [
   }
 ];
 
+const trendingSubcategories = [
+  { name: 'TikTok & Reels', badge: '🔥 TRENDING' },
+  { name: 'Corporate Video', badge: '⚡ ON THE RISE' },
+  { name: 'Portrait corporate / business', badge: '📈 +45%' },
+  { name: 'Aftermovie', badge: '🌟 POPULAR' },
+  { name: '360\u00b0 virtual tour', badge: '💡 NEW' },
+  { name: 'YouTube (long form)', badge: '🎯 APPLICATION' },
+];
+
 async function seedCategories() {
   try {
     console.log('Connecting to MongoDB...');
@@ -436,23 +465,29 @@ async function seedCategories() {
       console.log(`Processing Theme: ${theme}`);
 
       for (const catItem of categories) {
-        const { name: categoryName, subcategories } = catItem;
+        const { name: categoryName, subcategories, icon, isPopular } = catItem;
         
         const category = await Category.create({ 
           name: categoryName, 
           type: 'category', 
           theme,
+          icon,
+          isPopular: isPopular || false,
           isActive: true 
         });
         
         console.log(`  Added Category: ${categoryName}`);
 
         for (const subcategoryName of subcategories) {
+          const trendingInfo = trendingSubcategories.find(t => t.name === subcategoryName);
+          
           await Category.create({ 
             name: subcategoryName, 
             type: 'subcategory', 
             parent: category._id,
             theme,
+            isTrending: !!trendingInfo,
+            trendingBadge: trendingInfo ? trendingInfo.badge : undefined,
             isActive: true 
           });
           console.log(`    Added Subcategory: ${subcategoryName}`);

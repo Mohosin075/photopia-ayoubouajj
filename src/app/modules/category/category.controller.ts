@@ -78,10 +78,34 @@ const deleteCategory = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const getPopularCategories = catchAsync(async (req: Request, res: Response) => {
+    const result = await CategoryServices.getPopularCategories()
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Popular categories retrieved successfully',
+        data: result,
+    })
+})
+
+const getTrendingSubcategories = catchAsync(async (req: Request, res: Response) => {
+    const result = await CategoryServices.getTrendingSubcategories()
+
+    sendResponse(res, {
+        statusCode: StatusCodes.OK,
+        success: true,
+        message: 'Trending subcategories retrieved successfully',
+        data: result,
+    })
+})
+
 export const CategoryController = {
     createCategory,
     getAllCategories,
     getSingleCategory,
+    getPopularCategories,
+    getTrendingSubcategories,
     updateCategory,
     deleteCategory,
 }

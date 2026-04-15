@@ -93,6 +93,31 @@ const getSingleCategory = async (id: string) => {
     return result
 }
 
+const getPopularCategories = async () => {
+    const result = await Category.find({
+        type: 'category',
+        isPopular: true,
+        isActive: true,
+    })
+        .select('name image icon description')
+        .lean()
+
+    return result
+}
+
+const getTrendingSubcategories = async () => {
+    const result = await Category.find({
+        type: 'subcategory',
+        isTrending: true,
+        isActive: true,
+    })
+        .select('name image icon theme trendingBadge description')
+        .populate('parent', 'name')
+        .lean()
+
+    return result
+}
+
 const updateCategory = async (
     id: string,
     payload: Partial<ICategory>,
@@ -144,6 +169,8 @@ export const CategoryServices = {
     createCategory,
     getAllCategories,
     getSingleCategory,
+    getPopularCategories,
+    getTrendingSubcategories,
     updateCategory,
     deleteCategory,
 }

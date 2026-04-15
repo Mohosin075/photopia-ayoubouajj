@@ -37,7 +37,7 @@ export const SERVICE_CONSTANTS = {
     IS_ACTIVE: true,
     SERVICE_RADIUS_KM: 50,
   },
-  SEARCH_FIELDS: ['title', 'description', 'tags', 'equipment', 'subCategory'],
+  SEARCH_FIELDS: ['title', 'description', 'tags', 'equipment'],
   FILTERABLE_FIELDS: [
     'searchTerm',
     'title',

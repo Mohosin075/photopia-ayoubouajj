@@ -15,6 +15,9 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
         image: {
             type: String,
         },
+        icon: {
+            type: String,
+        },
         theme: {
             type: String,
             trim: true,
@@ -27,6 +30,18 @@ const categorySchema = new Schema<ICategory, CategoryModel>(
             type: String,
             enum: ['category', 'subcategory'],
             default: 'category',
+        },
+        isPopular: {
+            type: Boolean,
+            default: false,
+        },
+        isTrending: {
+            type: Boolean,
+            default: false,
+        },
+        trendingBadge: {
+            type: String,
+            trim: true,
         },
         isActive: {
             type: Boolean,
@@ -44,5 +59,7 @@ categorySchema.index({ name: 1, theme: 1, parent: 1 }, { unique: true })
 categorySchema.index({ theme: 1 })
 categorySchema.index({ parent: 1 })
 categorySchema.index({ type: 1 })
+categorySchema.index({ isPopular: 1 })
+categorySchema.index({ isTrending: 1 })
 
 export const Category = model<ICategory, CategoryModel>('Category', categorySchema)

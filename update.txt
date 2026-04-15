@@ -1,0 +1,84 @@
+
+👁️ SECTION 2: RECENTLY VIEWED ANNOUNCEMENT
+This section displays all the listings the customer has recently viewed
+┌─────────────────────────────────────────┐
+│  👁️ Consultés récemment     Voir tout → │
+├─────────────────────────────────────────┤
+│  ←←← SCROLL HORIZONTAL →→→              │
+│                                         │
+│  ┌─────────────┐ ┌─────────────┐       │
+│  │   [PHOTO]   │ │   [PHOTO]   │       │
+│  │             │ │             │       │
+│  │ 💒 Mariage  │ │ 📸 Portrait │       │
+│  │ Paris       │ │ Lyon        │       │
+│  │             │ │             │       │
+│  │ ⭐ 4.9 (87) │ │ ⭐ 5.0 (42) │       │
+│  │ à partir de │ │ à partir de │       │
+│  │   450€      │ │   80€       │       │
+│  │             │ │             │       │
+│  │ ⏱️ Vu il y a│ │ ⏱️ Vu hier  │       │
+│  │   2 heures  │ │             │       │
+│  └─────────────┘ └─────────────┘       │
+│                                         ││
+└─────────────────────────────────────────┘
+
+
+
+
+
+
+
+
+
+⭐ SECTION 3: MAIN CATEGORIES (Horizontal scroll)
+This is a section where you can find the most popular categories on the last year
+Icon	Category	Description
+📸	Portrait & People	Portraits, headshots, family
+💒	Weddings	Wedding photographers & videographers
+🏢	Corporate	Company, team, professional events
+🏠	Real Estate	Photos & videos real estate
+🎨	Fashion & Beauty	Lookbook, advertising, beauty
+🍔	Culinary	Food photography & video
+🎮	Creative Content	YouTube, TikTok, Instagram
+🏋️	Sport & Fitness	Action, competition, lifestyle
+🎬	Cinema & Music Videos	Short films, music videos
+✈️	Drone & Aerial	Aerial view, inspection
+📱	Social Media	Reels, TikTok, Stories
+🎓	Diplomas & Events	Graduation, ceremonies
+
+┌─────────────────────────────────────────┐
+│        CATÉGORIES POPULAIRES            │
+├─────────────────────────────────────────┤
+│  ←←← SCROLL HORIZONTAL →→→              │
+│                                         │
+│  ┌────┐ ┌────┐ ┌────┐ ┌────┐ ┌────┐   │
+│  │💒  │ │🏢  │ │🏠  │ │🍔  │ │✈️  │   │
+│  │    │ │    │ │    │ │    │ │    │   │
+│  │Mari│ │Corp│ │Immo│ │Culi│ │Dron│   │
+│  └────┘ └────┘ └────┘ └────┘ └────┘   │
+└─────────────────────────────────────────┘
+SECTION 4: TRENDING PROJECTS
+Title: Trending This Week
+This section features the week's most popular subcategories
+Badge	Name	Description
+🔥 TRENDING	Reels & TikTok	Explosive vertical contents
+⚡ ON THE RISE	Company Interviews	Authentic corporate videos
+📈 +45%	Portraits LinkedIn	Pro Photos for Career
+🌟 POPULAR	Aftermovie Event	Post-event souvenir video
+💡 NEW	360° Virtual Tour	Real Estate & Immersive Tourism
+🎯 APPLICATION	UGC Content	User Generated Content for Brands
+
+┌─────────────────────────────────────────┐
+│ 🔥 TRENDS View all → │
+├─────────────────────────────────────────┤
+│ ←←← SCROLL HORIZONTAL →→→ │
+│ 
+││ ┌─────────────────┐ ┌────────────────┐ │
+│ │ TREND 🔥 │ │ ⚡ RISING │ │
+│ │ │ │ │ │ │ 
+│ Reels & TikTok │ │ Pro Interviews │ │
+│ │ Vertical content │ │ Corporate videos│ │
+│ │ │ │ │ │ │ │ 
+│ │ +📈 45% week    │ │ 📈 +32% wk   │ │
+│ └─────────────────┘ └────────────────┘ │
+└─────────────────────────────────────────┘

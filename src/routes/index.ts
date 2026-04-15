@@ -20,6 +20,7 @@ import { WalletRoutes } from '../app/modules/wallet/wallet.route'
 import { WithdrawalRoutes } from '../app/modules/withdrawal/withdrawal.route'
 import { AnalyticsRoutes } from '../app/modules/analytics/analytics.route'
 import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route'
+import { RecentlyViewedRoutes } from '../app/modules/recentlyViewed/recentlyViewed.route'
 
 const router = express.Router()
 
@@ -67,8 +68,9 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/favourite', route: FavouriteRoutes },
   { path: '/wallet', route: WalletRoutes },
   { path: '/withdrawal', route: WithdrawalRoutes },
-  { path: '/analytics', route: AnalyticsRoutes }
-  , { path: '/public', route: PublicRoutes }
+  { path: '/analytics', route: AnalyticsRoutes },
+  { path: '/recently-viewed', route: RecentlyViewedRoutes },
+  { path: '/public', route: PublicRoutes }
 ]
 
 apiRoutes.forEach(route => {
