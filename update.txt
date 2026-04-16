@@ -82,3 +82,140 @@ Badge	Name	Description
 │ │ +📈 45% week    │ │ 📈 +32% wk   │ │
 │ └─────────────────┘ └────────────────┘ │
 └─────────────────────────────────────────┘
+
+
+
+⚡ SECTION 5: AVAILABLE RIGHT NOW
+Title: Available immediately
+This section lists the creators who are available on short notice (see the criteria below)
+Status	Category	Filters
+🟢 Online	Pros available now	Answer< 1 hour
+🟡 Quick Response	Response within 2 hours	For urgent projects
+🔵 Express delivery	Delivery 24-48h	Quick editing and editing
+🟣 This weekend	Available this weekend	Weddings, last-minute events
+🟠 Last minute	Cancelled/Suddenly available	Opportunities to seize
+
+┌─────────────────────────────────────────┐
+│ ⚡ AVAILABLE NOW View all → │
+├─────────────────────────────────────────┤
+ │  [🟢 En ligne (127)] [⏱️ <2h (89)]      │
+│  [🚀 Livraison 24h (45)]                │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │ 🟢  👤 Marc D.        à partir de │  │
+│  │     ⭐ 4.9 Photographe   80€      │  │
+│  │     Répond en ~30min               │  │
+│  └───────────────────────────────────┘  │
+│                                         │
+│  ┌───────────────────────────────────┐  │
+│  │ 🟢  👤 Sophie L.       à partir de │  │
+│  │     ⭐ 5.0 Monteuse      150€     │  │
+│  │     En ligne maintenant            │  │
+│  └───────────────────────────────────┘  │
+└─────────────────────────────────────────┘
+
+🏆 SECTION 6: SUPER PROS 
+Title: The Super Pros
+This section features the top creators based on the criteria listed below. These creators must have a premium badge.
+Criteria for the "Super Pro" badge:
+•	⭐ Minimum score 4.5/5
+•	📅 Response rate> 90%
+•	⏱️ Response in less than 2 hours
+•	✅ 95% of projects delivered on time
+•	💼 Minimum 10 projects completed
+•	🔄 Customer satisfaction rate> 98%
+Display:
+┌────────────────────────────────────────┐
+│ 🏆 SUPER PRO │
+│ ────────────────────────────────────── │
+│ 👤 Marc D. - Portrait Photographer │
+│ ⭐ 4.9 (127 reviews) • 📍 Paris │
+│ 💼 Wedding • Portrait • Corporate │
+│ 🟢 Available now │
+└────────────────────────────────────────┘
+ ┌─────────────────────────────────────────┐
+│ 🏆 SUPER PROS See all → │
+├─────────────────────────────────────────┤
+│ ┌───────────────────────────────────┐ │
+│ │ SUPER 🏆 PRO ✓ Verified │ │
+│ │ │ │ │ 
+│ │ Julien 👤 M.                     │ │
+│ │ ⭐⭐⭐⭐⭐ 4.9 (127 reviews) │ │
+│ │ Corporate Videographer │ │
+│ │ [Wedding] [Corporate] [Event]│ │
+│ │ │ │ │ │ 
+Paris 📍 from 200€│ │
+│ └───────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+Choose the right criteria for super pros (ratings / reviews / response time...)
+🎯 SECTION 8: BY CREATIVE STYLE
+Title: Find Your Style
+Style	Description	Examples
+🎬 Kinematics	Movie look, cinema atmosphere	Clips, documentaries
+🌿 Natural & Lifestyle	Spontaneous, natural light	Portrait, family
+💼 Corporate Clean	Professional, uncluttered	Corporate, HR
+🎨 Artistic & Creative	Original, experimental	Fashion, art
+📱 Social First	Network-optimized	TikTok, Reels
+🏛️ Classic & Timeless	Timeless, elegant	Wedding, portrait
+
+┌─────────────────────────────────────────┐
+│  🎨 TROUVEZ VOTRE STYLE                 │
+├─────────────────────────────────────────┤
+│  ←←← SCROLL HORIZONTAL →→→              │
+│                                         │
+│  ┌─────────┐ ┌─────────┐ ┌─────────┐  │
+│  │🎬       │ │🌿       │ │💼       │  │
+│  │Cinémat  │ │Naturel  │ │Corporate│  │
+│  │Look film│ │Lifestyle│ │Professio│  │
+│  └─────────┘ └─────────┘ └─────────┘  │
+└─────────────────────────────────────────┘
+
+📍 SECTION 9: BY LOCATION
+Title: Near You
+This section lists professionals in the surrounding towns
+┌─────────────────────────────────────────┐
+│  📍 PRÈS DE CHEZ VOUS       Voir tout → │
+├─────────────────────────────────────────┤
+│  ┌────────┐ ┌────────┐ ┌────────┐      │
+│  │🏙️      │ │🌆      │ │🌊      │      │
+│  │Paris   │ │Lyon    │ │Nice    │      │
+│  │1247 pro│ │423 pros│ │187 pros│      │
+│  └────────┘ └────────┘ └────────┘      │
+└─────────────────────────────────────────┘
+
+
+
+💡 SECTION 10: INSPIRATIONS
+Title: Ideas for your project
+This section features ideas designed to inspire customers
+Map	Description
+💡 Are you planning a wedding?	→ See our wedding packages
+💡 Launch your brand?	→ Visual identity packages
+💡 Need social content?	→ Social media plans
+💡 Selling a property?	→ Professional Real Estate Photos
+💡 Recruit?	→ HR & employer branding videos
+💡 Upcoming event?	→ Photo/video coverage
+
+┌─────────────────────────────────────────┐
+│ 💡 IDEAS FOR YOUR PROJECT │
+├─────────────────────────────────────────┤
+│ ┌───────────────────────────────────┐ │
+│ │ Are 💒 you planning a wedding?    │ │
+│ │ → See our wedding packages │ │
+│ └───────────────────────────────────┘ │
+│ ┌───────────────────────────────────┐ │
+│ │ Launch 🚀 your brand?          │ │
+│ │ → Visual Identity Packs │ │
+│ └───────────────────────────────────┘ │
+│ ┌───────────────────────────────────┐ │
+│ │ Need 📱 social content?     │ │
+│ │ → Social Media Plans │ │
+│ └───────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+
+
+
+
+
+
+

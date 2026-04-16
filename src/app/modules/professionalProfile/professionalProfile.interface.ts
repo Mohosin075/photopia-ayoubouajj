@@ -20,6 +20,10 @@ export interface IProfessionalProfile {
     profileViews: number
     projects: number
     responseRate: number
+    responseTime: number // in minutes
+    deliveryRate: number // in percentage
+    satisfactionRate: number // in percentage
+    isSuperPro: boolean
     stripeAccountId?: string
     stripeOnboardingComplete?: boolean
 }

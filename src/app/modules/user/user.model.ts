@@ -48,6 +48,8 @@ const UserSchema = new Schema<IUser, UserModel>(
     subscriptionTier: { type: String },
     trialUsed: { type: Boolean, default: false },
     subscriptionExpiresAt: { type: Date },
+    isOnline: { type: Boolean, default: false },
+    lastActive: { type: Date, default: Date.now },
 
     password: { type: String, minlength: 6 },
     roles: {

@@ -5,6 +5,8 @@ import { Review } from './review.model'
 import { JwtPayload } from 'jsonwebtoken'
 import mongoose from 'mongoose'
 import { User } from '../user/user.model'
+import { Booking } from '../booking/booking.model'
+import { Service } from '../service/service.model'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 // import { redisClient } from '../../../helpers/redis';
@@ -58,6 +60,25 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
       ],
       { session, new: true },
     )
+
+    // Update isOriginal for the specific service
+    const booking = await Booking.findById(payload.bookingId).session(session)
+    if (booking && booking.serviceId) {
+        // Fetch all reviews for this service
+        const reviews = await Review.find({ serviceId: booking.serviceId }).session(session)
+        const totalRating = reviews.reduce((acc, curr) => acc + curr.rating, 0)
+        const avgRating = reviews.length > 0 ? totalRating / reviews.length : 0
+        const reviewCount = reviews.length
+
+        if (avgRating >= 4.0 && reviewCount >= 5) {
+            await Service.findByIdAndUpdate(booking.serviceId, { isOriginal: true }).session(session)
+        } else {
+            await Service.findByIdAndUpdate(booking.serviceId, { isOriginal: false }).session(session)
+        }
+        
+        // Also update the review record with serviceId for future reference
+        await Review.findByIdAndUpdate(result[0]._id, { serviceId: booking.serviceId }).session(session)
+    }
 
     await session.commitTransaction()
     return result[0]

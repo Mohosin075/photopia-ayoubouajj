@@ -27,6 +27,10 @@ const ProfessionalProfileSchema = new Schema<IProfessionalProfile>(
         profileViews: { type: Number, default: 0 },
         projects: { type: Number, default: 0 },
         responseRate: { type: Number, default: 95 },
+        responseTime: { type: Number, default: 60 }, // default 60 minutes
+        deliveryRate: { type: Number, default: 100 },
+        satisfactionRate: { type: Number, default: 100 },
+        isSuperPro: { type: Boolean, default: false },
         stripeAccountId: { type: String, default: null },
         stripeOnboardingComplete: { type: Boolean, default: false },
     },
@@ -36,6 +40,22 @@ const ProfessionalProfileSchema = new Schema<IProfessionalProfile>(
         toObject: { virtuals: true },
     },
 )
+
+ProfessionalProfileSchema.pre('save', function (next) {
+    if (
+        this.rating >= 4.5 &&
+        this.responseRate > 90 &&
+        this.responseTime <= 120 && // 2 hours in minutes
+        this.deliveryRate >= 95 &&
+        this.projects >= 10 &&
+        this.satisfactionRate > 98
+    ) {
+        this.isSuperPro = true
+    } else {
+        this.isSuperPro = false
+    }
+    next()
+})
 
 export const ProfessionalProfile = model<IProfessionalProfile>(
     'ProfessionalProfile',

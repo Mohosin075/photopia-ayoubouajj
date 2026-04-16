@@ -10,6 +10,7 @@ import { SERVICE_CONSTANTS, serviceFilterableFields, serviceSearchableFields, SE
 import { User } from '../user/user.model'
 import { SERVICE_STATUS } from '../../../enum/service'
 import { Category } from '../category/category.model'
+import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
 
 const createService = async (payload: IService & { providerId: string }) => {
   // Check if providerId already has a service with same title
@@ -52,8 +53,83 @@ const createService = async (payload: IService & { providerId: string }) => {
 }
 
 const buildWhereConditions = async (filters: IServiceFilterables) => {
-  const { searchTerm, minPrice, maxPrice, isVerified, isActive, status, theme, ...filterData } = filters
+  const { 
+    searchTerm, 
+    minPrice, 
+    maxPrice, 
+    isVerified, 
+    isActive, 
+    status, 
+    theme,
+    isOnline,
+    quickResponse,
+    expressDelivery,
+    thisWeekend,
+    lastMinute,
+    ...filterData 
+  } = filters
   const conditions: any = {}
+
+  // ... rest of the logic ...
+  // Handle new filters based on provider profile or other criteria
+  if (isOnline !== undefined) {
+    const onlineUsers = await User.find({ isOnline: isOnline === 'true' || isOnline === true }).select('_id').lean();
+    conditions.providerId = { $in: onlineUsers.map(u => u._id) };
+  }
+
+  if (quickResponse !== undefined) {
+    const quickResProfiles = await ProfessionalProfile.find({ responseTime: { $lte: 120 } }).select('user').lean();
+    const userIds = quickResProfiles.map(p => p.user);
+    if (conditions.providerId) {
+        conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
+    } else {
+        conditions.providerId = { $in: userIds };
+    }
+  }
+
+  if (expressDelivery !== undefined) {
+       // Assuming express delivery is delivery within 48 hours
+       const expressProfiles = await ProfessionalProfile.find({ deliveryRate: { $gte: 95 } }).select('user').lean();
+       const userIds = expressProfiles.map(p => p.user);
+       if (conditions.providerId) {
+           conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
+       } else {
+           conditions.providerId = { $in: userIds };
+       }
+   }
+
+   if (thisWeekend !== undefined) {
+       // Filter providers available on Saturday or Sunday
+       const { Availability } = require('../availability/availability.model');
+       const availableProviders = await Availability.find({
+           $or: [
+               { 'defaultSchedule.saturday.isActive': true },
+               { 'defaultSchedule.sunday.isActive': true }
+           ]
+       }).select('providerId').lean();
+       const userIds = availableProviders.map((a: any) => a.providerId);
+       if (conditions.providerId) {
+           conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
+       } else {
+           conditions.providerId = { $in: userIds };
+       }
+   }
+
+   if (lastMinute !== undefined) {
+       // Filter providers with low advance notice hours
+       const { Availability } = require('../availability/availability.model');
+       const lastMinuteProviders = await Availability.find({
+           advanceNoticeHours: { $lte: 4 } // 4 hours or less
+       }).select('providerId').lean();
+       const userIds = lastMinuteProviders.map((a: any) => a.providerId);
+       if (conditions.providerId) {
+           conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
+       } else {
+           conditions.providerId = { $in: userIds };
+       }
+   }
+   
+   // theme filtering logic already exists below...
 
   // Exclude DELETED services by default unless explicitly filtering for them
   if (status !== undefined) {
@@ -185,11 +261,16 @@ const updateService = async (
   }
 
   // Check if user is authorized (providerId or admin)
-  if (userId && service.providerId.toString() !== userId) {
-    const user = await User.findById(userId)
-    if (!user || !user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
-      throw new ApiError(StatusCodes.UNAUTHORIZED, SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED)
-    }
+  const user = userId ? await User.findById(userId) : null
+  const isAdmin = user && user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))
+
+  if (userId && service.providerId.toString() !== userId && !isAdmin) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED)
+  }
+
+  // Only Admin can set isOriginal
+  if (payload.isOriginal !== undefined && !isAdmin) {
+    delete payload.isOriginal
   }
 
   // Check for duplicate title if updating

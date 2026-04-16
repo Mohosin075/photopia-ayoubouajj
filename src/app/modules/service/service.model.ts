@@ -227,9 +227,9 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: locationSchema,
       required: true,
     },
-    // coverMedia: {
-    //   type: String,
-    // },
+    coverMedia: {
+      type: String,
+    },
     gallery: {
       type: [String],
       default: [],
@@ -247,6 +247,10 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     isActive: {
       type: Boolean,
       default: SERVICE_CONSTANTS.DEFAULT_VALUES.IS_ACTIVE,
+    },
+    isOriginal: {
+      type: Boolean,
+      default: false,
     },
   },
   {
@@ -266,6 +270,7 @@ serviceSchema.index({ 'location.type': 1 })
 serviceSchema.index({ 'location.city': 1, 'location.country': 1 })
 serviceSchema.index({ status: 1 })
 serviceSchema.index({ isActive: 1 })
+serviceSchema.index({ isOriginal: 1 })
 serviceSchema.index({ price: 1 })
 serviceSchema.index({ title: 'text', description: 'text', tags: 'text' })
 

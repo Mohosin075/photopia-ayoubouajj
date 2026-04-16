@@ -10,6 +10,7 @@ import { SERVICE_CONSTANTS, serviceFilterableFields } from './service.constants'
 import { JwtPayload } from 'jsonwebtoken'
 import { IServiceFilterables } from './service.interface'
 import { SERVICE_STATUS } from '../../../enum/service'
+import { RecentlyViewedServices } from '../recentlyViewed/recentlyViewed.service'
 
 const createService = catchAsync(async (req: Request, res: Response) => {
   const serviceData = req.body
@@ -52,6 +53,14 @@ const getAllServices = catchAsync(async (req: Request, res: Response) => {
 const getSingleService = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const result = await ServiceServices.getSingleService(id)
+
+  // Record view if user is authenticated
+  const user = req.user as JwtPayload
+  if (user?.userId) {
+    RecentlyViewedServices.recordView(user.userId, id).catch(err => {
+        console.error('Failed to record view:', err)
+    })
+  }
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

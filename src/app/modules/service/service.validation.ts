@@ -123,6 +123,7 @@ export const updateServiceSchema = z.object({
     status: z.enum(statusValues).optional(),
     isVerified: z.boolean().optional(),
     isActive: z.boolean().optional(),
+    isOriginal: z.boolean().optional(),
   }).superRefine((data, ctx) => {
     if (data.pricingType === SERVICE_PRICING_TYPE.DAILY) {
       if (data.pricingModel && !data.pricingModel.dailyRate) {

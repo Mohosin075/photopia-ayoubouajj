@@ -4,6 +4,7 @@ import { IUser } from '../user/user.interface';
 export type IReview = {
   _id?: Types.ObjectId;
   bookingId: Types.ObjectId;
+  serviceId?: Types.ObjectId;
   reviewer: Types.ObjectId | IUser;
   reviewee?: Types.ObjectId | IUser;
   rating: number;

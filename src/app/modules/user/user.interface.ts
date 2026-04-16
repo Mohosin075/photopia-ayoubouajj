@@ -67,6 +67,8 @@ export interface IUser {
   subscriptionTier?: string
   trialUsed?: boolean
   subscriptionExpiresAt?: Date
+  isOnline: boolean
+  lastActive: Date
   // membership: Membership
 
   settings?: {

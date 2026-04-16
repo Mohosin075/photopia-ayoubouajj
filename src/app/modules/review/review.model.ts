@@ -1,9 +1,11 @@
 import { Schema, model } from 'mongoose'
 import { IReview, ReviewModel } from './review.interface'
+import { Service } from '../service/service.model'
 
 const reviewSchema = new Schema<IReview, ReviewModel>(
   {
     bookingId: { type: Schema.Types.ObjectId, ref: 'Booking', required: true },
+    serviceId: { type: Schema.Types.ObjectId, ref: 'Service' },
     reviewer: {
       type: Schema.Types.ObjectId,
       ref: 'User',

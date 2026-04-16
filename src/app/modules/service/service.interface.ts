@@ -37,6 +37,12 @@ export interface IServiceFilterables {
   serviceType?: SERVICE_TYPE | string
   isActive?: boolean | string
   theme?: string
+  isOnline?: boolean | string
+  quickResponse?: boolean | string
+  expressDelivery?: boolean | string
+  thisWeekend?: boolean | string
+  lastMinute?: boolean | string
+  isOriginal?: boolean | string
 }
 
 export interface IService {
@@ -99,6 +105,7 @@ export interface IService {
   status: SERVICE_STATUS
   isVerified: boolean
   isActive: boolean
+  isOriginal: boolean
   createdAt: Date
   updatedAt: Date
 }
