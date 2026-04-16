@@ -1,11 +1,11 @@
 # Flutter Integration Guide: Service Management & Pricing
 
-This guide provides everything you need to integrate the **Service** module into the Photopia Flutter application. It covers data models, API endpoints, filtering, and media uploads.
+This guide provides a comprehensive reference for integrating the **Service** module into the Photopia Flutter application. It covers everything from standard response parsing to complex pricing models, media uploads, and booking logic.
 
 ---
 
-## 1. Global Response Structure
-All API responses follow a standard wrapper. Use this generic class in Dart to handle responses.
+## 1. Standard Response Handling
+All backend APIs wrap data in a common structure. Use these Dart base classes for consistent parsing.
 
 ### ApiResponse Wrapper
 ```dart
@@ -28,7 +28,7 @@ class ApiResponse<T> {
     return ApiResponse(
       statusCode: json['statusCode'],
       success: json['success'],
-      message: json['message'],
+      message: json['message'] ?? '',
       meta: json['meta'] != null ? ApiMeta.fromJson(json['meta']) : null,
       data: json['data'] != null ? fromJsonT(json['data']) : null,
     );
@@ -39,14 +39,16 @@ class ApiMeta {
   final int page;
   final int limit;
   final int total;
+  final int? totalPages;
 
-  ApiMeta({required this.page, required this.limit, required this.total});
+  ApiMeta({required this.page, required this.limit, required this.total, this.totalPages});
 
   factory ApiMeta.fromJson(Map<String, dynamic> json) {
     return ApiMeta(
       page: json['page'] ?? 1,
       limit: json['limit'] ?? 10,
       total: json['total'] ?? 0,
+      totalPages: json['totalPages'],
     );
   }
 }
@@ -54,30 +56,36 @@ class ApiMeta {
 
 ---
 
-## 2. Service Data Models
-Update your Flutter models to match the backend interfaces.
+## 2. Comprehensive Data Models
+Update your models to reflect the current backend logic, including pricing rules and travel fees.
 
 ### Service Model
 ```dart
 class ServiceModel {
   final String id;
-  final String providerId;
+  final String providerId; // Populated Object or ID
   final String title;
   final String description;
-  final String category; // Category ID
+  final String category; // Populated Object or ID
   final String serviceType; // e.g., 'photography', 'videography'
   final String? subCategory;
+  final String? theme;
   final List<String>? tags;
   final List<String>? equipment;
-  final double price;
+  final double price; // Base or Hourly Rate
   final String currency;
   final String pricingType; // 'HOURLY', 'DAILY', 'PACKAGE'
   final ServicePricingModel? pricingModel;
-  final CancellationPolicy? cancellationPolicy;
+  final List<PricingRule>? pricingRules;
   final ServiceLocation location;
+  final double? travelFeePerKm;
+  final bool allowOutsideRadius;
+  final double? maxTravelFee;
+  final int depositPercentage; // Default is usually 50
+  final CancellationPolicy? cancellationPolicy;
   final String? coverMedia;
   final List<String>? gallery;
-  final String status;
+  final String status; // 'DRAFT', 'ACTIVE', 'INACTIVE', etc.
   final bool isVerified;
   final bool isActive;
 
@@ -89,14 +97,20 @@ class ServiceModel {
     required this.category,
     required this.serviceType,
     this.subCategory,
+    this.theme,
     this.tags,
     this.equipment,
     required this.price,
     required this.currency,
     required this.pricingType,
     this.pricingModel,
-    this.cancellationPolicy,
+    this.pricingRules,
     required this.location,
+    this.travelFeePerKm,
+    this.allowOutsideRadius = false,
+    this.maxTravelFee,
+    this.depositPercentage = 50,
+    this.cancellationPolicy,
     this.coverMedia,
     this.gallery,
     required this.status,
@@ -107,20 +121,28 @@ class ServiceModel {
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
     return ServiceModel(
       id: json['_id'],
-      providerId: json['providerId'],
+      providerId: json['providerId'] is Map ? json['providerId']['_id'] : json['providerId'],
       title: json['title'],
       description: json['description'],
-      category: json['category'],
+      category: json['category'] is Map ? json['category']['_id'] : json['category'],
       serviceType: json['serviceType'],
       subCategory: json['subCategory'],
+      theme: json['theme'],
       tags: json['tags'] != null ? List<String>.from(json['tags']) : null,
       equipment: json['equipment'] != null ? List<String>.from(json['equipment']) : null,
       price: (json['price'] as num).toDouble(),
       currency: json['currency'] ?? 'EUR',
       pricingType: json['pricingType'],
       pricingModel: json['pricingModel'] != null ? ServicePricingModel.fromJson(json['pricingModel']) : null,
-      cancellationPolicy: json['cancellationPolicy'] != null ? CancellationPolicy.fromJson(json['cancellationPolicy']) : null,
+      pricingRules: json['pricingRules'] != null 
+        ? (json['pricingRules'] as List).map((r) => PricingRule.fromJson(r)).toList() 
+        : null,
       location: ServiceLocation.fromJson(json['location']),
+      travelFeePerKm: (json['travelFeePerKm'] as num?)?.toDouble(),
+      allowOutsideRadius: json['allowOutsideRadius'] ?? false,
+      maxTravelFee: (json['maxTravelFee'] as num?)?.toDouble(),
+      depositPercentage: json['depositPercentage'] ?? 50,
+      cancellationPolicy: json['cancellationPolicy'] != null ? CancellationPolicy.fromJson(json['cancellationPolicy']) : null,
       coverMedia: json['coverMedia'],
       gallery: json['gallery'] != null ? List<String>.from(json['gallery']) : null,
       status: json['status'],
@@ -129,7 +151,10 @@ class ServiceModel {
     );
   }
 }
+```
 
+### Supporting Models
+```dart
 class ServiceLocation {
   final String type; // 'ONSITE', 'REMOTE'
   final String country;
@@ -137,9 +162,9 @@ class ServiceLocation {
   final String? address;
   final double? lat;
   final double? lng;
-  final int? serviceRadiusKm;
+  final int serviceRadiusKm;
 
-  ServiceLocation({required this.type, required this.country, required this.city, this.address, this.lat, this.lng, this.serviceRadiusKm});
+  ServiceLocation({required this.type, required this.country, required this.city, this.address, this.lat, this.lng, this.serviceRadiusKm = 50});
 
   factory ServiceLocation.fromJson(Map<String, dynamic> json) {
     return ServiceLocation(
@@ -149,7 +174,7 @@ class ServiceLocation {
       address: json['address'],
       lat: (json['coordinates']?['lat'] as num?)?.toDouble(),
       lng: (json['coordinates']?['lng'] as num?)?.toDouble(),
-      serviceRadiusKm: json['serviceRadiusKm'],
+      serviceRadiusKm: json['serviceRadiusKm'] ?? 50,
     );
   }
 }
@@ -198,6 +223,24 @@ class ServicePackage {
   }
 }
 
+class PricingRule {
+  final String ruleType; // 'peak_hour', 'weekend', 'holiday', etc.
+  final String modifierType; // 'percentage', 'fixed', 'multiplier'
+  final double modifierValue;
+  final int priority;
+
+  PricingRule({required this.ruleType, required this.modifierType, required this.modifierValue, required this.priority});
+
+  factory PricingRule.fromJson(Map<String, dynamic> json) {
+    return PricingRule(
+      ruleType: json['ruleType'],
+      modifierType: json['modifierType'],
+      modifierValue: (json['modifierValue'] as num).toDouble(),
+      priority: json['priority'] ?? 0,
+    );
+  }
+}
+
 class CancellationPolicy {
   final int freeCancellationHours;
   final int partialRefundHours;
@@ -217,86 +260,343 @@ class CancellationPolicy {
 
 ---
 
-## 3. Main Endpoints
+## 3. Pricing Logic Re-checked
+Each `pricingType` has specific validation and booking behavior.
 
-### 🔗 Base URL: `{{BASE_URL}}/api/v1/services`
-
-| Method | Endpoint | Description | Auth Required |
-| :--- | :--- | :--- | :--- |
-| **GET** | `/` | Fetch all services with filters | No |
-| **GET** | `/:id` | Get details of a single service | No |
-| **GET** | `/provider/:providerId` | Get services of a specific provider | No |
-| **GET** | `/my/services` | Get services owned by current provider | Yes |
-| **POST** | `/` | Create a new service (Multipart) | Yes |
-| **PATCH** | `/:id` | Update an existing service (Multipart) | Yes |
-| **DELETE** | `/:id` | Delete a service | Yes |
-| **PATCH** | `/:id/status` | Toggle status (ACTIVE/INACTIVE) | Yes |
-
----
-
-## 4. Fetching & Filtering
-The `GET /` endpoint supports several query parameters for filtering.
-
-**Query Parameters:**
-- `searchTerm`: Search in title/description.
-- `category`: Filter by category ID.
-- `pricingType`: `HOURLY`, `DAILY`, `PACKAGE`.
-- `minPrice` / `maxPrice`: Price range.
-- `location.city` / `location.country`: Geographic filter.
-- `serviceType`: e.g. `photography`.
-
-**Example Request:**
-`GET /api/v1/services?category=65f...&pricingType=PACKAGE&minPrice=100`
+- **HOURLY**:
+    - Uses `price` as the hourly rate.
+    - If `weekdayHourlyRate` or `weekendHourlyRate` exist in `pricingModel`, they **override** the base `price` automatically based on the booking date.
+- **DAILY**:
+    - **Mandatory**: `pricingModel.dailyRate`.
+    - Backend automatically treats the booking as a full day (duration = `dailyHours` or 8h default).
+- **PACKAGE**:
+    - **Mandatory**: `pricingModel.packages` (at least one).
+    - Client **must** send `packageName` in the booking request.
+    - `endTime` is automatically recalculated by the backend based on `startTime` + package `duration`.
 
 ---
 
-## 5. Service Creation (Multipart)
-Since services include media uploads, use `multipart/form-data`.
+## 4. Demo Data for Smooth Integration
 
-### Request Configuration
-- **Header:** `Content-Type: multipart/form-data`
-- **Field `data`:** Stringified JSON of the service object.
-- **Field `coverPhoto`:** Single image file.
-- **Field `images`:** List of image files (up to 5).
+### A. Demo: Creating a PACKAGE Service
+Use this JSON in the `data` field of your `multipart/form-data` request.
 
-### JSON structure for `data` field:
 ```json
 {
-  "title": "Professional Wedding Photography",
-  "description": "Full day coverage...",
-  "category": "65f... (ID)",
+  "title": "Wedding Photography Gold",
+  "description": "Premium 8-hour wedding coverage with drone shots and high-end editing.",
+  "category": "65f8a... (Category ID)",
   "serviceType": "photography",
+  "price": 600,
+  "currency": "EUR",
+  "duration": "8 hours",
   "pricingType": "PACKAGE",
-  "price": 500,
   "pricingModel": {
     "type": "PACKAGE",
     "packages": [
-      { "name": "Standard", "price": 500, "duration": 5, "description": "Basic set" }
+      {
+        "name": "Gold Wedding",
+        "price": 800,
+        "duration": 8,
+        "description": "Full day gold coverage",
+        "includes": ["200 Photos", "Post-editing", "Drone Shot"]
+      },
+      {
+        "name": "Silver Wedding",
+        "price": 500,
+        "duration": 4,
+        "description": "Half day silver coverage",
+        "includes": ["100 Photos", "Post-editing"]
+      }
     ]
   },
   "location": {
     "type": "ONSITE",
     "country": "Germany",
-    "city": "Berlin"
+    "city": "Berlin",
+    "serviceRadiusKm": 50,
+    "coordinates": { "lat": 52.52, "lng": 13.405 }
+  },
+  "tags": ["wedding", "professional", "berlin"],
+  "equipment": ["Sony A7IV", "35mm f1.4", "DJI Mini 3 Pro"]
+}
+```
+
+### B. Demo: Creating a DAILY Service
+```json
+{
+  "title": "Full Day Studio Rental",
+  "description": "Large professional studio available for full day rentals.",
+  "category": "65f8a... (Category ID)",
+  "serviceType": "studio_rental",
+  "price": 400,
+  "pricingType": "DAILY",
+  "pricingModel": {
+    "type": "DAILY",
+    "dailyRate": 400,
+    "dailyHours": 10
+  },
+  "location": {
+    "type": "ONSITE",
+    "country": "France",
+    "city": "Paris"
   }
 }
 ```
 
 ---
 
-## 6. Booking Hints
-When a user selects a package, send the `packageName` in the booking request.
+## 5. Image Handling logic
+When creating or updating a service via `multipart/form-data`:
 
-> [!IMPORTANT]
-> **Automatic Duration:** The backend automatically calculates the `endTime` based on the selected package's `duration` or the default `dailyHours`.
-
-> [!TIP]
-> **Deposit:** The system calculates a **50% deposit** by default for any service booking, which is required for Stripe Checkout completion.
+1.  **Field names**: Use `coverPhoto` for the main image and `images` (array) for additional gallery images.
+2.  **Logic**: If you only upload files to the `images` field, the backend automatically takes the **first image** from the `images` array and sets it as `coverMedia`.
 
 ---
 
-## 7. Status Management
-Toggle a service's availability using the status endpoint.
+## 6. Booking Workflow Facts
+Integrators should be aware of these automatic backend processes:
 
-**Endpoint:** `PATCH /services/:id/status`
-**Body:** `{ "status": "INACTIVE" }`
+- **Travel Fees**: If the event address coordinates are more than `serviceRadiusKm` away from the service's coordinates, a travel fee is added (`distance * travelFeePerKm`). This is capped by `maxTravelFee`.
+- **Automatic Geocoding**: If you don't send coordinates for the event location in a booking, the backend will attempt to geocode the `address`, `city`, and `country` string.
+- **Deposit**: A **50% deposit** is mandatory. The `POST /bookings` response will contain a `paymentSession` (Stripe Checkout URL) that the client **must** visit to confirm the booking.
+- **Booking Number**: Backend generates a unique ID like `B-123456789` for every booking.
+
+---
+
+## 7. Service Status & Visibility
+- **DRAFT**: Visible only to the provider.
+- **ACTIVE**: Publicly visible and bookable.
+- **INACTIVE**: Publicly visible but **not bookable**.
+- **DELETED**: Completely hidden (soft deleted).
+---
+
+## 8. Flutter Implementation (Code Example)
+When creating a service from Flutter, you **must** use `multipart/form-data`. The most important part is that all text data (title, price, location, etc.) must be stringified into a single field named **`data`**.
+
+### Using Dio (Recommended)
+```dart
+import 'package:dio/dio.dart';
+import 'dart:convert';
+
+Future<void> createService(ServiceModel service, List<String> imagePaths) async {
+  Dio dio = Dio();
+  
+  // 1. Prepare the JSON data
+  Map<String, dynamic> jsonData = {
+    "title": service.title,
+    "description": service.description,
+    "category": service.category,
+    "serviceType": service.serviceType,
+    "price": service.price,
+    "currency": service.currency,
+    "duration": "2 hours", // or dynamic
+    "pricingType": service.pricingType,
+    "pricingModel": {
+        "type": service.pricingType,
+        "packages": service.pricingModel?.packages?.map((p) => {
+            "name": p.name,
+            "price": p.price,
+            "duration": p.duration,
+            "description": p.description,
+            "includes": p.includes
+        }).toList()
+    },
+    "location": {
+      "type": "ONSITE",
+      "country": "Germany",
+      "city": "Berlin",
+      "address": "123 Main St",
+      "serviceRadiusKm": 50
+    }
+  };
+
+  // 2. Create FormData
+  FormData formData = FormData.fromMap({
+    "data": jsonEncode(jsonData), // MUST be stringified JSON
+    "coverPhoto": await MultipartFile.fromFile(imagePaths[0], filename: "cover.jpg"),
+    "images": [
+      for (var path in imagePaths)
+        await MultipartFile.fromFile(path, filename: path.split('/').last)
+    ],
+  });
+
+  // 3. Send Request
+  try {
+    var response = await dio.post(
+      "https://your-api.com/api/v1/services",
+      data: formData,
+      options: Options(
+        headers: {
+          "Authorization": "Bearer YOUR_TOKEN",
+          "Content-Type": "multipart/form-data",
+        },
+      ),
+    );
+    print("Success: ${response.data}");
+  } catch (e) {
+    print("Error: $e");
+  }
+}
+```
+
+> [!CAUTION]
+> **Common Mistake:** Sending `title` or `price` as direct fields in `FormData` will fail validation. The backend only looks at the `data` field for these values.
+
+---
+
+## 9. Troubleshooting Integration
+If you get a `400 Bad Request` or `Validation Error`:
+
+1.  **Check the `data` field**: Ensure it is a valid JSON string. Use `jsonEncode()` in Dart.
+2.  **Required Fields**: Ensure `category` is a valid MongoDB ObjectId string.
+3.  **Pricing Type**: If `pricingType` is `PACKAGE`, you **must** include `pricingModel.packages` with at least one item.
+4.  **Field Names**: Ensure file fields are named `coverPhoto` or `images` exactly as shown.
+
+---
+
+## 10. State Management with Provider
+Using `Provider` is the recommended way to manage service data and creation state across the app.
+
+### ServiceProvider Implementation
+```dart
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'dart:convert';
+
+class ServiceProvider with ChangeNotifier {
+  final Dio _dio = Dio(BaseOptions(baseUrl: "YOUR_BASE_URL"));
+  
+  List<ServiceModel> _services = [];
+  List<ServiceModel> _myServices = [];
+  bool _isLoading = false;
+  String? _error;
+
+  // Getters
+  List<ServiceModel> get services => _services;
+  List<ServiceModel> get myServices => _myServices;
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+
+  // Fetch Public Services with Optional Filters
+  Future<void> fetchPublicServices({Map<String, dynamic>? filters}) async {
+    _setLoading(true);
+    try {
+      final response = await _dio.get('/api/v1/services', queryParameters: filters);
+      
+      // Map the generic ApiResponse to a List<ServiceModel>
+      final apiResponse = ApiResponse<List<ServiceModel>>.fromJson(
+        response.data,
+        (data) {
+           // Backend returns { meta: {...}, data: [...] } for list endpoints
+           List list = data is Map ? data['data'] : data;
+           return list.map((s) => ServiceModel.fromJson(s)).toList();
+        },
+      );
+      
+      if (apiResponse.success) {
+        _services = apiResponse.data ?? [];
+        _error = null;
+      }
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Create Service (Multipart)
+  Future<bool> createService(ServiceModel service, List<String> imagePaths, String token) async {
+    _setLoading(true);
+    try {
+      // 1. Prepare JSON
+      Map<String, dynamic> jsonData = {
+        "title": service.title,
+        "description": service.description,
+        "category": service.category,
+        "serviceType": service.serviceType,
+        "price": service.price,
+        "currency": service.currency,
+        "duration": "2 hours",
+        "pricingType": service.pricingType,
+        "pricingModel": service.pricingModel != null ? {
+          "type": service.pricingType,
+          "dailyRate": service.pricingModel?.dailyRate,
+          "dailyHours": service.pricingModel?.dailyHours,
+          "packages": service.pricingModel?.packages?.map((p) => {
+            "name": p.name,
+            "price": p.price,
+            "duration": p.duration,
+            "description": p.description,
+          }).toList(),
+        } : null,
+        "location": {
+          "type": service.location.type,
+          "country": service.location.country,
+          "city": service.location.city,
+          "serviceRadiusKm": service.location.serviceRadiusKm,
+        }
+      };
+
+      // 2. Prepare FormData
+      FormData formData = FormData.fromMap({
+        "data": jsonEncode(jsonData),
+        "coverPhoto": await MultipartFile.fromFile(imagePaths[0], filename: "cover.jpg"),
+        "images": [
+          for (var path in imagePaths)
+            await MultipartFile.fromFile(path, filename: path.split('/').last)
+        ],
+      });
+
+      // 3. Request
+      final response = await _dio.post(
+        '/api/v1/services',
+        data: formData,
+        options: Options(headers: {"Authorization": "Bearer $token"}),
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        await fetchPublicServices(); // Refresh list
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  void _setLoading(bool val) {
+    _isLoading = val;
+    notifyListeners();
+  }
+}
+```
+
+### Usage in UI
+Wrap your app in `main.dart`:
+```dart
+MultiProvider(
+  providers: [
+    ChangeNotifierProvider(create: (_) => ServiceProvider()),
+  ],
+  child: MyApp(),
+)
+```
+
+Use `Consumer` to display services:
+```dart
+Consumer<ServiceProvider>(
+  builder: (context, provider, child) {
+    if (provider.isLoading) return Center(child: CircularProgressIndicator());
+    if (provider.error != null) return Center(child: Text("Error: ${provider.error}"));
+    
+    return ListView.builder(
+      itemCount: provider.services.length,
+      itemBuilder: (context, index) => ServiceCard(service: provider.services[index]),
+    );
+  },
+)
+```
