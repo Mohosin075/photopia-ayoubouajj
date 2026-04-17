@@ -185,3 +185,53 @@ The `isOriginal` badge is automatically assigned to a service when:
 - **Review Count**: 5 or more reviews.
 
 **Automation**: This is updated in real-time whenever a new review is submitted. Admin manual override is also possible via the service update API.
+
+---
+
+## 📍 Location API (Google Places & Geocoding)
+Used for finding and validating addresses during booking or profile setup.
+
+### 1. Location Search (Autocomplete)
+- **Endpoint**: `GET /api/v1/locations/search?q=query`
+- **Auth**: Required
+- **Query Params**:
+  - `q` (String, Required): The search text (e.g., "Par").
+- **Error Responses**:
+  - `400 Bad Request`: If `q` is missing (Validation Error).
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "Location suggestions retrieved successfully",
+  "data": [
+    {
+      "description": "Paris, France",
+      "placeId": "ChIJD7fiBh9u5kcRY9ia9JhH-CQ",
+      "mainText": "Paris",
+      "secondaryText": "France"
+    }
+  ]
+}
+```
+
+### 2. Geocode Address (Address to Lat/Lng)
+- **Endpoint**: `GET /api/v1/locations/geocode?address=address`
+- **Auth**: Required
+- **Query Params**:
+  - `address` (String, Required): The full address to geocode.
+- **Error Responses**:
+  - `400 Bad Request`: If `address` is missing (Validation Error).
+  - `404 Not Found`: If Google cannot find the location (`ZERO_RESULTS`).
+- **Response**:
+```json
+{
+  "success": true,
+  "message": "Location geocoded successfully",
+  "data": {
+    "lat": 48.856614,
+    "lng": 2.3522219,
+    "formattedAddress": "Paris, France",
+    "placeId": "ChIJD7fiBh9u5kcRY9ia9JhH-CQ"
+  }
+}
+```
