@@ -69,6 +69,23 @@ const deleteProfile = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const deactivateProfile = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload
+  const { password } = req.body
+
+  if (!password) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Password is required')
+  }
+
+  const result = await UserServices.deactivateProfile(user.userId, password)
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'User profile deactivated successfully. You can reactivate by logging in again.',
+    data: result,
+  })
+})
+
 const getUserById = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params
   const result = await UserServices.getUserById(userId)
@@ -134,5 +151,6 @@ export const UserController = {
   updateUserStatus,
   getProfile,
   deleteProfile,
+  deactivateProfile,
   switchRole,
 }

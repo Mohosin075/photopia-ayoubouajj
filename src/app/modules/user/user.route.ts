@@ -43,6 +43,12 @@ router.delete(
   auth(USER_ROLES.ADMIN, USER_ROLES.USER),
   UserController.deleteProfile,
 )
+
+router.patch(
+  '/deactivate-profile',
+  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.SUPER_ADMIN),
+  UserController.deactivateProfile,
+)
 router.post(
     '/stripe-connect-onboarding',
     auth(USER_ROLES.PROFESSIONAL),

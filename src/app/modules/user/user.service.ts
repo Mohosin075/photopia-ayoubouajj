@@ -224,6 +224,41 @@ const deleteProfile = async (
   return 'User deleted successfully.'
 }
 
+const deactivateProfile = async (
+  userId: string,
+  password: string,
+): Promise<string> => {
+  const isUserExist = await User.findOne({
+    _id: userId,
+    status: { $nin: [USER_STATUS.DELETED] },
+  }).select('+password')
+
+  if (!isUserExist) {
+    throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
+  }
+
+  const isPasswordMatched = await User.isPasswordMatched(
+    password,
+    isUserExist.password,
+  )
+
+  if (!isPasswordMatched) {
+    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Password is incorrect.')
+  }
+
+  const deactivatedUser = await User.findOneAndUpdate(
+    { _id: userId, status: { $nin: [USER_STATUS.DELETED] } },
+    { $set: { status: USER_STATUS.INACTIVE } },
+    { new: true },
+  )
+
+  if (!deactivatedUser) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Failed to deactivate user.')
+  }
+
+  return 'User deactivated successfully.'
+}
+
 const getUserById = async (userId: string): Promise<any> => {
   const isUserExist = await User.findOne({
     _id: userId,
@@ -353,5 +388,6 @@ export const UserServices = {
   updateUserStatus,
   getProfile,
   deleteProfile,
+  deactivateProfile,
   switchRole,
 }

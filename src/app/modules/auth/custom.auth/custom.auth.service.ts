@@ -101,7 +101,7 @@ const customLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
 
   const isUserExist = await User.findOne({
     ...query,
-    status: { $in: [USER_STATUS.ACTIVE] },
+    status: { $in: [USER_STATUS.ACTIVE, USER_STATUS.INACTIVE] },
   })
     .select('+password +authentication')
     .lean()
@@ -469,6 +469,9 @@ const socialLogin = async (
     await User.findByIdAndUpdate(isUserExist._id, {
       $set: {
         deviceToken,
+        status: USER_STATUS.ACTIVE,
+        'authentication.restrictionLeftAt': null,
+        'authentication.wrongLoginAttempts': 0,
       },
     })
 
