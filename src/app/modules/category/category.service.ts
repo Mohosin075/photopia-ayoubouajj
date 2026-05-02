@@ -160,6 +160,9 @@ const deleteCategory = async (id: string) => {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Category not found')
     }
 
+    // Delete associated subcategories if any
+    await Category.deleteMany({ parent: id })
+
     const result = await Category.findByIdAndDelete(id)
 
     return result
