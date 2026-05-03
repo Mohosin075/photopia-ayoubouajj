@@ -21,6 +21,10 @@ const messageSchema = new Schema<IMessage, MessageModel>(
       type: String,
       required: false
     },
+    file: {
+      type: String,
+      required: false
+    },
     seen: {
       type: Boolean,
       default: false,

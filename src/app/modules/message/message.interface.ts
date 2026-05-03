@@ -5,6 +5,7 @@ export type IMessage = {
   sender: Types.ObjectId;
   text?: string;
   image?: string;
+  file?: string;
   seen: boolean;
 };
 
