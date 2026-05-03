@@ -33,7 +33,8 @@ const calculatePrice = async (
   date: Date,
   distanceFromProviderKm: number,
   overrides?: { priceOverride?: number; rateMultiplier?: number },
-  packageName?: string
+  packageName?: string,
+  customOptions?: { name: string; price: number }[]
 ) => {
   const service = await Service.findById(serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
@@ -98,6 +99,12 @@ const calculatePrice = async (
 
   subtotal += travelFee
 
+  // Add Custom Options
+  if (customOptions && customOptions.length > 0) {
+    const optionsTotal = customOptions.reduce((acc, opt) => acc + opt.price, 0)
+    subtotal += optionsTotal
+  }
+
   const platformCommissionClient = 0.10 // 10% from user (client)
   const platformCommissionProvider = 0.05 // 5% from provider
   
@@ -116,7 +123,8 @@ const calculatePrice = async (
     clientTotal,
     providerEarnings,
     currency: service.currency || 'EUR',
-    durationHours
+    durationHours,
+    customOptions
   }
 }
 
@@ -181,7 +189,8 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
     bookingDate,
     payload.eventLocation.distanceFromProviderKm || 0,
     availabilityCheck.pricing,
-    payload.packageName
+    payload.packageName,
+    payload.customOptions
   )
 
   // Calculate actual end time based on the duration returned from pricing
@@ -481,11 +490,91 @@ const getMyBookingsByDate = async (
   return result
 }
 
+const modifyBookingOffer = async (
+  bookingId: string,
+  providerId: string,
+  payload: {
+    baseRate?: number;
+    packageName?: string;
+    customOptions?: { name: string; price: number }[];
+  }
+): Promise<IBooking | null> => {
+  const booking = await Booking.findById(bookingId)
+  if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
+
+  if (booking.providerId.toString() !== providerId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only the professional who received this booking can modify the offer')
+  }
+
+  if (booking.status !== 'pending') {
+    throw new ApiError(httpStatus.BAD_REQUEST, `Cannot modify offer when booking status is ${booking.status}`)
+  }
+
+  if (booking.paymentStatus !== 'pending') {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot modify offer after payment has been initiated or completed')
+  }
+
+  // Recalculate Pricing
+  const overrides = payload.baseRate ? { priceOverride: payload.baseRate } : undefined
+  
+  const pricingResult = await calculatePrice(
+    booking.serviceId.toString(),
+    booking.startTime,
+    booking.endTime,
+    booking.bookingDate,
+    booking.eventLocation.distanceFromProviderKm || 0,
+    overrides,
+    payload.packageName || booking.packageName,
+    payload.customOptions || (booking.customOptions as any)
+  )
+
+  // Update Booking Top-level Properties
+  booking.packageName = pricingResult.packageName
+  booking.customOptions = pricingResult.customOptions as any
+  booking.durationHours = pricingResult.durationHours
+  
+  // Extract only the fields that belong in pricingDetails
+  const { 
+    pricingType, 
+    baseRate, 
+    isWeekend, 
+    travelFee, 
+    subtotal, 
+    platformCommissionClient, 
+    platformCommissionProvider, 
+    clientTotal, 
+    providerEarnings, 
+    currency 
+  } = pricingResult
+
+  booking.pricingDetails = {
+    pricingType,
+    baseRate,
+    isWeekend,
+    travelFee,
+    subtotal,
+    platformCommissionClient,
+    platformCommissionProvider,
+    clientTotal,
+    providerEarnings,
+    currency
+  }
+  
+  // Update deposit/balance
+  booking.depositPercentage = 0.5 
+  booking.depositAmount = Number((clientTotal * booking.depositPercentage).toFixed(2))
+  booking.balanceAmount = Number((clientTotal - booking.depositAmount).toFixed(2))
+
+  await booking.save()
+  return booking
+}
+
 export const BookingService = {
   createBooking,
   updateBookingStatus,
   getMyBookings,
   calculatePrice,
   getSingleBooking,
-  getMyBookingsByDate
+  getMyBookingsByDate,
+  modifyBookingOffer
 }

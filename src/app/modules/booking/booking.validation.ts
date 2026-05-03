@@ -35,3 +35,14 @@ export const updateBookingStatusSchema = z.object({
     cancellationReason: z.string().optional()
   })
 })
+
+export const modifyOfferValidationSchema = z.object({
+  body: z.object({
+    baseRate: z.number().min(0).optional(),
+    packageName: z.string().optional(),
+    customOptions: z.array(z.object({
+      name: z.string(),
+      price: z.number().min(0)
+    })).optional()
+  })
+})

@@ -112,11 +112,27 @@ const getMyBookingsByDate = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const modifyBookingOffer = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const user = req.user as JwtPayload
+  if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+
+  const result = await BookingService.modifyBookingOffer(id, user.userId, req.body)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Offer modified successfully',
+    data: result,
+  })
+})
+
 export const BookingController = {
   createBooking,
   updateBookingStatus,
   getMyBookings,
   calculatePrice,
   getSingleBooking,
-  getMyBookingsByDate
+  getMyBookingsByDate,
+  modifyBookingOffer
 }

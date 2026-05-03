@@ -3,7 +3,7 @@ import auth from '../../middleware/auth'
 import { USER_ROLES } from '../../../enum/user'
 import validateRequest from '../../middleware/validateRequest'
 import { BookingController } from './booking.controller'
-import { createBookingValidationSchema, updateBookingStatusSchema } from './booking.validation'
+import { createBookingValidationSchema, updateBookingStatusSchema, modifyOfferValidationSchema } from './booking.validation'
 
 const router = express.Router()
 
@@ -45,6 +45,14 @@ router.patch(
   validateRequest(updateBookingStatusSchema),
   BookingController.updateBookingStatus
 )
+ 
+router.patch(
+  '/:id/modify-offer',
+  auth(USER_ROLES.PROFESSIONAL),
+  validateRequest(modifyOfferValidationSchema),
+  BookingController.modifyBookingOffer
+)
+    
 
 
 

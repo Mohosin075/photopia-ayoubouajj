@@ -51,6 +51,11 @@ const bookingSchema = new Schema<IBooking, BookingModel>(
     packageName: {
       type: String
     },
+    customOptions: [{
+      name: { type: String, required: true },
+      price: { type: Number, required: true }
+    }],
+    
     eventLocation: {
       address: { type: String, required: true },
       city: { type: String, required: true },
