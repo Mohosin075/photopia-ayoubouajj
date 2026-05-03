@@ -7,6 +7,75 @@ import { USER_ROLES } from '../../../enum/user'
 
 const router = express.Router()
 
+// ============================================
+// 1. PAYMENT METHOD MANAGEMENT (USER ONLY)
+// ============================================
+
+// GET /methods must be before GET /:id
+router.get(
+  '/methods',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  PaymentController.getMyPaymentMethods,
+)
+
+router.post(
+  '/create-setup-intent',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  PaymentController.createSetupIntent,
+)
+
+// Specific PATCH must be before generic PATCH /:id
+router.patch(
+  '/methods/:id/default',
+  auth(USER_ROLES.USER),
+  PaymentController.setDefaultPaymentMethod,
+)
+
+router.delete(
+  '/methods/:id',
+  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  PaymentController.deletePaymentMethod,
+)
+
+// ============================================
+// 2. CHECKOUT & INTENTS
+// ============================================
+
+router.post(
+  '/create-checkout-session',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  validateRequest(PaymentValidations.create),
+  PaymentController.createCheckoutSession,
+)
+
+router.get(
+  '/verify-checkout/:sessionId',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  PaymentController.verifyCheckoutSession,
+)
+
+router.post(
+  '/create-payment-intent',
+  auth(
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
+  ),
+  validateRequest(PaymentValidations.create),
+  PaymentController.createPaymentIntent,
+)
+
+router.post(
+  '/ephemeral-key',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN),
+  PaymentController.createEphemeralKey,
+)
+
+// ============================================
+// 3. PAYMENT RECORDS & INVOICES
+// ============================================
+
 router.get(
   '/',
   auth(
@@ -23,21 +92,13 @@ router.get(
   auth(
     USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
-        USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.SUPER_ADMIN,
     USER_ROLES.ADMIN,
   ),
   PaymentController.getMyPayments,
 )
 
-router.get(
-  '/:id',
-  auth(
-    USER_ROLES.PROFESSIONAL,
-    USER_ROLES.USER,
-  ),
-  PaymentController.getSinglePayment,
-)
-
+// Dynamic routes with sub-paths first
 router.get(
   '/:id/invoice',
   auth(
@@ -49,59 +110,13 @@ router.get(
   PaymentController.generateInvoice,
 )
 
-// ✅ ONLY THIS - Checkout Session
 router.post(
-  '/create-checkout-session',
-  auth(
-    USER_ROLES.PROFESSIONAL,
-    USER_ROLES.USER,
-  ),
-  validateRequest(PaymentValidations.create),
-  PaymentController.createCheckoutSession,
+  '/:id/refund',
+  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
+  PaymentController.refundPayment,
 )
 
-router.get(
-  '/verify-checkout/:sessionId',
-  auth(
-    USER_ROLES.PROFESSIONAL,
-    USER_ROLES.USER,
-  ),
-  PaymentController.verifyCheckoutSession,
-)
-
-// ============================================
-// FLUTTER STRIPE ROUTES
-// ============================================
-
-router.post(
-  '/create-payment-intent',
-  auth(
-    USER_ROLES.PROFESSIONAL,
-    USER_ROLES.USER,
-    USER_ROLES.SUPER_ADMIN,
-    USER_ROLES.ADMIN,
-  ),
-  validateRequest(PaymentValidations.create),
-  PaymentController.createPaymentIntent,
-)
-
-//Add SUPER_ADMIN role protection to the ephemeral-key route for enhanced security
-router.post(
-  '/ephemeral-key',
-  auth(
-    USER_ROLES.PROFESSIONAL,
-    USER_ROLES.USER,
-    USER_ROLES.SUPER_ADMIN,
-  ),
-  PaymentController.createEphemeralKey,
-)
-
-// ============================================
-// EXISTING ROUTES
-// ============================================
-
-
-
+// Generic dynamic routes last
 router.patch(
   '/:id',
   auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
@@ -109,10 +124,10 @@ router.patch(
   PaymentController.updatePayment,
 )
 
-router.post(
-  '/:id/refund',
-  auth(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
-  PaymentController.refundPayment,
+router.get(
+  '/:id',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  PaymentController.getSinglePayment,
 )
 
 export const PaymentRoutes = router

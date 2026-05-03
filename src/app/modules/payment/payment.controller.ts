@@ -192,6 +192,56 @@ const generateInvoice = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const createSetupIntent = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload;
+  const result = await PaymentServices.createSetupIntent(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Setup intent created successfully',
+    data: result,
+  });
+});
+
+const getMyPaymentMethods = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload;
+  const result = await PaymentServices.getMyPaymentMethods(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Payment methods retrieved successfully',
+    data: result,
+  });
+});
+
+const deletePaymentMethod = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload;
+  const { id } = req.params;
+  const result = await PaymentServices.deletePaymentMethod(user, id);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Payment method deleted successfully',
+    data: result,
+  });
+});
+
+const setDefaultPaymentMethod = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user as JwtPayload;
+  const { id } = req.params;
+  const result = await PaymentServices.setDefaultPaymentMethod(user, id);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Default payment method updated successfully',
+    data: result,
+  });
+});
+
 export const PaymentController = {
   handleWebhook,
   getAllPayments,
@@ -205,4 +255,8 @@ export const PaymentController = {
   createPaymentIntent,
   createEphemeralKey,
   generateInvoice,
+  createSetupIntent,
+  getMyPaymentMethods,
+  deletePaymentMethod,
+  setDefaultPaymentMethod,
 }

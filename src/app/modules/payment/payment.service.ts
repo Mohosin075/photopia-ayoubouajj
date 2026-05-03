@@ -512,9 +512,97 @@ const generateInvoice = async (id: string): Promise<string | Buffer> => {
     }
   }
 
-  // 2. Fallback to custom PDF invoice generation
+// 2. Fallback to custom PDF invoice generation
   return await generatePDFInvoice(payment as any)
 }
+
+/**
+ * Create Setup Intent to save payment method for future use
+ */
+const createSetupIntent = async (user: JwtPayload): Promise<{ clientSecret: string }> => {
+  const userData = await User.findById(user.userId);
+  if (!userData) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+
+  let customerId = userData.stripeCustomerId;
+
+  if (!customerId) {
+    const customer = await stripe.customers.create({
+      email: userData.email,
+      name: userData.fullName || userData.name,
+      metadata: { userId: userData._id.toString() },
+    });
+    customerId = customer.id;
+    userData.stripeCustomerId = customer.id;
+    await userData.save();
+  }
+
+  const setupIntent = await stripe.setupIntents.create({
+    customer: customerId,
+    payment_method_types: ['card'],
+  });
+
+  return {
+    clientSecret: setupIntent.client_secret!,
+  };
+};
+
+/**
+ * List all saved payment methods for a user
+ */
+const getMyPaymentMethods = async (user: JwtPayload) => {
+  const userData = await User.findById(user.userId);
+  if (!userData?.stripeCustomerId) return [];
+
+  const paymentMethods = await stripe.paymentMethods.list({
+    customer: userData.stripeCustomerId,
+    type: 'card',
+  });
+
+  const customer = await stripe.customers.retrieve(userData.stripeCustomerId) as any;
+  const defaultPaymentMethodId = customer.invoice_settings?.default_payment_method;
+
+  return paymentMethods.data.map(pm => ({
+    id: pm.id,
+    brand: pm.card?.brand,
+    last4: pm.card?.last4,
+    expMonth: pm.card?.exp_month,
+    expYear: pm.card?.exp_year,
+    isDefault: pm.id === defaultPaymentMethodId,
+  }));
+};
+
+/**
+ * Delete a saved payment method
+ */
+const deletePaymentMethod = async (user: JwtPayload, paymentMethodId: string) => {
+  const userData = await User.findById(user.userId);
+  if (!userData?.stripeCustomerId) throw new ApiError(StatusCodes.BAD_REQUEST, 'No stripe customer found');
+
+  // Verify ownership (optional check, Stripe handles detachment but good for safety)
+  const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+  if (pm.customer !== userData.stripeCustomerId) {
+    throw new ApiError(StatusCodes.FORBIDDEN, 'Payment method does not belong to this user');
+  }
+
+  await stripe.paymentMethods.detach(paymentMethodId);
+  return { success: true };
+};
+
+/**
+ * Set a payment method as default
+ */
+const setDefaultPaymentMethod = async (user: JwtPayload, paymentMethodId: string) => {
+  const userData = await User.findById(user.userId);
+  if (!userData?.stripeCustomerId) throw new ApiError(StatusCodes.BAD_REQUEST, 'No stripe customer found');
+
+  await stripe.customers.update(userData.stripeCustomerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
+
+  return { success: true };
+};
 
 export const PaymentServices = {
   getAllPayments,
@@ -529,4 +617,8 @@ export const PaymentServices = {
   createEphemeralKey,
   handlePaymentIntentWebhook,
   generateInvoice,
+  createSetupIntent,
+  getMyPaymentMethods,
+  deletePaymentMethod,
+  setDefaultPaymentMethod,
 }
