@@ -2,6 +2,33 @@ import { Schema, Types } from 'mongoose'
 
 export interface IProfessionalProfile {
     user: Types.ObjectId
+    dateOfBirth: Date // Required
+    primaryDomain: ('Photography' | 'Videography' | 'Editing')[] // Required
+    categories?: Types.ObjectId[] // Optional, ref Category
+    areaOfIntervention?: {
+        mainCity?: string
+        department?: string
+        radius?: string
+        availableForTravel?: boolean
+    }
+    experienceDetails?: {
+        yearsOfExperience?: string
+        projectsCompleted?: string
+        education?: string
+    }
+    notificationPreferences: { // Required
+        emailNewRequests: boolean
+        smsUrgentRequests: boolean
+        newsletterPros: boolean
+        customerReviewReminder: boolean
+    }
+    legalNotice: { // Required
+        acceptedTerms: boolean
+        privacyPolicy: boolean
+        gdprAuthorization: boolean
+    }
+    miniBio?: string
+    externalPortfolioLink?: string
     bio?: string
     coverPhoto?: string
     specialties?: string[]
@@ -20,9 +47,9 @@ export interface IProfessionalProfile {
     profileViews: number
     projects: number
     responseRate: number
-    responseTime: number // in minutes
-    deliveryRate: number // in percentage
-    satisfactionRate: number // in percentage
+    responseTime: number
+    deliveryRate: number
+    satisfactionRate: number
     isSuperPro: boolean
     stripeAccountId?: string
     stripeOnboardingComplete?: boolean

@@ -9,6 +9,43 @@ const ProfessionalProfileSchema = new Schema<IProfessionalProfile>(
             required: true,
             unique: true,
         },
+        dateOfBirth: { 
+            type: Date, 
+            required: true 
+        },
+        primaryDomain: { 
+            type: [String], 
+            enum: ['Photography', 'Videography', 'Editing'],
+            required: true 
+        },
+        categories: { 
+            type: [Schema.Types.ObjectId], 
+            ref: 'Category' 
+        },
+        areaOfIntervention: {
+            mainCity: { type: String },
+            department: { type: String },
+            radius: { type: String },
+            availableForTravel: { type: Boolean, default: false }
+        },
+        experienceDetails: {
+            yearsOfExperience: { type: String },
+            projectsCompleted: { type: String },
+            education: { type: String }
+        },
+        notificationPreferences: {
+            emailNewRequests: { type: Boolean, default: true, required: true },
+            smsUrgentRequests: { type: Boolean, default: true, required: true },
+            newsletterPros: { type: Boolean, default: true, required: true },
+            customerReviewReminder: { type: Boolean, default: true, required: true }
+        },
+        legalNotice: {
+            acceptedTerms: { type: Boolean, default: false, required: true },
+            privacyPolicy: { type: Boolean, default: false, required: true },
+            gdprAuthorization: { type: Boolean, default: false, required: true }
+        },
+        miniBio: { type: String, maxlength: 500 },
+        externalPortfolioLink: { type: String },
         bio: { type: String },
         coverPhoto: { type: String },
         specialties: { type: [String] },
@@ -41,23 +78,4 @@ const ProfessionalProfileSchema = new Schema<IProfessionalProfile>(
     },
 )
 
-ProfessionalProfileSchema.pre('save', function (next) {
-    if (
-        this.rating >= 4.5 &&
-        this.responseRate > 90 &&
-        this.responseTime <= 120 && // 2 hours in minutes
-        this.deliveryRate >= 95 &&
-        this.projects >= 10 &&
-        this.satisfactionRate > 98
-    ) {
-        this.isSuperPro = true
-    } else {
-        this.isSuperPro = false
-    }
-    next()
-})
-
-export const ProfessionalProfile = model<IProfessionalProfile>(
-    'ProfessionalProfile',
-    ProfessionalProfileSchema,
-)
+export const ProfessionalProfile = model<IProfessionalProfile>('ProfessionalProfile', ProfessionalProfileSchema)
