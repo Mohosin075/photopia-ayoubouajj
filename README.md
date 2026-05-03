@@ -1,4 +1,4 @@
-# Photopia Backend
+# Photopya Backend
 
 Modern, scalable backend for a social/media platform built with Node.js, TypeScript, Express, MongoDB, and Socket.IO. Provides JWT auth, social login, presigned S3 uploads, notifications, payments, and more via modular architecture.
 
@@ -38,7 +38,7 @@ Modern, scalable backend for a social/media platform built with Node.js, TypeScr
    ```env
    # Server
    PORT=3000
-   DATABASE_URL=mongodb://localhost:27017/photopia
+   DATABASE_URL=mongodb://localhost:27017/photopya
    NODE_ENV=development
    clientUrl=http://localhost:5173
 
@@ -52,14 +52,14 @@ Modern, scalable backend for a social/media platform built with Node.js, TypeScr
    AWS_ACCESS_KEY_ID=AKIA...
    AWS_SECRET_ACCESS_KEY=...
    AWS_REGION=us-east-1
-   AWS_BUCKET_NAME=photopia-bucket
+   AWS_BUCKET_NAME=photopya-bucket
 
    # Email
    EMAIL_HOST=smtp.example.com
    EMAIL_PORT=587
    EMAIL_USER=user@example.com
    EMAIL_PASS=app_password
-   EMAIL_FROM=Photopia <no-reply@photopia.com>
+   EMAIL_FROM=Photopya <no-reply@photopya.com>
    RESEND_API_KEY=optional_resend_key
 
    # Twilio (optional)
@@ -70,7 +70,7 @@ Modern, scalable backend for a social/media platform built with Node.js, TypeScr
    # Stripe (optional)
    STRIPE_API_SECRET=sk_live_or_test
    WEBHOOK_SECRET=whsec_...
-   SUCCESS_URL=https://photopia.example/success
+   SUCCESS_URL=https://photopya.example/success
 
    # OAuth (optional)
    GOOGLE_CLIENT_ID=...

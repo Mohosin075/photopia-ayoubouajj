@@ -110,10 +110,10 @@ app.get('/', (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'Welcome to the Photopia API',
+    message: 'Welcome to the Photopya API',
     data: {
       timestamp: new Date().toISOString(),
-      projectName: 'Photopia',
+      projectName: 'Photopya',
     },
   })
 })

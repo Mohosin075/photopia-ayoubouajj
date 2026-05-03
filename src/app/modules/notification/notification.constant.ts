@@ -77,7 +77,7 @@ export const NOTIFICATION_CONFIG = {
 export const EMAIL_SUBJECTS = {
   [NotificationType.PAYMENT_SUCCESS]: 'Payment Successful',
   [NotificationType.PAYMENT_FAILED]: 'Payment Failed',
-  [NotificationType.WELCOME]: 'Welcome to Photopia!',
+  [NotificationType.WELCOME]: 'Welcome to Photopya!',
   [NotificationType.PASSWORD_RESET]: 'Password Reset Request',
   [NotificationType.ACCOUNT_VERIFICATION]: 'Verify Your Account',
   [NotificationType.SYSTEM_ALERT]: 'System Alert',

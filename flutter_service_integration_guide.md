@@ -1,6 +1,6 @@
 # Flutter Integration Guide: Service Management & Pricing
 
-This guide provides a comprehensive reference for integrating the **Service** module into the Photopia Flutter application. It covers everything from standard response parsing to complex pricing models, media uploads, and booking logic.
+This guide provides a comprehensive reference for integrating the **Service** module into the Photopya Flutter application. It covers everything from standard response parsing to complex pricing models, media uploads, and booking logic.
 
 ---
 

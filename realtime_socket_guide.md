@@ -1,6 +1,6 @@
 # Real-time Notification & Messaging Guide (Socket.io)
 
-This document provides instructions on how to integrate and use real-time features for Notifications and Messaging using Socket.io in the Photopia project.
+This document provides instructions on how to integrate and use real-time features for Notifications and Messaging using Socket.io in the Photopya project.
 
 ## 1. Socket.io Configuration
 

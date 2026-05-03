@@ -27,7 +27,7 @@ Retrieve all notifications for the logged-in user.
           "_id": "65f...",
           "userId": "...",
           "title": "Welcome!",
-          "content": "Hi there, welcome to Photopia!",
+          "content": "Hi there, welcome to Photopya!",
           "type": "WELCOME",
           "isRead": false,
           "createdAt": "..."

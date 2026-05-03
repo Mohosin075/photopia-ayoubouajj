@@ -1,7 +1,7 @@
 import { SubscriptionPlan } from './subscription-plan.model'
 import { stripeService } from './stripe.service'
 
-// Default subscription plans for Photopia
+// Default subscription plans for Photopya
 const defaultPlans = [
   {
     name: 'Free Plan',

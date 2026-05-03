@@ -1,4 +1,4 @@
-# Photopia Home & Inspiration API Documentation (for Flutter)
+# Photopya Home & Inspiration API Documentation (for Flutter)
 
 This document provides the API endpoints, request payloads, response structures, and socket events for the new Home sections, Inspiration module, and Service filters as per the `update.txt` requirements.
 

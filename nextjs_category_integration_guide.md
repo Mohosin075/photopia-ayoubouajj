@@ -1,6 +1,6 @@
-# Next.js Category Integration Guide - Photopia
+# Next.js Category Integration Guide - Photopya
 
-This guide explains how a Next.js developer should design and integrate the Category system of Photopia.
+This guide explains how a Next.js developer should design and integrate the Category system of Photopya.
 
 ## 1. System Overview
 The Category system is hierarchical and divided into three levels:

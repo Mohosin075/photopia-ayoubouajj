@@ -1,6 +1,6 @@
 # Flutter FCM Integration Guide
 
-This guide explains how to integrate Firebase Cloud Messaging (FCM) with the Photopia backend.
+This guide explains how to integrate Firebase Cloud Messaging (FCM) with the Photopya backend.
 
 ## 1. Firebase Project Setup
 

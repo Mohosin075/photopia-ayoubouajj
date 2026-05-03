@@ -30,7 +30,7 @@ async function testPushNotification() {
     // 2. Create a notification with PUSH channel
     const notification = await NotificationServices.createNotification({
       userId: user._id,
-      title: 'Photopia Test Push',
+      title: 'Photopya Test Push',
       content: 'This is a test push notification from the backend integration.',
       type: NotificationType.SYSTEM_ALERT,
       channel: NotificationChannel.PUSH,

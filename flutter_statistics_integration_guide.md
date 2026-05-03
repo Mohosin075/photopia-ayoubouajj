@@ -1,6 +1,6 @@
 # Flutter Integration Guide: Professional Statistics & Analytics
 
-This document provides technical details for integrating the `/statistics` route and visit tracking into the Photopia Flutter application.
+This document provides technical details for integrating the `/statistics` route and visit tracking into the Photopya Flutter application.
 
 ## 1. Statistics Overview
 **Endpoint:** `GET /professional-profiles/statistics`  

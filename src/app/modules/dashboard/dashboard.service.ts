@@ -717,7 +717,7 @@ const getSubscriptionManagementStats = async (): Promise<ISubscriptionStats> => 
       noSubscription: 18513, // Residual/other
     },
     activePlan: {
-      name: premiumPlan?.name || 'Photopia Premium',
+      name: premiumPlan?.name || 'Photopya Premium',
       price: premiumPlan?.price || 16,
       features: premiumPlan?.features || [
         'Priority in search results',

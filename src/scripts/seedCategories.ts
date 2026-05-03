@@ -4,7 +4,7 @@ import { Category } from '../app/modules/category/category.model';
 
 dotenv.config();
 
-const MONGO_URI = process.env.DATABASE_URL || 'mongodb://localhost:27017/photopia';
+const MONGO_URI = process.env.DATABASE_URL || 'mongodb://localhost:27017/photopya';
 
 const categoryData = [
   {
