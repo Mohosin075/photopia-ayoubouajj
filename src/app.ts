@@ -28,7 +28,9 @@ const limiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 })
-app.use('/api', limiter)
+if (config.node_env !== 'development') {
+  app.use('/api', limiter)
+}
 
 // ⚠️ CRITICAL: Webhook MUST be before body parsers to receive raw body
 app.use(webhookApp)
