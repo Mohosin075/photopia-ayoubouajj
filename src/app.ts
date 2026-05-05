@@ -12,11 +12,23 @@ import webhookApp from './webhook'
 import sendResponse from './shared/sendResponse'
 import morgan from 'morgan'
 import helmet from 'helmet'
+import rateLimit from 'express-rate-limit'
+import swaggerDocs from './utils/swagger'
 
 const app = express()
 
 // Security headers
 app.use(helmet())
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+app.use('/api', limiter)
 
 // ⚠️ CRITICAL: Webhook MUST be before body parsers to receive raw body
 app.use(webhookApp)
@@ -32,7 +44,11 @@ app.use(
     secret: config.jwt.jwt_secret || 'secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // true if using HTTPS
+    cookie: {
+      secure: config.node_env === 'production', // true if using HTTPS
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
   }),
 )
 
@@ -40,22 +56,10 @@ app.use(
 app.use(passport.initialize())
 app.use(passport.session())
 
-// CORS
+// CORS - Using env based origins
 app.use(
   cors({
-    origin: [
-      '*',
-      'http://195.35.6.13:3000',
-      'http://10.10.7.58:3001',
-      'http://10.10.7.13:3001',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3002',
-      'http://localhost:3003',
-      'http://localhost:3004',
-      'http://localhost:3005',
-      'http://10.10.7.11:5173'
-    ],
+    origin: config.cors_origins.length > 0 ? config.cors_origins : ['*'],
     credentials: true,
   }),
 )
@@ -63,16 +67,18 @@ app.use(
 // Cookie parser
 app.use(cookieParser())
 
-// Logging enabled for troubleshooting
+// Logging
 app.use(morgan('dev'))
 
 // -------------------- Static Files --------------------
-app.use(express.static('uploads'))
+// Serve uploads folder statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 // -------------------- API Routes --------------------
-
 app.use('/api/v1', router)
+
+// Swagger Documentation
+swaggerDocs(app, Number(config.port))
 
 // -------------------- Privacy Policy --------------------
 app.get('/privacy-policy', (req, res) => {
@@ -81,18 +87,13 @@ app.get('/privacy-policy', (req, res) => {
 
 router.get('/status', (req: Request, res: Response) => {
   try {
-    // You can add more health checks here like:
-    // - Database connection status
-    // - Memory usage
-    // - Other service dependencies
-
     const healthCheck = {
       success: true,
       message: 'Server is running smoothly',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      environment: process.env.NODE_ENV,
+      environment: config.node_env,
     }
 
     res.status(StatusCodes.OK).json(healthCheck)
@@ -105,7 +106,7 @@ router.get('/status', (req: Request, res: Response) => {
   }
 })
 
-// -------------------- Root / Live Response --------------------
+// -------------------- Root Response --------------------
 app.get('/', (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -114,6 +115,7 @@ app.get('/', (req: Request, res: Response) => {
     data: {
       timestamp: new Date().toISOString(),
       projectName: 'Photopya',
+      version: '1.0.0',
     },
   })
 })
@@ -125,21 +127,16 @@ app.use(globalErrorHandler)
 app.use((req, res) => {
   res.status(StatusCodes.NOT_FOUND).json({
     success: false,
-    message: 'Lost, are we?',
+    message: 'The requested resource was not found on this server.',
     errorMessages: [
       {
         path: req.originalUrl,
-        message:
-          "Congratulations, you've reached a completely useless API endpoint 👏",
-      },
-      {
-        path: '/docs',
-        message: 'Hint: Maybe try reading the docs next time? 📚',
+        message: 'Endpoint does not exist',
       },
     ],
-    roast: '404 brain cells not found. Try harder. 🧠❌',
     timestamp: new Date().toISOString(),
   })
 })
 
 export default app
+

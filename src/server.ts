@@ -9,11 +9,11 @@ import { Server as SocketServer } from 'socket.io'
 import { UserServices } from './app/modules/user/user.service'
 import { socketHelper } from './helpers/socketHelper'
 import { seedSubscriptionPlans } from './app/modules/subscription/subscription.seed'
-import { geocodeAddress } from './utils/geocodeAddress'
+import { logger, errorLogger } from './shared/logger'
 
 // Uncaught exceptions
 process.on('uncaughtException', error => {
-  console.error('🔥 UncaughtException Detected:', error)
+  errorLogger.error('🔥 UncaughtException Detected:', error)
   process.exit(1)
 })
 
@@ -25,31 +25,26 @@ export let io: SocketServer
 async function main() {
   try {
     await mongoose.connect(config.database_url as string)
-    console.log(colors.green('🚀 Database connected successfully'))
-
+    logger.info(colors.green('🚀 Database connected successfully'))
 
     const port =
       typeof config.port === 'number' ? config.port : Number(config.port)
 
-    const host = (config.ip_address as string) || '0.0.0.0'
     server = app.listen(port, '0.0.0.0', () => {
-      console.log(colors.yellow(`♻️  Server is running on:`))
-      console.log(colors.cyan(`   - Local:    http://localhost:${port}`))
-
-      // const location =await geocodeAddress("aqua tower dhaka 1212");
-      // console.log("location", location);
+      logger.info(colors.yellow(`♻️  Server is running on:`))
+      logger.info(colors.cyan(`   - Local:    http://localhost:${port}`))
 
       const interfaces = os.networkInterfaces()
       for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]!) {
           if (iface.family === 'IPv4' && !iface.internal) {
-            console.log(colors.cyan(`   - Network:  http://${iface.address}:${port}`))
+            logger.info(colors.cyan(`   - Network:  http://${iface.address}:${port}`))
           }
         }
       }
 
       if (config.ip_address) {
-        console.log(colors.green(`   - Requested IP: http://${config.ip_address}:${port}`))
+        logger.info(colors.green(`   - Requested IP: http://${config.ip_address}:${port}`))
       }
     })
 
@@ -69,9 +64,9 @@ async function main() {
     socketHelper.socket(io)
     global.io = io
 
-    console.log(colors.green('🍁 Socket.IO initialized successfully'))
+    logger.info(colors.green('🍁 Socket.IO initialized successfully'))
   } catch (error) {
-    console.error(
+    errorLogger.error(
       colors.red('🤢 Failed to start the server or connect to DB'),
       error,
     )
@@ -81,11 +76,11 @@ async function main() {
   process.on('unhandledRejection', error => {
     if (server) {
       server.close(() => {
-        console.error('🔥 UnhandledRejection Detected:', error)
+        errorLogger.error('🔥 UnhandledRejection Detected:', error)
         process.exit(1)
       })
     } else {
-      console.error('🔥 UnhandledRejection Detected:', error)
+      errorLogger.error('🔥 UnhandledRejection Detected:', error)
       process.exit(1)
     }
   })
@@ -96,8 +91,9 @@ main()
 
 // Graceful shutdown on SIGTERM
 process.on('SIGTERM', async () => {
-  console.log('👋 SIGTERM received, shutting down server...')
+  logger.info('👋 SIGTERM received, shutting down server...')
   if (server) {
     server.close()
   }
 })
+

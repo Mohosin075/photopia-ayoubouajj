@@ -56,7 +56,7 @@ To save a card without charging money, you must first get a `clientSecret`.
 ## 2. Professional Profile Onboarding (Sections 1-9)
 The `ProfessionalProfile` update now follows a structured 9-section template.
 
-- **Endpoint**: `PATCH /api/v1/professional-profile/update` (or the relevant update endpoint)
+- **Endpoint**: `PATCH /api/v1/professional-profiles/` (Professional Profile Update)
 - **Content-Type**: `application/json` (or `multipart/form-data` if uploading files)
 
 ### Data Structure (JSON Body)

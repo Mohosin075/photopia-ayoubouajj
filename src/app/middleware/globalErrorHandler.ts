@@ -7,6 +7,7 @@ import handleZodError from '../../errors/handleZodError'
 import handleCastError from '../../errors/handleCastError'
 import handleValidationError from '../../errors/handleValidationError'
 import ApiError from '../../errors/ApiError'
+import { errorLogger } from '../../shared/logger'
 
 const globalErrorHandler: ErrorRequestHandler = (
   error,
@@ -14,9 +15,9 @@ const globalErrorHandler: ErrorRequestHandler = (
   res: Response,
   next: NextFunction,
 ) => {
-  // Safe logging
+  // Safe logging using Winston
   if (config.node_env === 'development') {
-    console.error(
+    errorLogger.error(
       'Inside Global Error Handler🪐',
       JSON.stringify(error, Object.getOwnPropertyNames(error), 2),
     )
@@ -41,6 +42,11 @@ const globalErrorHandler: ErrorRequestHandler = (
     statusCode = simplifiedError.statusCode
     message = simplifiedError.message || message
     errorMessages = simplifiedError.errorMessages || []
+  } else if (error?.code === 11000) {
+    statusCode = 409
+    const field = Object.keys(error.keyPattern)[0]
+    message = `${field} already exists`
+    errorMessages = [{ path: field, message }]
   } else if (error instanceof ApiError) {
     statusCode = error.statusCode || statusCode
     message = error.message || message
@@ -59,3 +65,4 @@ const globalErrorHandler: ErrorRequestHandler = (
 }
 
 export default globalErrorHandler
+
