@@ -108,6 +108,8 @@ export interface IService {
   isOriginal: boolean
   createdAt: Date
   updatedAt: Date
+  totalView: number
+  totalBooking: number
 }
 
 export type ServiceModel = Model<IService, {}, {}>

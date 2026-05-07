@@ -252,6 +252,14 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: Boolean,
       default: false,
     },
+    totalView: {
+      type: Number,
+      default: 0,
+    },
+    totalBooking: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

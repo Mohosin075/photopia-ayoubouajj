@@ -209,8 +209,8 @@ const getAllServices = async (
   const [result, total] = await Promise.all([
     Service.find(whereConditions)
       .select(SERVICE_LIST_PROJECTION)
-      .populate('providerId', 'name email profile')
-      .populate('category', 'name image theme')
+      .populate('providerId', 'name fullName email profile isOnline')
+      .populate('category', 'name image icon theme')
       .populate('subCategory', 'name theme')
       .skip(skip)
       .limit(limit)
@@ -234,9 +234,13 @@ const getSingleService = async (id: string) => {
   if (!Types.ObjectId.isValid(id)) {
     throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
   }
-  const result = await Service.findById(id)
-    .populate('providerId', 'name email profile')
-    .populate('category', 'name image theme')
+  const result = await Service.findByIdAndUpdate(
+    id,
+    { $inc: { totalView: 1 } },
+    { new: true }
+  )
+    .populate('providerId', 'name fullName email profile isOnline')
+    .populate('category', 'name image icon theme')
     .populate('subCategory', 'name theme')
 
   if (!result || result.status === SERVICE_STATUS.DELETED) {
@@ -368,8 +372,9 @@ const getServicesByProvider = async (
   const [result, total] = await Promise.all([
     Service.find(whereConditions)
       .select(SERVICE_LIST_PROJECTION)
-      .populate('providerId', 'name email profile')
-      .populate('category', 'name image')
+      .populate('providerId', 'name fullName email profile isOnline')
+      .populate('category', 'name image icon theme')
+      .populate('subCategory', 'name theme')
       .skip(skip)
       .limit(limit)
       .sort(sortConditions)

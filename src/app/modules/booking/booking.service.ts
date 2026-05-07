@@ -243,6 +243,11 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
 
   const [booking] = await Booking.create([payload]) as any
 
+  // Increment totalBooking in Service
+  await Service.findByIdAndUpdate(payload.serviceId, {
+    $inc: { totalBooking: 1 }
+  })
+
   // 4. Create Stripe Checkout Session
   const paymentPayload = {
     amount: payload.depositAmount, // Charge the deposit amount
