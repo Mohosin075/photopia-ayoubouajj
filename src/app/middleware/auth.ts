@@ -4,6 +4,8 @@ import { Secret } from 'jsonwebtoken'
 import config from '../../config'
 import { jwtHelper } from '../../helpers/jwtHelper'
 import ApiError from '../../errors/ApiError'
+import { User } from '../modules/user/user.model'
+import { USER_STATUS } from '../../enum/user'
 
 const auth =
   (...roles: string[]) =>
@@ -57,6 +59,19 @@ const auth =
           }
 
           return next(new ApiError(StatusCodes.FORBIDDEN, 'Invalid Access Token'))
+        }
+
+        // VERIFY USER STATUS IN DB
+        
+        const userStatusCheck = await User.findById(verifyUser.userId).select('status').lean()
+        if (!userStatusCheck) {
+          return next(new ApiError(StatusCodes.UNAUTHORIZED, 'User does not exist'))
+        }
+        if (userStatusCheck.status === USER_STATUS.INACTIVE) {
+          return next(new ApiError(StatusCodes.FORBIDDEN, 'Your account is inactive. Please log in again to reactivate it.'))
+        }
+        if (userStatusCheck.status === USER_STATUS.DELETED) {
+          return next(new ApiError(StatusCodes.FORBIDDEN, 'Your account is deleted.'))
         }
 
 

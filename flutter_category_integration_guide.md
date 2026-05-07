@@ -1,6 +1,6 @@
 # Flutter Category System Integration Guide 🚀
 
-এই ডকুমেন্টটিতে Photopya প্রোজেক্টের **Category System**-কে কিভাবে Flutter অ্যাপের সাথে ইন্টিগ্রেট করবেন তার বিস্তারিত গাইডলাইন দেওয়া হলো। এখানে ক্যাটাগরি ফেচ করা থেকে শুরু করে সার্ভিস ফিল্টারিং পর্যন্ত সব কাভার করা হয়েছে।
+এই ডকুমেন্টটিতে Photopya প্রোজেক্টের **Theme -> Category -> Subcategory System**-কে কিভাবে Flutter অ্যাপের সাথে ইন্টিগ্রেট করবেন তার বিস্তারিত গাইডলাইন দেওয়া হলো। এখানে থিম ও ক্যাটাগরি ফেচ করা থেকে শুরু করে সার্ভিস ফিল্টারিং পর্যন্ত সব কাভার করা হয়েছে।
 
 ---
 
@@ -9,7 +9,7 @@
 প্রথমে আমাদের ক্যাটাগরি এবং সার্ভিসের জন্য Dart মডেল তৈরি করতে হবে। এগুলো ব্যাকএন্ডের Mongoose ইন্টারফেসের সাথে সামঞ্জস্যপূর্ণ।
 
 ### **Category Model**
-`parent` ক্যাটাগরি এবং সাব-ক্যাটাগরি হ্যান্ডেল করার জন্য এই মডেলটি ব্যবহার করুন।
+`theme`, `parent` ক্যাটাগরি এবং সাব-ক্যাটাগরি হ্যান্ডেল করার জন্য এই মডেলটি ব্যবহার করুন।
 
 ```dart
 class CategoryModel {
@@ -18,6 +18,7 @@ class CategoryModel {
   final String? description;
   final String? image;
   final String? icon;
+  final String? theme; // Theme of the category (e.g., PHOTOGRAPHY)
   final String? parent; // Parent category ID
   final String type; // 'category' or 'subcategory'
   final bool isPopular;
@@ -29,6 +30,7 @@ class CategoryModel {
     this.description,
     this.image,
     this.icon,
+    this.theme,
     this.parent,
     required this.type,
     this.isPopular = false,
@@ -42,6 +44,7 @@ class CategoryModel {
       description: json['description'],
       image: json['image'],
       icon: json['icon'],
+      theme: json['theme'],
       parent: json['parent'] is Map ? json['parent']['_id'] : json['parent'],
       type: json['type'] ?? 'category',
       isPopular: json['isPopular'] ?? false,
@@ -55,7 +58,17 @@ class CategoryModel {
 
 ## ২. API ইন্টিগ্রেশন (API Integration)
 
-ক্যাটাগরি লিস্ট পেতে এবং সার্ভিস ফিল্টার করতে নিচের এপিআইগুলো ইন্টিগ্রেট করুন।
+Theme, Category এবং Sub-category অনুযায়ী ডেটা ফেচ করার জন্য নিচের এপিআইগুলো ইন্টিগ্রেট করুন।
+
+### **Themes List**
+সাধারণত থিমগুলো অ্যাপে স্ট্যাটিক হিসেবে রাখা যায় বা ডাইনামিকভাবে এপিআই থেকে ইউনিক থিম বের করা যায়। প্রোজেক্টে প্রধানত নিচের ৩টি থিম রয়েছে:
+```dart
+const List<String> appThemes = [
+  'PHOTOGRAPHY',
+  'VIDEOGRAPHY',
+  'EDITING & POST-PRODUCTION'
+];
+```
 
 ### **Category API Service**
 
@@ -63,10 +76,36 @@ class CategoryModel {
 class CategoryService {
   final Dio _dio = Dio(BaseOptions(baseUrl: BASE_URL));
 
-  // সব ক্যাটাগরি লিস্ট ফেচ করা
-  Future<List<CategoryModel>> getAllCategories() async {
+  // নির্দিষ্ট থিমের আন্ডারে থাকা ক্যাটাগরি লিস্ট ফেচ করা
+  Future<List<CategoryModel>> getCategoriesByTheme(String theme) async {
     try {
-      final response = await _dio.get('/api/v1/category');
+      final response = await _dio.get(
+        '/api/v1/category',
+        queryParameters: {
+          'theme': theme,
+          'type': 'category', // শুধুমাত্র মেইন ক্যাটাগরিগুলো আনবে
+        },
+      );
+      if (response.statusCode == 200) {
+        List data = response.data['data']['data'];
+        return data.map((json) => CategoryModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // কোনো নির্দিষ্ট ক্যাটাগরির সাব-ক্যাটাগরি ফেচ করা
+  Future<List<CategoryModel>> getSubCategories(String parentCategoryId) async {
+    try {
+      final response = await _dio.get(
+        '/api/v1/category',
+        queryParameters: {
+          'parent': parentCategoryId,
+          'type': 'subcategory', // শুধুমাত্র সাব-ক্যাটাগরিগুলো আনবে
+        },
+      );
       if (response.statusCode == 200) {
         List data = response.data['data']['data'];
         return data.map((json) => CategoryModel.fromJson(json)).toList();
@@ -90,68 +129,45 @@ class CategoryService {
 
 ## ৩. সার্ভিস ক্রিয়েশন (Service Creation Workflow)
 
-যখন একজন প্রফেশনাল কোনো সার্ভিস তৈরি করবেন, তখন তাকে অবশ্যই একটি **Category** এবং (ঐচ্ছিক) **Sub-Category** সিলেক্ট করতে হবে।
+যখন একজন প্রফেশনাল কোনো সার্ভিস তৈরি করবেন, তখন তাকে অবশ্যই **Theme**, **Category** এবং (ঐচ্ছিক) **Sub-Category** সিলেক্ট করতে হবে।
 
 ### **স্টেপস:**
 
-1. অ্যাপে ক্যাটাগরি ড্রপডাউন দেখানোর জন্য `getAllCategories()` কল করুন যেখানে `type == 'category'`।
-2. ইউজার ক্যাটাগরি সিলেক্ট করলে, ঐ ক্যাটাগরির আন্ডারে থাকা সাব-ক্যাটাগরিগুলো ফিল্টার করুন (অথবা `parent == selectedCategoryId` দিয়ে API কল করুন)।
-3. সার্ভিস পোস্ট করার সময় নিচের পেলোড ব্যবহার করুন:
+1. **Theme Selection:** প্রথমে ইউজারকে থিম সিলেক্ট করতে দিন (যেমন: PHOTOGRAPHY)।
+2. **Category Selection:** থিম সিলেক্ট করার পর `getCategoriesByTheme(selectedTheme)` কল করে ঐ থিমের আন্ডারে থাকা ক্যাটাগরিগুলো দেখান।
+3. **Sub-category Selection:** ইউজার ক্যাটাগরি সিলেক্ট করলে, ঐ ক্যাটাগরির আন্ডারে থাকা সাব-ক্যাটাগরিগুলো `getSubCategories(selectedCategoryId)` দিয়ে ফেচ করে দেখান।
+4. সার্ভিস পোস্ট করার সময় নিচের পেলোড ব্যবহার করুন:
 
 ```json
 {
   "title": "Professional Portraits",
-  "category": "651a...abc1", // Category ID
+  "category": "651a...abc1", // Category ID (Required)
   "subCategory": "651a...abc2", // Sub-category ID (Optional)
   "price": 500,
-  "pricingType": "HOURLY",
+  "pricingType": "HOURLY"
   // ... other fields
 }
 ```
 
----
-
----
-
-## ২.১ সাব-ক্যাটাগরি ফেচ করা (Fetching Sub-categories)
-
-ব্যাকএন্ডে কোনো নির্দিষ্ট ক্যাটাগরির সাব-ক্যাটাগরি পেতে হলে `parent` কুয়েরি প্যারামিটার ব্যবহার করতে হয়।
-
-```dart
-Future<List<CategoryModel>> getSubCategories(String parentCategoryId) async {
-  try {
-    final response = await _dio.get(
-      '/api/v1/category',
-      queryParameters: {
-        'parent': parentCategoryId,
-        'type': 'subcategory',
-      },
-    );
-    List data = response.data['data']['data'];
-    return data.map((json) => CategoryModel.fromJson(json)).toList();
-  } catch (e) {
-    rethrow;
-  }
-}
-```
+> **নোট:** সার্ভিস ক্রিয়েট করার সময় `theme` সার্ভারে পাঠানোর দরকার নেই, শুধু `category` এবং `subCategory` ID পাঠালেই হবে।
 
 ---
 
 ## ৪. সার্ভিস ফিল্টারিং (Service Filtering)
 
-সার্ভিস ফিল্টার করার সময় সবচেয়ে বড় ভুল হয় **ID**-এর পরিবর্তে **Name** পাঠানো অথবা কি-এর (Key) নাম ভুল হওয়া।
+সার্ভিস ফিল্টার করার সময় সবচেয়ে বড় ভুল হয় **ID**-এর পরিবর্তে **Name** পাঠানো অথবা কি-এর (Key) নাম ভুল হওয়া। আপনি **Theme**, **Category** এবং **Sub-category** তিনটির যেকোনো একটি দিয়ে সার্ভিস ফিল্টার করতে পারবেন।
 
 ### **গুরুত্বপূর্ণ কি-পলিমি:**
+- **Theme Name**: ফিল্টার কি হবে `theme` (যেমন: 'PHOTOGRAPHY')
 - **Category ID**: ফিল্টার কি হবে `category`
 - **Sub-category ID**: ফিল্টার কি হবে `subCategory` (অবশ্যই CamelCase - বড় হাতের 'C' হবে)।
-- **Value**: সবসময় MongoDB **_id** ব্যবহার করবেন।
+- **Value**: Category এবং Sub-category এর ক্ষেত্রে সবসময় MongoDB **_id** ব্যবহার করবেন।
 
 ### **ডাইনামিক ফিল্টারিং লজিক (Dart Example):**
 
-এই ফাংশনটি দিয়ে আপনি ক্যাটাগরি, সাব-ক্যাটাগরি অথবা উভয় দিয়ে ফিল্টার করতে পারবেন।
-
 ```dart
 Future<List<ServiceModel>> fetchServices({
+  String? theme,
   String? categoryId,
   String? subCategoryId,
   String? searchTerm,
@@ -160,6 +176,10 @@ Future<List<ServiceModel>> fetchServices({
     // ডাইনামিক কুয়েরি অবজেক্ট তৈরি করা
     Map<String, dynamic> query = {};
     
+    if (theme != null && theme.isNotEmpty) {
+      query['theme'] = theme;
+    }
+
     if (categoryId != null && categoryId.isNotEmpty) {
       query['category'] = categoryId;
     }
@@ -189,36 +209,11 @@ Future<List<ServiceModel>> fetchServices({
 }
 ```
 
-### **Reset Filtering:**
-ফিল্টার রিসেট করতে বা সব সার্ভিস দেখতে চাইলে কুয়েরি অবজেক্ট খালি করে পাঠান অথবা ফাংশন প্যারামিটারে `null` পাস করুন।
-
-```dart
-// সব সার্ভিস দেখানোর জন্য
-fetchServices(); 
-```
-
 ---
 
-## ৫. UI ইমপ্লিমেন্টেশন টিপস (UI Tips)
+## ৫. Provider দিয়ে স্টেট ম্যানেজমেন্ট (State Management with Provider)
 
-### **Home Screen Tab Bar**
-হোম স্ক্রিনে একটি হরিজন্টাল লিস্ট ভিউ ব্যবহার করে সব ক্যাটাগরি দেখান। ইউজার যখন কোনো ক্যাটাগরিতে ক্লিক করবেন:
-1. ঐ ক্যাটাগরি আইডিটি `currentCategoryId` হিসেবে সেভ করুন।
-2. `fetchServicesByCategory(currentCategoryId)` কল করে নিচের সার্ভিস লিস্ট আপডেট করুন।
-
-### **State Management (Provider/Riverpod)**
-অ্যাপে ক্যাটাগরি লিস্ট বারবার ফেচ না করে একটি Global State-এ স্টোর করে রাখুন। এতে অ্যাপ ফাস্ট হবে এবং ইউজার এক্সপেরিয়েন্স ভালো হবে।
-
-> [!TIP]
-> **Sub-category dependency**: প্রফেশনাল সার্ভিস ক্রিয়েশন ফর্মে ক্যাটাগরি সিলেক্ট না করা পর্যন্ত সাব-ক্যাটাগরি ড্রপডাউনটি ডিসেবল করে রাখা ভালো।
-
----
-
----
-
-## ৬. Provider দিয়ে স্টেট ম্যানেজমেন্ট (State Management with Provider)
-
-অ্যাপের বিভিন্ন জায়গায় ক্যাটাগরি এবং সার্ভিসের ডেটা ম্যানেজ করার জন্য `Provider` ব্যবহার করা সবচেয়ে ভালো প্র্যাকটিস। নিচে একটি কম্প্লিট `CategoryProvider`-এর উদাহরণ দেওয়া হলো।
+অ্যাপের বিভিন্ন জায়গায় থিম, ক্যাটাগরি এবং সার্ভিসের ডেটা ম্যানেজ করার জন্য `Provider` ব্যবহার করা সবচেয়ে ভালো প্র্যাকটিস।
 
 ### **CategoryProvider ইমপ্লিমেন্টেশন:**
 
@@ -228,34 +223,44 @@ import 'package:flutter/material.dart';
 class CategoryProvider with ChangeNotifier {
   final CategoryService _service = CategoryService();
   
+  List<String> _themes = ['PHOTOGRAPHY', 'VIDEOGRAPHY', 'EDITING & POST-PRODUCTION'];
   List<CategoryModel> _categories = [];
   List<CategoryModel> _subCategories = [];
   List<ServiceModel> _services = [];
   
+  String? _selectedTheme;
   String? _selectedCategoryId;
   String? _selectedSubCategoryId;
   bool _isLoading = false;
 
   // Getters
+  List<String> get themes => _themes;
   List<CategoryModel> get categories => _categories;
   List<CategoryModel> get subCategories => _subCategories;
   List<ServiceModel> get services => _services;
   bool get isLoading => _isLoading;
+  String? get selectedTheme => _selectedTheme;
   String? get selectedCategoryId => _selectedCategoryId;
 
-  // সব ক্যাটাগরি লোড করা (App Start-এ একবার)
-  Future<void> fetchInitialCategories() async {
-    _isLoading = true;
+  // থিম সিলেক্ট করলে ক্যাটাগরি এবং সার্ভিস ফিল্টার করা
+  Future<void> selectTheme(String theme) async {
+    _selectedTheme = theme;
+    _selectedCategoryId = null; // নতুন থিম নিলে ক্যাটাগরি রিসেট
+    _selectedSubCategoryId = null;
+    _categories = [];
+    _subCategories = [];
+    
     notifyListeners();
     
-    try {
-      _categories = await _service.getAllCategories();
-    } catch (e) {
-      print(e);
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    await Future.wait([
+      _loadCategoriesByTheme(theme),
+      fetchFilteredServices(),
+    ]);
+  }
+
+  Future<void> _loadCategoriesByTheme(String theme) async {
+    _categories = await _service.getCategoriesByTheme(theme);
+    notifyListeners();
   }
 
   // ক্যাটাগরি সিলেক্ট করলে সাব-ক্যাটাগরি এবং সার্ভিস ফিল্টার করা
@@ -266,7 +271,6 @@ class CategoryProvider with ChangeNotifier {
     
     notifyListeners();
     
-    // সাথে সাথে সাব-ক্যাটাগরি এবং ঐ ক্যাটাগরির সার্ভিস নিয়ে আসা
     await Future.wait([
       _loadSubCategories(categoryId),
       fetchFilteredServices(),
@@ -278,6 +282,13 @@ class CategoryProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  // সাব-ক্যাটাগরি সিলেক্ট করা
+  Future<void> selectSubCategory(String subCategoryId) async {
+    _selectedSubCategoryId = subCategoryId;
+    notifyListeners();
+    await fetchFilteredServices();
+  }
+
   // ফিল্টার অনুযায়ী সার্ভিস ফেচ করা
   Future<void> fetchFilteredServices() async {
     _isLoading = true;
@@ -285,6 +296,7 @@ class CategoryProvider with ChangeNotifier {
     
     try {
       _services = await _service.fetchServices(
+        theme: _selectedTheme,
         categoryId: _selectedCategoryId,
         subCategoryId: _selectedSubCategoryId,
       );
@@ -298,53 +310,15 @@ class CategoryProvider with ChangeNotifier {
   
   // ফিল্টার রিসেট করা
   void resetFilters() {
+    _selectedTheme = null;
     _selectedCategoryId = null;
     _selectedSubCategoryId = null;
+    _categories = [];
     _subCategories = [];
     fetchFilteredServices();
   }
 }
 ```
 
-### **UI-তে ব্যবহার করার নিয়ম:**
-
-১. **App Wrap করা (main.dart):**
-```dart
-MultiProvider(
-  providers: [
-    ChangeNotifierProvider(create: (_) => CategoryProvider()..fetchInitialCategories()),
-  ],
-  child: MyApp(),
-)
-```
-
-২. **Screen-এ ডেটা দেখানো:**
-```dart
-Consumer<CategoryProvider>(
-  builder: (context, provider, child) {
-    if (provider.isLoading) return CircularProgressIndicator();
-    
-    return ListView.builder(
-      itemCount: provider.services.length,
-      itemBuilder: (context, index) {
-        final service = provider.services[index];
-        return ServiceCard(service: service);
-      },
-    );
-  },
-)
-```
-
-৩. **সিলেকশন হ্যান্ডেল করা:**
-```dart
-onTap: () {
-  context.read<CategoryProvider>().selectCategory(category.id);
-}
-```
-
----
-
 > [!TIP]
-> **Performance Tip**: `fetchInitialCategories()` শুধুমাত্র একবার কল করুন। সাব-ক্যাটাগরিগুলো ক্যাশ করে রাখতে পারেন যাতে প্রতিবার ক্যাটাগরি স্লাইড করলে আবার এপিআই কল না হয়।
-
-যদি আরও স্পেসিফিক কোনো UI পার্ট (যেমন Dropdown বা TabBar) প্রোভাইডার দিয়ে দেখতে চান, তবে জানাবেন! 
+> **Sub-category dependency**: প্রফেশনাল সার্ভিস ক্রিয়েশন ফর্মে আগে থিম সিলেক্ট না করা পর্যন্ত ক্যাটাগরি ড্রপডাউন এবং ক্যাটাগরি সিলেক্ট না করা পর্যন্ত সাব-ক্যাটাগরি ড্রপডাউনটি ডিসেবল করে রাখা ভালো।

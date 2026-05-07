@@ -73,15 +73,6 @@ const handleLoginLogic = async (
         `You are restricted to login for ${remainingMinutes} minutes`,
       )
     }
-
-    // Handle restriction expiration
-    await User.findByIdAndUpdate(isUserExist._id, {
-      $set: {
-        'authentication.restrictionLeftAt': null,
-        'authentication.wrongLoginAttempts': 0,
-        status: USER_STATUS.ACTIVE,
-      },
-    })
   }
 
   const isPasswordMatched = await User.isPasswordMatched(
@@ -122,6 +113,7 @@ const handleLoginLogic = async (
 
   await User.findByIdAndUpdate(isUserExist._id, {
     $set: {
+      status: USER_STATUS.ACTIVE,
       deviceToken: payload.deviceToken,
       'authentication.restrictionLeftAt': null,
       'authentication.wrongLoginAttempts': 0,
