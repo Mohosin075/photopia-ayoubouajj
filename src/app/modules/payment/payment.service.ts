@@ -157,36 +157,73 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
 /**
  * Create Payment Intent for Flutter App
  * Used by flutter_stripe SDK for native mobile payments
+ *
+ * Supports two modes:
+ * 1. NEW CARD: No paymentMethodId → returns clientSecret for Flutter SDK to collect card
+ * 2. SAVED CARD: paymentMethodId provided → attaches saved card & auto-confirms off-session
  */
 const createPaymentIntent = async (
   user: any,
   payload: any,
-): Promise<{ clientSecret: string; paymentIntentId: string; amount: number }> => {
+): Promise<{ clientSecret: string; paymentIntentId: string; amount: number; status: string }> => {
   try {
-    const paymentIntent = await stripe.paymentIntents.create({
+    // Get or create Stripe customer (needed for saved card payments)
+    const userData = await User.findById(user.userId);
+    if (!userData) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+
+    const userEmail = userData.email;
+
+    let customerId = userData.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: userData.email,
+        name: userData.fullName || userData.name,
+        metadata: { userId: userData._id.toString() },
+      });
+      customerId = customer.id;
+      userData.stripeCustomerId = customer.id;
+      await userData.save();
+    }
+
+    // Build PaymentIntent params
+    const intentParams: any = {
       amount: Math.round(payload.amount * 100), // Convert to cents
       currency: payload.currency || 'eur',
+      customer: customerId,
       metadata: {
         userId: user.userId,
-        userEmail: user.email,
+        userEmail,
         bookingId: payload.bookingId,
         ...payload.metadata
       },
-    })
+    };
+
+    // If paymentMethodId is provided → pay with saved card (off-session)
+    if (payload.paymentMethodId) {
+      intentParams.payment_method = payload.paymentMethodId;
+      intentParams.off_session = true;
+      intentParams.confirm = true; // Auto-confirm with saved card
+    } else {
+      // New card → Flutter SDK will collect card details using clientSecret
+      intentParams.payment_method_types = ['card'];
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
     // Create payment record
     await Payment.create({
       userId: user.userId,
       bookingId: payload.bookingId,
-      userEmail: user.email,
+      userEmail,
       amount: payload.amount,
       currency: (payload.currency || 'EUR').toUpperCase(),
       paymentMethod: 'stripe',
       paymentIntentId: paymentIntent.id,
-      status: 'pending',
+      status: paymentIntent.status === 'succeeded' ? 'succeeded' : 'pending',
       metadata: {
         userId: user.userId,
         bookingId: payload.bookingId,
+        usedSavedCard: !!payload.paymentMethodId,
         ...payload.metadata
       },
     })
@@ -195,6 +232,7 @@ const createPaymentIntent = async (
       clientSecret: paymentIntent.client_secret!,
       paymentIntentId: paymentIntent.id,
       amount: payload.amount,
+      status: paymentIntent.status,
     }
   } catch (error: any) {
     throw new ApiError(
