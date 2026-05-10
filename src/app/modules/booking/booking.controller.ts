@@ -6,14 +6,31 @@ import { BookingService } from './booking.service'
 import ApiError from '../../../errors/ApiError'
 import { JwtPayload } from 'jsonwebtoken'
 import pick from '../../../shared/pick'
+import { User } from '../user/user.model'
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as JwtPayload
-  if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
-  
+  const user = req.user as JwtPayload & { email?: string }
+  if (!user?.userId) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+
+  let clientEmail = user.email
+  if (!clientEmail) {
+    const dbUser = await User.findById(user.userId).select('email').lean()
+    clientEmail = dbUser?.email
+  }
+  if (!clientEmail) {
+    clientEmail = req.body.clientEmail
+  }
+  if (!clientEmail) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Email not found for your account. Please update your profile or sign in again.',
+    )
+  }
+
   const bookingData = {
     ...req.body,
-    clientId: user.userId
+    clientId: user.userId,
+    clientEmail,
   }
 
   const result = await BookingService.createBooking(bookingData, user)

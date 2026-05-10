@@ -12,32 +12,15 @@ const paginationHelper_1 = require("../../../helpers/paginationHelper");
 const payment_constants_1 = require("./payment.constants");
 const mongoose_1 = require("mongoose");
 const user_model_1 = require("../user/user.model");
+const booking_model_1 = require("../booking/booking.model");
+const wallet_service_1 = require("../wallet/wallet.service");
 const stripe_1 = __importDefault(require("../../../config/stripe"));
 const config_1 = __importDefault(require("../../../config"));
 const webhook_service_1 = require("./webhook.service");
 const emailHelper_1 = require("../../../helpers/emailHelper");
 const invoiceHelper_1 = require("../../../helpers/invoiceHelper");
-const resolveUserEmailForPayment = async (user, payload) => {
-    const fromJwt = typeof (user === null || user === void 0 ? void 0 : user.email) === 'string' ? user.email.trim() : '';
-    const fromPayload = typeof (payload === null || payload === void 0 ? void 0 : payload.userEmail) === 'string' ? payload.userEmail.trim() : '';
-    if (fromJwt)
-        return fromJwt;
-    if (fromPayload)
-        return fromPayload;
-    if (user === null || user === void 0 ? void 0 : user.userId) {
-        const doc = await user_model_1.User.findById(user.userId).select('email').lean();
-        const fromDb = (doc === null || doc === void 0 ? void 0 : doc.email) != null ? String(doc.email).trim() : '';
-        if (fromDb)
-            return fromDb;
-    }
-    return '';
-};
 const createCheckoutSession = async (user, payload) => {
     try {
-        const userEmail = await resolveUserEmailForPayment(user, payload);
-        if (!userEmail) {
-            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Email is required to start checkout. Add an email to your account or re-login.');
-        }
         // Basic checkout session creation without ticket dependency
         const session = await stripe_1.default.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -57,7 +40,7 @@ const createCheckoutSession = async (user, payload) => {
             mode: 'payment',
             success_url: `${config_1.default.clientUrl}?session_id={CHECKOUT_SESSION_ID}&success=true`,
             cancel_url: `${config_1.default.clientUrl}/payment/cancel?success=false`,
-            customer_email: userEmail,
+            customer_email: user.email,
             metadata: {
                 userId: user.userId.toString(),
                 bookingId: payload.bookingId.toString(),
@@ -67,7 +50,7 @@ const createCheckoutSession = async (user, payload) => {
         await payment_model_1.Payment.create({
             userId: user.userId,
             bookingId: payload.bookingId,
-            userEmail,
+            userEmail: user.email,
             amount: payload.amount,
             currency: payload.currency || 'EUR',
             paymentMethod: 'stripe',
@@ -85,13 +68,11 @@ const createCheckoutSession = async (user, payload) => {
         };
     }
     catch (error) {
-        if (error instanceof ApiError_1.default) {
-            throw error;
-        }
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Checkout session creation failed: ${error.message}`);
     }
 };
 const verifyCheckoutSession = async (sessionId) => {
+    var _a, _b, _c;
     try {
         // Retrieve session from Stripe
         const session = await stripe_1.default.checkout.sessions.retrieve(sessionId, {
@@ -114,13 +95,32 @@ const verifyCheckoutSession = async (sessionId) => {
         }
         // Update payment status based on session
         if (session.payment_status === 'paid' && payment.status !== 'succeeded') {
-            const session = await payment_model_1.Payment.startSession();
-            session.startTransaction();
+            const dbSession = await payment_model_1.Payment.startSession();
+            dbSession.startTransaction();
             try {
                 // Update payment status
                 payment.status = 'succeeded';
                 payment.metadata = { ...payment.metadata, session };
-                await payment.save({ session });
+                await payment.save({ session: dbSession });
+                const bookingId = payment.bookingId || ((_a = session.metadata) === null || _a === void 0 ? void 0 : _a.bookingId);
+                const paymentType = ((_b = session.metadata) === null || _b === void 0 ? void 0 : _b.paymentType) || ((_c = payment.metadata) === null || _c === void 0 ? void 0 : _c.paymentType) || 'deposit';
+                if (bookingId) {
+                    const updateData = {
+                        stripePaymentId: session.id,
+                    };
+                    if (paymentType === 'balance') {
+                        updateData.paymentStatus = 'fully_paid';
+                        updateData.balanceAmount = 0;
+                    }
+                    else {
+                        updateData.status = 'confirmed';
+                        updateData.paymentStatus = 'deposit_paid';
+                    }
+                    const updatedBooking = await booking_model_1.Booking.findByIdAndUpdate(bookingId, updateData, { session: dbSession, new: true });
+                    if (updatedBooking && paymentType !== 'balance') {
+                        await wallet_service_1.WalletService.addPendingEarnings(updatedBooking.providerId, updatedBooking.pricingDetails.providerEarnings, dbSession);
+                    }
+                }
                 // Send confirmation email
                 const user = await payment.populate('userId');
                 const userData = user.userId;
@@ -131,14 +131,14 @@ const verifyCheckoutSession = async (sessionId) => {
                         html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`
                     });
                 }
-                await session.commitTransaction();
+                await dbSession.commitTransaction();
             }
             catch (error) {
-                await session.abortTransaction();
+                await dbSession.abortTransaction();
                 throw error;
             }
             finally {
-                session.endSession();
+                dbSession.endSession();
             }
         }
         else if (session.payment_status === 'unpaid' &&
@@ -165,6 +165,42 @@ const verifyCheckoutSession = async (sessionId) => {
  */
 const createPaymentIntent = async (user, payload) => {
     try {
+        // ---- Booking Validation ----
+        if (!payload.bookingId) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Booking ID is required');
+        }
+        if (!mongoose_1.Types.ObjectId.isValid(payload.bookingId)) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Booking ID');
+        }
+        const booking = await booking_model_1.Booking.findById(payload.bookingId);
+        if (!booking) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Booking not found with the provided booking ID');
+        }
+        // Ensure only booking owner can initiate payment intents for this booking
+        if (booking.clientId.toString() !== user.userId.toString()) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'You are not authorized to pay for this booking');
+        }
+        // Determine payable amount from booking state (server-side source of truth)
+        const expectedDepositAmount = Number((booking.depositAmount || 0).toFixed(2));
+        const expectedBalanceAmount = Number((booking.balanceAmount || 0).toFixed(2));
+        const providedAmount = typeof payload.amount === 'number' ? Number(payload.amount.toFixed(2)) : undefined;
+        let payableAmount = 0;
+        if (booking.paymentStatus === 'pending') {
+            payableAmount = expectedDepositAmount;
+        }
+        else if (booking.paymentStatus === 'deposit_paid' && expectedBalanceAmount > 0) {
+            payableAmount = expectedBalanceAmount;
+        }
+        else {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Cannot create payment intent for booking payment status: ${booking.paymentStatus}`);
+        }
+        if (payableAmount <= 0) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No payable amount found for this booking');
+        }
+        // Optional client amount is allowed, but must match server-computed payable amount
+        if (providedAmount !== undefined && providedAmount !== payableAmount) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Provided amount does not match booking payable amount');
+        }
         // Get or create Stripe customer (needed for saved card payments)
         const userData = await user_model_1.User.findById(user.userId);
         if (!userData)
@@ -183,7 +219,7 @@ const createPaymentIntent = async (user, payload) => {
         }
         // Build PaymentIntent params
         const intentParams = {
-            amount: Math.round(payload.amount * 100), // Convert to cents
+            amount: Math.round(payableAmount * 100), // Convert to cents
             currency: payload.currency || 'eur',
             customer: customerId,
             metadata: {
@@ -209,7 +245,7 @@ const createPaymentIntent = async (user, payload) => {
             userId: user.userId,
             bookingId: payload.bookingId,
             userEmail,
-            amount: payload.amount,
+            amount: payableAmount,
             currency: (payload.currency || 'EUR').toUpperCase(),
             paymentMethod: 'stripe',
             paymentIntentId: paymentIntent.id,
@@ -221,31 +257,16 @@ const createPaymentIntent = async (user, payload) => {
                 ...payload.metadata
             },
         });
-        // Saved-card flow often completes synchronously; webhook used to skip booking when status was already `succeeded`.
-        // Confirm here so booking works even before Stripe delivers `payment_intent.succeeded`.
-        if (paymentIntent.status === 'succeeded' && payload.bookingId) {
-            const mongoSession = await payment_model_1.Payment.startSession();
-            mongoSession.startTransaction();
-            try {
-                await (0, webhook_service_1.confirmBookingAfterSuccessfulDeposit)(payload.bookingId, paymentIntent.id, mongoSession);
-                await mongoSession.commitTransaction();
-            }
-            catch (err) {
-                await mongoSession.abortTransaction();
-                throw err;
-            }
-            finally {
-                mongoSession.endSession();
-            }
-        }
         return {
             clientSecret: paymentIntent.client_secret,
             paymentIntentId: paymentIntent.id,
-            amount: payload.amount,
+            amount: payableAmount,
             status: paymentIntent.status,
         };
     }
     catch (error) {
+        if (error instanceof ApiError_1.default)
+            throw error;
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Payment Intent creation failed: ${error.message}`);
     }
 };
@@ -255,19 +276,24 @@ const createPaymentIntent = async (user, payload) => {
  */
 const createEphemeralKey = async (user, apiVersion = '2025-05-28.basil') => {
     try {
-        let customerId = user.stripeCustomerId;
-        // Create customer if doesn't exist
+        const userData = await user_model_1.User.findById(user.userId);
+        if (!userData) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        }
+        let customerId = userData.stripeCustomerId;
+        // Create customer if it doesn't exist in DB
         if (!customerId) {
             const customer = await stripe_1.default.customers.create({
-                email: user.email,
-                name: user.name,
+                email: userData.email,
+                name: userData.fullName || userData.name,
                 metadata: {
                     userId: user.userId,
                 },
             });
             customerId = customer.id;
             // Update user record with stripeCustomerId
-            await user_model_1.User.findByIdAndUpdate(user.userId, { stripeCustomerId: customer.id });
+            userData.stripeCustomerId = customer.id;
+            await userData.save();
         }
         // Create ephemeral key
         const ephemeralKey = await stripe_1.default.ephemeralKeys.create({ customer: customerId }, { apiVersion: apiVersion });
@@ -403,6 +429,7 @@ const updatePayment = async (id, payload) => {
     return result;
 };
 const refundPayment = async (id, reason) => {
+    var _a;
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Payment ID');
     }
@@ -415,18 +442,44 @@ const refundPayment = async (id, reason) => {
     }
     // Process refund via Stripe
     try {
+        let refundPaymentIntentId = payment.paymentIntentId;
+        const checkoutSessionId = (_a = payment.metadata) === null || _a === void 0 ? void 0 : _a.checkoutSessionId;
+        // For checkout payments, paymentIntentId may hold session ID in older records.
+        if (checkoutSessionId) {
+            const checkoutSession = await stripe_1.default.checkout.sessions.retrieve(checkoutSessionId);
+            if (typeof checkoutSession.payment_intent === 'string') {
+                refundPaymentIntentId = checkoutSession.payment_intent;
+            }
+        }
         const refund = await stripe_1.default.refunds.create({
-            payment_intent: payment.paymentIntentId,
+            payment_intent: refundPaymentIntentId,
             amount: Math.round(payment.amount * 100),
             reason: reason ? 'requested_by_customer' : 'duplicate',
         });
-        const result = await payment_model_1.Payment.findByIdAndUpdate(id, {
-            status: 'refunded',
-            refundAmount: payment.amount,
-            refundReason: reason,
-            metadata: { ...payment.metadata, refundId: refund.id },
-        }, { new: true, runValidators: true })
-            .populate('userId', 'name email');
+        const dbSession = await payment_model_1.Payment.startSession();
+        dbSession.startTransaction();
+        let result = null;
+        try {
+            result = await payment_model_1.Payment.findByIdAndUpdate(id, {
+                status: 'refunded',
+                refundAmount: payment.amount,
+                refundReason: reason,
+                metadata: { ...payment.metadata, refundId: refund.id },
+            }, { new: true, runValidators: true, session: dbSession }).populate('userId', 'name email');
+            if (payment.bookingId) {
+                await booking_model_1.Booking.findByIdAndUpdate(payment.bookingId, {
+                    paymentStatus: 'refunded',
+                }, { session: dbSession });
+            }
+            await dbSession.commitTransaction();
+        }
+        catch (error) {
+            await dbSession.abortTransaction();
+            throw error;
+        }
+        finally {
+            dbSession.endSession();
+        }
         return result;
     }
     catch (error) {

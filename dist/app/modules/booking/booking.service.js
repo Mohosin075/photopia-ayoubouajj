@@ -9,6 +9,7 @@ const booking_model_1 = require("./booking.model");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const availability_service_1 = require("../availability/availability.service");
 const service_model_1 = require("../service/service.model");
+const user_model_1 = require("../user/user.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const service_1 = require("../../../enum/service");
 const wallet_service_1 = require("../wallet/wallet.service");
@@ -119,22 +120,6 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
 };
 const createBooking = async (payload, user) => {
     var _a, _b, _c, _d, _e, _f;
-    // Strip server-owned fields — clients may send Stripe `status` as `paymentStatus` (`succeeded`), which is not a valid Booking enum.
-    for (const key of [
-        'paymentStatus',
-        'status',
-        'stripePaymentId',
-        'stripeClientSecret',
-        'stripeTransferId',
-        'stripeTransferStatus',
-        'confirmedAt',
-        'cancelledAt',
-        'completedAt',
-        'review',
-        'bookingNumber',
-    ]) {
-        delete payload[key];
-    }
     // 1. Check Service Existence
     const service = await service_model_1.Service.findById(payload.serviceId);
     if (!service)
@@ -196,7 +181,7 @@ const createBooking = async (payload, user) => {
     const existingBookings = await booking_model_1.Booking.find({
         providerId: payload.providerId,
         bookingDate: payload.bookingDate,
-        status: { $in: ['confirmed', 'pending', 'deposit_paid'] }
+        status: { $in: ['pending', 'confirmed', 'in_progress'] }
     });
     const hasOverlap = existingBookings.some(booking => {
         const existStart = parseInt(booking.startTime.split(':')[0]) * 60 + parseInt(booking.startTime.split(':')[1]);
@@ -211,31 +196,89 @@ const createBooking = async (payload, user) => {
     payload.depositAmount = Number((pricing.clientTotal * payload.depositPercentage).toFixed(2));
     payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2));
     payload.bookingDate = bookingDate; // Ensure the Date object is saved
-    const [booking] = await booking_model_1.Booking.create([payload]);
+    const createdBookings = await booking_model_1.Booking.create([payload]);
+    const booking = createdBookings[0];
     // Increment totalBooking in Service
     await service_model_1.Service.findByIdAndUpdate(payload.serviceId, {
         $inc: { totalBooking: 1 }
     });
-    // 4. Create Stripe Checkout Session
-    const paymentPayload = {
-        amount: payload.depositAmount, // Charge the deposit amount
-        currency: pricing.currency.toLowerCase(),
-        productName: `Deposit for ${service.title}`,
-        description: `Booking Number: ${booking.bookingNumber} (50% Deposit)`,
-        bookingId: booking._id.toString(),
-        // JWT may omit email; Payment.userEmail is required — use the booking contact email.
-        userEmail: payload.clientEmail,
-        metadata: {
+    // ============================================
+    // PAYMENT FLOW: intent (Flutter) vs checkout (Web)
+    // ============================================
+    const paymentMode = payload.paymentMode || 'intent';
+    if (paymentMode === 'intent') {
+        // ------- FLUTTER FLOW: PaymentIntent + EphemeralKey -------
+        const intentResult = await payment_service_1.PaymentServices.createPaymentIntent(user, {
             bookingId: booking._id.toString(),
-            bookingNumber: booking.bookingNumber,
-            paymentType: 'deposit'
+            amount: payload.depositAmount,
+            currency: pricing.currency.toLowerCase(),
+            paymentMethodId: payload.paymentMethodId, // optional saved card
+            metadata: {
+                bookingId: booking._id.toString(),
+                bookingNumber: booking.bookingNumber,
+                paymentType: 'deposit',
+            },
+        });
+        // Store Stripe references on the booking
+        booking.stripePaymentId = intentResult.paymentIntentId;
+        booking.stripeClientSecret = intentResult.clientSecret;
+        await booking.save();
+        // Create ephemeral key for Flutter payment sheet
+        let ephemeralKey;
+        let stripeCustomerId;
+        try {
+            const userData = await user_model_1.User.findById(user.userId);
+            stripeCustomerId = userData === null || userData === void 0 ? void 0 : userData.stripeCustomerId;
+            if (stripeCustomerId) {
+                const ephResult = await payment_service_1.PaymentServices.createEphemeralKey(user);
+                ephemeralKey = ephResult.ephemeralKey;
+            }
         }
-    };
-    const checkoutSession = await payment_service_1.PaymentServices.createCheckoutSession(user, paymentPayload);
-    return {
-        booking,
-        paymentSession: checkoutSession
-    };
+        catch (e) {
+            console.error('Ephemeral key creation warning:', e);
+        }
+        return {
+            booking,
+            payment: {
+                paymentMode: 'intent',
+                clientSecret: intentResult.clientSecret,
+                paymentIntentId: intentResult.paymentIntentId,
+                ephemeralKey,
+                customerId: stripeCustomerId,
+                amount: payload.depositAmount,
+                currency: pricing.currency,
+                status: intentResult.status,
+            },
+        };
+    }
+    else {
+        // ------- WEB FLOW: Stripe Checkout Session -------
+        const paymentPayload = {
+            amount: payload.depositAmount,
+            currency: pricing.currency.toLowerCase(),
+            productName: `Deposit for ${service.title}`,
+            description: `Booking Number: ${booking.bookingNumber} (50% Deposit)`,
+            bookingId: booking._id.toString(),
+            metadata: {
+                bookingId: booking._id.toString(),
+                bookingNumber: booking.bookingNumber,
+                paymentType: 'deposit',
+            },
+        };
+        const checkoutSession = await payment_service_1.PaymentServices.createCheckoutSession(user, paymentPayload);
+        booking.stripePaymentId = checkoutSession.sessionId;
+        await booking.save();
+        return {
+            booking,
+            payment: {
+                paymentMode: 'checkout',
+                sessionId: checkoutSession.sessionId,
+                url: checkoutSession.url,
+                amount: payload.depositAmount,
+                currency: pricing.currency,
+            },
+        };
+    }
 };
 const updateBookingStatus = async (bookingId, status, userId) => {
     const session = await mongoose_1.default.startSession();
@@ -257,7 +300,8 @@ const updateBookingStatus = async (bookingId, status, userId) => {
         if (status === 'cancelled' && previousStatus !== 'cancelled') {
             booking.cancelledAt = new Date();
             // Refund pending balance if it was already credited as pending
-            if (['confirmed', 'deposit_paid', 'in_progress'].includes(previousStatus)) {
+            if (['confirmed', 'in_progress'].includes(previousStatus) &&
+                ['deposit_paid', 'fully_paid'].includes(booking.paymentStatus)) {
                 await wallet_service_1.WalletService.cancelPendingEarnings(booking.providerId, booking.pricingDetails.providerEarnings, session);
             }
         }
@@ -455,6 +499,66 @@ const modifyBookingOffer = async (bookingId, providerId, payload) => {
     await booking.save();
     return booking;
 };
+/**
+ * Pay Remaining Balance (the other 50%) for a booking
+ * Called after deposit is paid and booking is confirmed
+ */
+const payRemainingBalance = async (bookingId, user, payload) => {
+    const booking = await booking_model_1.Booking.findById(bookingId);
+    if (!booking)
+        throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Booking not found');
+    // Only the client who booked can pay
+    if (booking.clientId.toString() !== user.userId) {
+        throw new ApiError_1.default(http_status_codes_1.default.FORBIDDEN, 'Only the booking client can pay the remaining balance');
+    }
+    // Must be in deposit_paid status
+    if (booking.paymentStatus !== 'deposit_paid') {
+        throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Cannot pay remaining balance. Current payment status: ${booking.paymentStatus}`);
+    }
+    if (booking.balanceAmount <= 0) {
+        throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'No remaining balance to pay');
+    }
+    // Create Payment Intent for remaining balance
+    const intentResult = await payment_service_1.PaymentServices.createPaymentIntent(user, {
+        bookingId: booking._id.toString(),
+        amount: booking.balanceAmount,
+        currency: booking.pricingDetails.currency.toLowerCase(),
+        paymentMethodId: payload === null || payload === void 0 ? void 0 : payload.paymentMethodId,
+        metadata: {
+            bookingId: booking._id.toString(),
+            bookingNumber: booking.bookingNumber,
+            paymentType: 'balance',
+        },
+    });
+    // Create ephemeral key for Flutter
+    let ephemeralKey;
+    let stripeCustomerId;
+    try {
+        const userData = await user_model_1.User.findById(user.userId);
+        stripeCustomerId = userData === null || userData === void 0 ? void 0 : userData.stripeCustomerId;
+        if (stripeCustomerId) {
+            const ephResult = await payment_service_1.PaymentServices.createEphemeralKey(user);
+            ephemeralKey = ephResult.ephemeralKey;
+        }
+    }
+    catch (e) {
+        console.error('Ephemeral key creation warning:', e);
+    }
+    return {
+        booking,
+        payment: {
+            paymentMode: 'intent',
+            clientSecret: intentResult.clientSecret,
+            paymentIntentId: intentResult.paymentIntentId,
+            ephemeralKey,
+            customerId: stripeCustomerId,
+            amount: booking.balanceAmount,
+            currency: booking.pricingDetails.currency,
+            status: intentResult.status,
+            paymentType: 'balance',
+        },
+    };
+};
 exports.BookingService = {
     createBooking,
     updateBookingStatus,
@@ -462,5 +566,6 @@ exports.BookingService = {
     calculatePrice,
     getSingleBooking,
     getMyBookingsByDate,
-    modifyBookingOffer
+    modifyBookingOffer,
+    payRemainingBalance,
 };

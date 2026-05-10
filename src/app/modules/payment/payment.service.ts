@@ -10,6 +10,7 @@ import { paymentSearchableFields } from './payment.constants'
 import { Types } from 'mongoose'
 import { User } from '../user/user.model'
 import { Booking } from '../booking/booking.model'
+import { WalletService } from '../wallet/wallet.service'
 
 import stripe from '../../../config/stripe'
 import config from '../../../config'
@@ -106,14 +107,45 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
 
     // Update payment status based on session
     if (session.payment_status === 'paid' && payment.status !== 'succeeded') {
-      const session = await Payment.startSession()
-      session.startTransaction()
+      const dbSession = await Payment.startSession()
+      dbSession.startTransaction()
 
       try {
         // Update payment status
         payment.status = 'succeeded'
         payment.metadata = { ...payment.metadata, session }
-        await payment.save({ session })
+        await payment.save({ session: dbSession })
+
+        const bookingId = payment.bookingId || session.metadata?.bookingId
+        const paymentType = session.metadata?.paymentType || payment.metadata?.paymentType || 'deposit'
+
+        if (bookingId) {
+          const updateData: any = {
+            stripePaymentId: session.id,
+          }
+
+          if (paymentType === 'balance') {
+            updateData.paymentStatus = 'fully_paid'
+            updateData.balanceAmount = 0
+          } else {
+            updateData.status = 'confirmed'
+            updateData.paymentStatus = 'deposit_paid'
+          }
+
+          const updatedBooking = await Booking.findByIdAndUpdate(
+            bookingId,
+            updateData,
+            { session: dbSession, new: true },
+          )
+
+          if (updatedBooking && paymentType !== 'balance') {
+            await WalletService.addPendingEarnings(
+              updatedBooking.providerId,
+              updatedBooking.pricingDetails.providerEarnings,
+              dbSession,
+            )
+          }
+        }
 
         // Send confirmation email
         const user = await payment.populate('userId')
@@ -127,12 +159,12 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
           })
         }
 
-        await session.commitTransaction()
+        await dbSession.commitTransaction()
       } catch (error) {
-        await session.abortTransaction()
+        await dbSession.abortTransaction()
         throw error
       } finally {
-        session.endSession()
+        dbSession.endSession()
       }
     } else if (
       session.payment_status === 'unpaid' &&
@@ -182,9 +214,36 @@ const createPaymentIntent = async (
       throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found with the provided booking ID');
     }
 
-    // ---- Amount Validation ----
-    if (!payload.amount || payload.amount <= 0) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'A valid payment amount is required');
+    // Ensure only booking owner can initiate payment intents for this booking
+    if (booking.clientId.toString() !== user.userId.toString()) {
+      throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to pay for this booking');
+    }
+
+    // Determine payable amount from booking state (server-side source of truth)
+    const expectedDepositAmount = Number((booking.depositAmount || 0).toFixed(2));
+    const expectedBalanceAmount = Number((booking.balanceAmount || 0).toFixed(2));
+    const providedAmount =
+      typeof payload.amount === 'number' ? Number(payload.amount.toFixed(2)) : undefined;
+
+    let payableAmount = 0;
+    if (booking.paymentStatus === 'pending') {
+      payableAmount = expectedDepositAmount;
+    } else if (booking.paymentStatus === 'deposit_paid' && expectedBalanceAmount > 0) {
+      payableAmount = expectedBalanceAmount;
+    } else {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        `Cannot create payment intent for booking payment status: ${booking.paymentStatus}`,
+      );
+    }
+
+    if (payableAmount <= 0) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'No payable amount found for this booking');
+    }
+
+    // Optional client amount is allowed, but must match server-computed payable amount
+    if (providedAmount !== undefined && providedAmount !== payableAmount) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Provided amount does not match booking payable amount');
     }
 
     // Get or create Stripe customer (needed for saved card payments)
@@ -207,7 +266,7 @@ const createPaymentIntent = async (
 
     // Build PaymentIntent params
     const intentParams: any = {
-      amount: Math.round(payload.amount * 100), // Convert to cents
+      amount: Math.round(payableAmount * 100), // Convert to cents
       currency: payload.currency || 'eur',
       customer: customerId,
       metadata: {
@@ -235,7 +294,7 @@ const createPaymentIntent = async (
       userId: user.userId,
       bookingId: payload.bookingId,
       userEmail,
-      amount: payload.amount,
+      amount: payableAmount,
       currency: (payload.currency || 'EUR').toUpperCase(),
       paymentMethod: 'stripe',
       paymentIntentId: paymentIntent.id,
@@ -251,7 +310,7 @@ const createPaymentIntent = async (
     return {
       clientSecret: paymentIntent.client_secret!,
       paymentIntentId: paymentIntent.id,
-      amount: payload.amount,
+      amount: payableAmount,
       status: paymentIntent.status,
     }
   } catch (error: any) {
@@ -272,13 +331,18 @@ const createEphemeralKey = async (
   apiVersion: string = '2025-05-28.basil',
 ): Promise<{ ephemeralKey: string }> => {
   try {
-    let customerId = user.stripeCustomerId
+    const userData = await User.findById(user.userId)
+    if (!userData) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    }
 
-    // Create customer if doesn't exist
+    let customerId = userData.stripeCustomerId
+
+    // Create customer if it doesn't exist in DB
     if (!customerId) {
       const customer = await stripe.customers.create({
-        email: user.email,
-        name: user.name,
+        email: userData.email,
+        name: userData.fullName || userData.name,
         metadata: {
           userId: user.userId,
         },
@@ -286,7 +350,8 @@ const createEphemeralKey = async (
       customerId = customer.id
 
       // Update user record with stripeCustomerId
-      await User.findByIdAndUpdate(user.userId, { stripeCustomerId: customer.id })
+      userData.stripeCustomerId = customer.id
+      await userData.save()
     }
 
     // Create ephemeral key
@@ -491,23 +556,56 @@ const refundPayment = async (
 
   // Process refund via Stripe
   try {
+    let refundPaymentIntentId = payment.paymentIntentId
+    const checkoutSessionId = payment.metadata?.checkoutSessionId
+
+    // For checkout payments, paymentIntentId may hold session ID in older records.
+    if (checkoutSessionId) {
+      const checkoutSession = await stripe.checkout.sessions.retrieve(checkoutSessionId)
+      if (typeof checkoutSession.payment_intent === 'string') {
+        refundPaymentIntentId = checkoutSession.payment_intent
+      }
+    }
+
     const refund = await stripe.refunds.create({
-      payment_intent: payment.paymentIntentId,
+      payment_intent: refundPaymentIntentId,
       amount: Math.round(payment.amount * 100),
       reason: reason ? 'requested_by_customer' : 'duplicate',
     })
 
-    const result = await Payment.findByIdAndUpdate(
-      id,
-      {
-        status: 'refunded',
-        refundAmount: payment.amount,
-        refundReason: reason,
-        metadata: { ...payment.metadata, refundId: refund.id },
-      },
-      { new: true, runValidators: true },
-    )
-      .populate('userId', 'name email')
+    const dbSession = await Payment.startSession()
+    dbSession.startTransaction()
+
+    let result: IPayment | null = null
+    try {
+      result = await Payment.findByIdAndUpdate(
+        id,
+        {
+          status: 'refunded',
+          refundAmount: payment.amount,
+          refundReason: reason,
+          metadata: { ...payment.metadata, refundId: refund.id },
+        },
+        { new: true, runValidators: true, session: dbSession },
+      ).populate('userId', 'name email')
+
+      if (payment.bookingId) {
+        await Booking.findByIdAndUpdate(
+          payment.bookingId,
+          {
+            paymentStatus: 'refunded',
+          },
+          { session: dbSession },
+        )
+      }
+
+      await dbSession.commitTransaction()
+    } catch (error) {
+      await dbSession.abortTransaction()
+      throw error
+    } finally {
+      dbSession.endSession()
+    }
 
     return result!
   } catch (error: any) {

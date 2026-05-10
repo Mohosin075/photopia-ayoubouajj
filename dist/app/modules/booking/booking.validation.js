@@ -26,7 +26,9 @@ exports.createBookingValidationSchema = zod_1.z.object({
         clientEmail: zod_1.z.string({ required_error: 'Client email is required' }).email(),
         clientPhone: zod_1.z.string().optional(),
         eventType: zod_1.z.string().optional(),
-        specialRequests: zod_1.z.string().optional()
+        specialRequests: zod_1.z.string().optional(),
+        paymentMode: zod_1.z.enum(['intent', 'checkout']).optional(),
+        paymentMethodId: zod_1.z.string().optional()
     })
 });
 exports.updateBookingStatusSchema = zod_1.z.object({

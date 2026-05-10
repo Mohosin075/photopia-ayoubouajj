@@ -22,10 +22,12 @@ export const createBookingValidationSchema = z.object({
       notes: z.string().optional()
     }),
     clientName: z.string({ required_error: 'Client name is required' }),
-    clientEmail: z.string({ required_error: 'Client email is required' }).email(),
+    clientEmail: z.string().email().optional(),
     clientPhone: z.string().optional(),
     eventType: z.string().optional(),
-    specialRequests: z.string().optional()
+    specialRequests: z.string().optional(),
+    paymentMode: z.enum(['intent', 'checkout']).optional(),
+    paymentMethodId: z.string().optional()
   })
 })
 

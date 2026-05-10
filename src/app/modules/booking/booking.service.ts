@@ -222,7 +222,7 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
   const existingBookings = await Booking.find({
     providerId: payload.providerId,
     bookingDate: payload.bookingDate,
-    status: { $in: ['confirmed', 'pending', 'deposit_paid'] }
+    status: { $in: ['pending', 'confirmed', 'in_progress'] }
   })
 
   const hasOverlap = existingBookings.some(booking => {
@@ -360,7 +360,10 @@ const updateBookingStatus = async (
     if (status === 'cancelled' && previousStatus !== 'cancelled') {
       booking.cancelledAt = new Date()
       // Refund pending balance if it was already credited as pending
-      if (['confirmed', 'deposit_paid', 'in_progress'].includes(previousStatus)) {
+      if (
+        ['confirmed', 'in_progress'].includes(previousStatus) &&
+        ['deposit_paid', 'fully_paid'].includes(booking.paymentStatus)
+      ) {
         await WalletService.cancelPendingEarnings(
           booking.providerId,
           booking.pricingDetails.providerEarnings,

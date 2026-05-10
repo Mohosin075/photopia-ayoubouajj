@@ -105,6 +105,19 @@ const modifyBookingOffer = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const payRemainingBalance = (0, catchAsync_1.default)(async (req, res) => {
+    const { id } = req.params;
+    const user = req.user;
+    if (!user)
+        throw new ApiError_1.default(http_status_codes_1.default.UNAUTHORIZED, 'User not found');
+    const result = await booking_service_1.BookingService.payRemainingBalance(id, user, req.body);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.default.OK,
+        success: true,
+        message: 'Payment intent created for remaining balance',
+        data: result,
+    });
+});
 exports.BookingController = {
     createBooking,
     updateBookingStatus,
@@ -112,5 +125,6 @@ exports.BookingController = {
     calculatePrice,
     getSingleBooking,
     getMyBookingsByDate,
-    modifyBookingOffer
+    modifyBookingOffer,
+    payRemainingBalance,
 };
