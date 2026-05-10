@@ -63,7 +63,7 @@ exports.NOTIFICATION_CONFIG = {
 exports.EMAIL_SUBJECTS = {
     [notification_interface_1.NotificationType.PAYMENT_SUCCESS]: 'Payment Successful',
     [notification_interface_1.NotificationType.PAYMENT_FAILED]: 'Payment Failed',
-    [notification_interface_1.NotificationType.WELCOME]: 'Welcome to Photopia!',
+    [notification_interface_1.NotificationType.WELCOME]: 'Welcome to Photopya!',
     [notification_interface_1.NotificationType.PASSWORD_RESET]: 'Password Reset Request',
     [notification_interface_1.NotificationType.ACCOUNT_VERIFICATION]: 'Verify Your Account',
     [notification_interface_1.NotificationType.SYSTEM_ALERT]: 'System Alert',

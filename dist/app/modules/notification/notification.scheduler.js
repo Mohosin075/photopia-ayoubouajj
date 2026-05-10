@@ -93,7 +93,7 @@ class NotificationScheduler {
                 try {
                     await notification_service_1.NotificationServices.createNotification({
                         userId: user._id,
-                        title: 'Welcome to Photopia!',
+                        title: 'Welcome to Photopya!',
                         content: `Welcome aboard, ${user.name}! We're excited to have you join our community.`,
                         type: notification_interface_1.NotificationType.WELCOME,
                         channel: notification_interface_1.NotificationChannel.BOTH,

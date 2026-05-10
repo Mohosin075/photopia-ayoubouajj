@@ -9,6 +9,43 @@ const ProfessionalProfileSchema = new mongoose_1.Schema({
         required: true,
         unique: true,
     },
+    dateOfBirth: {
+        type: Date,
+        required: true
+    },
+    primaryDomain: {
+        type: [String],
+        enum: ['Photography', 'Videography', 'Editing'],
+        required: true
+    },
+    categories: {
+        type: [mongoose_1.Schema.Types.ObjectId],
+        ref: 'Category'
+    },
+    areaOfIntervention: {
+        mainCity: { type: String },
+        department: { type: String },
+        radius: { type: String },
+        availableForTravel: { type: Boolean, default: false }
+    },
+    experienceDetails: {
+        yearsOfExperience: { type: String },
+        projectsCompleted: { type: String },
+        education: { type: String }
+    },
+    notificationPreferences: {
+        emailNewRequests: { type: Boolean, default: true, required: true },
+        smsUrgentRequests: { type: Boolean, default: true, required: true },
+        newsletterPros: { type: Boolean, default: true, required: true },
+        customerReviewReminder: { type: Boolean, default: true, required: true }
+    },
+    legalNotice: {
+        acceptedTerms: { type: Boolean, default: false, required: true },
+        privacyPolicy: { type: Boolean, default: false, required: true },
+        gdprAuthorization: { type: Boolean, default: false, required: true }
+    },
+    miniBio: { type: String, maxlength: 500 },
+    externalPortfolioLink: { type: String },
     bio: { type: String },
     coverPhoto: { type: String },
     specialties: { type: [String] },
@@ -27,6 +64,10 @@ const ProfessionalProfileSchema = new mongoose_1.Schema({
     profileViews: { type: Number, default: 0 },
     projects: { type: Number, default: 0 },
     responseRate: { type: Number, default: 95 },
+    responseTime: { type: Number, default: 60 }, // default 60 minutes
+    deliveryRate: { type: Number, default: 100 },
+    satisfactionRate: { type: Number, default: 100 },
+    isSuperPro: { type: Boolean, default: false },
     stripeAccountId: { type: String, default: null },
     stripeOnboardingComplete: { type: Boolean, default: false },
 }, {

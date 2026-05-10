@@ -25,6 +25,7 @@ const sendMessage = (0, catchAsync_1.default)(async (req, res) => {
     const data = {
         ...req.body,
         image: (payload === null || payload === void 0 ? void 0 : payload.images) ? payload.images[0] : null,
+        file: (payload === null || payload === void 0 ? void 0 : payload.documents) ? payload.documents[0] : null,
         sender: user.userId,
         receiver: receiverId,
     };

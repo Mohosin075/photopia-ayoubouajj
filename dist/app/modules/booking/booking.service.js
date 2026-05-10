@@ -27,7 +27,7 @@ const calculateDistanceInKm = (lat1, lon1, lat2, lon2) => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
 };
-const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromProviderKm, overrides, packageName) => {
+const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromProviderKm, overrides, packageName, customOptions) => {
     var _a, _b, _c, _d, _e, _f, _g, _h;
     const service = await service_model_1.Service.findById(serviceId);
     if (!service)
@@ -92,6 +92,11 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
         travelFee = Math.min(extraKm * (service.travelFeePerKm || 1.5), service.maxTravelFee || 100);
     }
     subtotal += travelFee;
+    // Add Custom Options
+    if (customOptions && customOptions.length > 0) {
+        const optionsTotal = customOptions.reduce((acc, opt) => acc + opt.price, 0);
+        subtotal += optionsTotal;
+    }
     const platformCommissionClient = 0.10; // 10% from user (client)
     const platformCommissionProvider = 0.05; // 5% from provider
     const clientTotal = Number((subtotal * (1 + platformCommissionClient)).toFixed(2));
@@ -108,11 +113,28 @@ const calculatePrice = async (serviceId, startTime, endTime, date, distanceFromP
         clientTotal,
         providerEarnings,
         currency: service.currency || 'EUR',
-        durationHours
+        durationHours,
+        customOptions
     };
 };
 const createBooking = async (payload, user) => {
     var _a, _b, _c, _d, _e, _f;
+    // Strip server-owned fields — clients may send Stripe `status` as `paymentStatus` (`succeeded`), which is not a valid Booking enum.
+    for (const key of [
+        'paymentStatus',
+        'status',
+        'stripePaymentId',
+        'stripeClientSecret',
+        'stripeTransferId',
+        'stripeTransferStatus',
+        'confirmedAt',
+        'cancelledAt',
+        'completedAt',
+        'review',
+        'bookingNumber',
+    ]) {
+        delete payload[key];
+    }
     // 1. Check Service Existence
     const service = await service_model_1.Service.findById(payload.serviceId);
     if (!service)
@@ -149,7 +171,7 @@ const createBooking = async (payload, user) => {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Provider is not available: ${availabilityCheck.reason}`);
     }
     // 3. Calculate Price (First, to get the correct duration)
-    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm || 0, availabilityCheck.pricing, payload.packageName);
+    const pricing = await calculatePrice(payload.serviceId.toString(), payload.startTime, payload.endTime, bookingDate, payload.eventLocation.distanceFromProviderKm || 0, availabilityCheck.pricing, payload.packageName, payload.customOptions);
     // Calculate actual end time based on the duration returned from pricing
     const [startHour, startMinute] = payload.startTime.split(':').map(Number);
     const startTotalMinutes = startHour * 60 + startMinute;
@@ -190,6 +212,10 @@ const createBooking = async (payload, user) => {
     payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2));
     payload.bookingDate = bookingDate; // Ensure the Date object is saved
     const [booking] = await booking_model_1.Booking.create([payload]);
+    // Increment totalBooking in Service
+    await service_model_1.Service.findByIdAndUpdate(payload.serviceId, {
+        $inc: { totalBooking: 1 }
+    });
     // 4. Create Stripe Checkout Session
     const paymentPayload = {
         amount: payload.depositAmount, // Charge the deposit amount
@@ -197,6 +223,8 @@ const createBooking = async (payload, user) => {
         productName: `Deposit for ${service.title}`,
         description: `Booking Number: ${booking.bookingNumber} (50% Deposit)`,
         bookingId: booking._id.toString(),
+        // JWT may omit email; Payment.userEmail is required — use the booking contact email.
+        userEmail: payload.clientEmail,
         metadata: {
             bookingId: booking._id.toString(),
             bookingNumber: booking.bookingNumber,
@@ -386,11 +414,53 @@ const getMyBookingsByDate = async (userId, role, date) => {
         .sort({ startTime: 1 });
     return result;
 };
+const modifyBookingOffer = async (bookingId, providerId, payload) => {
+    const booking = await booking_model_1.Booking.findById(bookingId);
+    if (!booking)
+        throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Booking not found');
+    if (booking.providerId.toString() !== providerId) {
+        throw new ApiError_1.default(http_status_codes_1.default.FORBIDDEN, 'Only the professional who received this booking can modify the offer');
+    }
+    if (booking.status !== 'pending') {
+        throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, `Cannot modify offer when booking status is ${booking.status}`);
+    }
+    if (booking.paymentStatus !== 'pending') {
+        throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Cannot modify offer after payment has been initiated or completed');
+    }
+    // Recalculate Pricing
+    const overrides = payload.baseRate ? { priceOverride: payload.baseRate } : undefined;
+    const pricingResult = await calculatePrice(booking.serviceId.toString(), booking.startTime, booking.endTime, booking.bookingDate, booking.eventLocation.distanceFromProviderKm || 0, overrides, payload.packageName || booking.packageName, payload.customOptions || booking.customOptions);
+    // Update Booking Top-level Properties
+    booking.packageName = pricingResult.packageName;
+    booking.customOptions = pricingResult.customOptions;
+    booking.durationHours = pricingResult.durationHours;
+    // Extract only the fields that belong in pricingDetails
+    const { pricingType, baseRate, isWeekend, travelFee, subtotal, platformCommissionClient, platformCommissionProvider, clientTotal, providerEarnings, currency } = pricingResult;
+    booking.pricingDetails = {
+        pricingType,
+        baseRate,
+        isWeekend,
+        travelFee,
+        subtotal,
+        platformCommissionClient,
+        platformCommissionProvider,
+        clientTotal,
+        providerEarnings,
+        currency
+    };
+    // Update deposit/balance
+    booking.depositPercentage = 0.5;
+    booking.depositAmount = Number((clientTotal * booking.depositPercentage).toFixed(2));
+    booking.balanceAmount = Number((clientTotal - booking.depositAmount).toFixed(2));
+    await booking.save();
+    return booking;
+};
 exports.BookingService = {
     createBooking,
     updateBookingStatus,
     getMyBookings,
     calculatePrice,
     getSingleBooking,
-    getMyBookingsByDate
+    getMyBookingsByDate,
+    modifyBookingOffer
 };

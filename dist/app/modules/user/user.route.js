@@ -17,6 +17,7 @@ router.patch('/switch-role', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.
 router.get('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.PROFESSIONAL), user_controller_1.UserController.getProfile);
 router.patch('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER, user_1.USER_ROLES.SUPER_ADMIN, user_1.USER_ROLES.PROFESSIONAL), (0, processReqBody_1.fileAndBodyProcessorUsingDiskStorage)(), (0, validateRequest_1.default)(user_validation_1.updateUserSchema), user_controller_1.UserController.updateProfile);
 router.delete('/profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER), user_controller_1.UserController.deleteProfile);
+router.patch('/deactivate-profile', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.SUPER_ADMIN), user_controller_1.UserController.deactivateProfile);
 router.post('/stripe-connect-onboarding', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL), professionalProfile_controller_1.ProfessionalProfileController.stripeConnectOnboarding);
 router.get('/stripe-connect-status', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL), professionalProfile_controller_1.ProfessionalProfileController.checkStripeAccountStatus);
 // Public route for Stripe to return to

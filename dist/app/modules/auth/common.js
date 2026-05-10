@@ -50,14 +50,6 @@ const handleLoginLogic = async (payload, isUserExist) => {
             const remainingMinutes = Math.ceil((restrictionLeftAt.getTime() - Date.now()) / 60000);
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.TOO_MANY_REQUESTS, `You are restricted to login for ${remainingMinutes} minutes`);
         }
-        // Handle restriction expiration
-        await user_model_1.User.findByIdAndUpdate(isUserExist._id, {
-            $set: {
-                'authentication.restrictionLeftAt': null,
-                'authentication.wrongLoginAttempts': 0,
-                status: user_1.USER_STATUS.ACTIVE,
-            },
-        });
     }
     const isPasswordMatched = await user_model_1.User.isPasswordMatched(payload.password, password);
     if (!isPasswordMatched) {
@@ -80,6 +72,7 @@ const handleLoginLogic = async (payload, isUserExist) => {
     }
     await user_model_1.User.findByIdAndUpdate(isUserExist._id, {
         $set: {
+            status: user_1.USER_STATUS.ACTIVE,
             deviceToken: payload.deviceToken,
             'authentication.restrictionLeftAt': null,
             'authentication.wrongLoginAttempts': 0,

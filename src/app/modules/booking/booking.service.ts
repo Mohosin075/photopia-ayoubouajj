@@ -128,7 +128,7 @@ const calculatePrice = async (
   }
 }
 
-const createBooking = async (payload: IBooking, user: any): Promise<any> => {
+const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'checkout'; paymentMethodId?: string }, user: any): Promise<any> => {
   // 1. Check Service Existence
   const service = await Service.findById(payload.serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
@@ -241,32 +241,95 @@ const createBooking = async (payload: IBooking, user: any): Promise<any> => {
    payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2))
    payload.bookingDate = bookingDate // Ensure the Date object is saved
 
-  const [booking] = await Booking.create([payload]) as any
+  const createdBookings = await Booking.create([payload])
+  const booking = createdBookings[0] as IBooking
 
   // Increment totalBooking in Service
   await Service.findByIdAndUpdate(payload.serviceId, {
     $inc: { totalBooking: 1 }
   })
 
-  // 4. Create Stripe Checkout Session
-  const paymentPayload = {
-    amount: payload.depositAmount, // Charge the deposit amount
-    currency: pricing.currency.toLowerCase(),
-    productName: `Deposit for ${service.title}`,
-    description: `Booking Number: ${booking.bookingNumber} (50% Deposit)`,
-    bookingId: booking._id.toString(),
-    metadata: {
-      bookingId: booking._id.toString(),
-      bookingNumber: booking.bookingNumber,
-      paymentType: 'deposit'
+  // ============================================
+  // PAYMENT FLOW: intent (Flutter) vs checkout (Web)
+  // ============================================
+  const paymentMode = (payload as any).paymentMode || 'intent'
+
+  if (paymentMode === 'intent') {
+    // ------- FLUTTER FLOW: PaymentIntent + EphemeralKey -------
+    const intentResult = await PaymentServices.createPaymentIntent(user, {
+      bookingId: (booking._id as Types.ObjectId).toString(),
+      amount: payload.depositAmount,
+      currency: pricing.currency.toLowerCase(),
+      paymentMethodId: (payload as any).paymentMethodId, // optional saved card
+      metadata: {
+        bookingId: (booking._id as Types.ObjectId).toString(),
+        bookingNumber: booking.bookingNumber,
+        paymentType: 'deposit',
+      },
+    })
+
+    // Store Stripe references on the booking
+    booking.stripePaymentId = intentResult.paymentIntentId
+    booking.stripeClientSecret = intentResult.clientSecret
+    await booking.save()
+
+    // Create ephemeral key for Flutter payment sheet
+    let ephemeralKey: string | undefined
+    let stripeCustomerId: string | undefined
+    try {
+      const userData = await User.findById(user.userId)
+      stripeCustomerId = userData?.stripeCustomerId
+      if (stripeCustomerId) {
+        const ephResult = await PaymentServices.createEphemeralKey(user)
+        ephemeralKey = ephResult.ephemeralKey
+      }
+    } catch (e) {
+      console.error('Ephemeral key creation warning:', e)
     }
-  }
 
-  const checkoutSession = await PaymentServices.createCheckoutSession(user, paymentPayload)
+    return {
+      booking,
+      payment: {
+        paymentMode: 'intent',
+        clientSecret: intentResult.clientSecret,
+        paymentIntentId: intentResult.paymentIntentId,
+        ephemeralKey,
+        customerId: stripeCustomerId,
+        amount: payload.depositAmount,
+        currency: pricing.currency,
+        status: intentResult.status,
+      },
+    }
+  } else {
+    // ------- WEB FLOW: Stripe Checkout Session -------
+    const paymentPayload = {
+      amount: payload.depositAmount,
+      currency: pricing.currency.toLowerCase(),
+      productName: `Deposit for ${service.title}`,
+      description: `Booking Number: ${booking.bookingNumber} (50% Deposit)`,
+      bookingId: (booking._id as Types.ObjectId).toString(),
+      metadata: {
+        bookingId: (booking._id as Types.ObjectId).toString(),
+        bookingNumber: booking.bookingNumber,
+        paymentType: 'deposit',
+      },
+    }
 
-  return {
-    booking,
-    paymentSession: checkoutSession
+    const checkoutSession = await PaymentServices.createCheckoutSession(user, paymentPayload)
+
+    booking.stripePaymentId = checkoutSession.sessionId
+    await booking.save()
+
+    return {
+      booking,
+      payment: {
+        paymentMode: 'checkout',
+        sessionId: checkoutSession.sessionId,
+        url: checkoutSession.url,
+        amount: payload.depositAmount,
+        currency: pricing.currency,
+      },
+    }
   }
 }
 
@@ -574,6 +637,78 @@ const modifyBookingOffer = async (
   return booking
 }
 
+/**
+ * Pay Remaining Balance (the other 50%) for a booking
+ * Called after deposit is paid and booking is confirmed
+ */
+const payRemainingBalance = async (
+  bookingId: string,
+  user: any,
+  payload?: { paymentMethodId?: string }
+): Promise<any> => {
+  const booking = await Booking.findById(bookingId)
+  if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
+
+  // Only the client who booked can pay
+  if (booking.clientId.toString() !== user.userId) {
+    throw new ApiError(httpStatus.FORBIDDEN, 'Only the booking client can pay the remaining balance')
+  }
+
+  // Must be in deposit_paid status
+  if (booking.paymentStatus !== 'deposit_paid') {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Cannot pay remaining balance. Current payment status: ${booking.paymentStatus}`
+    )
+  }
+
+  if (booking.balanceAmount <= 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'No remaining balance to pay')
+  }
+
+  // Create Payment Intent for remaining balance
+  const intentResult = await PaymentServices.createPaymentIntent(user, {
+    bookingId: (booking._id as Types.ObjectId).toString(),
+    amount: booking.balanceAmount,
+    currency: booking.pricingDetails.currency.toLowerCase(),
+    paymentMethodId: payload?.paymentMethodId,
+    metadata: {
+      bookingId: (booking._id as Types.ObjectId).toString(),
+      bookingNumber: booking.bookingNumber,
+      paymentType: 'balance',
+    },
+  })
+
+  // Create ephemeral key for Flutter
+  let ephemeralKey: string | undefined
+  let stripeCustomerId: string | undefined
+  try {
+    const userData = await User.findById(user.userId)
+    stripeCustomerId = userData?.stripeCustomerId
+    if (stripeCustomerId) {
+      const ephResult = await PaymentServices.createEphemeralKey(user)
+      ephemeralKey = ephResult.ephemeralKey
+    }
+  } catch (e) {
+    console.error('Ephemeral key creation warning:', e)
+  }
+
+  return {
+    booking,
+    payment: {
+      paymentMode: 'intent',
+      clientSecret: intentResult.clientSecret,
+      paymentIntentId: intentResult.paymentIntentId,
+      ephemeralKey,
+      customerId: stripeCustomerId,
+      amount: booking.balanceAmount,
+      currency: booking.pricingDetails.currency,
+      status: intentResult.status,
+      paymentType: 'balance',
+    },
+  }
+}
+
 export const BookingService = {
   createBooking,
   updateBookingStatus,
@@ -581,5 +716,6 @@ export const BookingService = {
   calculatePrice,
   getSingleBooking,
   getMyBookingsByDate,
-  modifyBookingOffer
+  modifyBookingOffer,
+  payRemainingBalance,
 }

@@ -22,7 +22,14 @@ const createCategory = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getAllCategories = (0, catchAsync_1.default)(async (req, res) => {
     const paginationOptions = (0, pick_1.default)(req.query, pagination_1.paginationFields);
-    const filters = (0, pick_1.default)(req.query, ['searchTerm', 'name', 'isActive']);
+    const filters = (0, pick_1.default)(req.query, [
+        'searchTerm',
+        'name',
+        'theme',
+        'parent',
+        'type',
+        'isActive',
+    ]);
     const result = await category_service_1.CategoryServices.getAllCategories(filters, paginationOptions);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
@@ -62,10 +69,30 @@ const deleteCategory = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getPopularCategories = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await category_service_1.CategoryServices.getPopularCategories();
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Popular categories retrieved successfully',
+        data: result,
+    });
+});
+const getTrendingSubcategories = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await category_service_1.CategoryServices.getTrendingSubcategories();
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Trending subcategories retrieved successfully',
+        data: result,
+    });
+});
 exports.CategoryController = {
     createCategory,
     getAllCategories,
     getSingleCategory,
+    getPopularCategories,
+    getTrendingSubcategories,
     updateCategory,
     deleteCategory,
 };

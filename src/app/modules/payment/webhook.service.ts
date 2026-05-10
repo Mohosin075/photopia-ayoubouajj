@@ -61,28 +61,39 @@ const handleCheckoutSessionCompleted = async (
 
       // Update Booking Status if bookingId exists in metadata or payment
       const bookingId = payment.bookingId || sessionWithDetails.metadata?.bookingId
+      const paymentType = sessionWithDetails.metadata?.paymentType || payment.metadata?.paymentType || 'deposit'
       
-      console.log(`Webhook: Processing booking update for ID: ${bookingId}`)
+      console.log(`Webhook: Processing booking update for ID: ${bookingId}, paymentType: ${paymentType}`)
       
       if (bookingId) {
+        const updateData: any = {
+          stripePaymentId: sessionWithDetails.id,
+        }
+
+        if (paymentType === 'balance') {
+          updateData.paymentStatus = 'fully_paid'
+          updateData.balanceAmount = 0
+        } else {
+          updateData.status = 'confirmed'
+          updateData.paymentStatus = 'deposit_paid'
+        }
+
         const updatedBooking = await Booking.findByIdAndUpdate(
           bookingId,
-          { 
-            status: 'confirmed',
-            paymentStatus: 'deposit_paid',
-            stripePaymentId: sessionWithDetails.id
-          },
+          updateData,
           { session: mongoSession, new: true }
         )
         
         if (updatedBooking) {
-          console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking.bookingNumber}`)
-          // Add to pending balance for the provider
-          await WalletService.addPendingEarnings(
-            updatedBooking.providerId,
-            updatedBooking.pricingDetails.providerEarnings,
-            mongoSession
-          )
+          console.log(`Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentStatus: ${updatedBooking.paymentStatus}`)
+          // Add to pending balance for the provider (only on deposit)
+          if (paymentType !== 'balance') {
+            await WalletService.addPendingEarnings(
+              updatedBooking.providerId,
+              updatedBooking.pricingDetails.providerEarnings,
+              mongoSession
+            )
+          }
         }
       }
 
@@ -195,26 +206,39 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
 
     // Update Booking Status if bookingId exists
     const bookingId = payment.bookingId || paymentIntent.metadata?.bookingId
+    const paymentType = paymentIntent.metadata?.paymentType || payment.metadata?.paymentType || 'deposit'
     
     if (bookingId) {
+      const updateData: any = {
+        stripePaymentId: paymentIntent.id,
+      }
+
+      if (paymentType === 'balance') {
+        // Remaining balance paid → fully paid
+        updateData.paymentStatus = 'fully_paid'
+        updateData.balanceAmount = 0
+      } else {
+        // Deposit paid → confirmed
+        updateData.status = 'confirmed'
+        updateData.paymentStatus = 'deposit_paid'
+      }
+
       const updatedBooking = await Booking.findByIdAndUpdate(
         bookingId,
-        { 
-          status: 'confirmed',
-          paymentStatus: 'deposit_paid',
-          stripePaymentId: paymentIntent.id
-        },
+        updateData,
         { session: mongoSession, new: true }
       )
       
       if (updatedBooking) {
-        console.log(`Webhook: Booking status updated to confirmed for: ${updatedBooking.bookingNumber}`)
-        // Add to pending balance for the provider
-        await WalletService.addPendingEarnings(
-          updatedBooking.providerId,
-          updatedBooking.pricingDetails.providerEarnings,
-          mongoSession
-        )
+        console.log(`Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentType: ${paymentType}, paymentStatus: ${updatedBooking.paymentStatus}`)
+        // Add to pending balance for the provider (only on deposit, not balance)
+        if (paymentType !== 'balance') {
+          await WalletService.addPendingEarnings(
+            updatedBooking.providerId,
+            updatedBooking.pricingDetails.providerEarnings,
+            mongoSession
+          )
+        }
       }
     }
     await mongoSession.commitTransaction()

@@ -8,6 +8,8 @@ const http_status_codes_1 = require("http-status-codes");
 const config_1 = __importDefault(require("../../config"));
 const jwtHelper_1 = require("../../helpers/jwtHelper");
 const ApiError_1 = __importDefault(require("../../errors/ApiError"));
+const user_model_1 = require("../modules/user/user.model");
+const user_1 = require("../../enum/user");
 const auth = (...roles) => async (req, res, next) => {
     var _a, _b;
     try {
@@ -46,6 +48,17 @@ const auth = (...roles) => async (req, res, next) => {
                 return next(new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'Access Token has expired'));
             }
             return next(new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Invalid Access Token'));
+        }
+        // VERIFY USER STATUS IN DB
+        const userStatusCheck = await user_model_1.User.findById(verifyUser.userId).select('status').lean();
+        if (!userStatusCheck) {
+            return next(new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'User does not exist'));
+        }
+        if (userStatusCheck.status === user_1.USER_STATUS.INACTIVE) {
+            return next(new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Your account is inactive. Please log in again to reactivate it.'));
+        }
+        if (userStatusCheck.status === user_1.USER_STATUS.DELETED) {
+            return next(new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Your account is deleted.'));
         }
         // Attach to req
         req.user = verifyUser;

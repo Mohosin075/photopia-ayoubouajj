@@ -20,4 +20,5 @@ router.get('/my-bookings', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.US
 router.get('/my-bookings-by-date', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), booking_controller_1.BookingController.getMyBookingsByDate);
 router.get('/:id', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), booking_controller_1.BookingController.getSingleBooking);
 router.patch('/:id/status', (0, auth_1.default)(user_1.USER_ROLES.USER, user_1.USER_ROLES.PROFESSIONAL, user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), (0, validateRequest_1.default)(booking_validation_1.updateBookingStatusSchema), booking_controller_1.BookingController.updateBookingStatus);
+router.patch('/:id/modify-offer', (0, auth_1.default)(user_1.USER_ROLES.PROFESSIONAL), (0, validateRequest_1.default)(booking_validation_1.modifyOfferValidationSchema), booking_controller_1.BookingController.modifyBookingOffer);
 exports.BookingRoutes = router;

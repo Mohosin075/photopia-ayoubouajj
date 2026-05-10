@@ -51,7 +51,7 @@ class EmailProvider {
         try {
             const { subject, html } = notification_templates_1.EmailTemplates.getTemplate(data.template, data.data);
             const mailOptions = {
-                from: `Photopia <${config_1.default.email.from}>`,
+                from: `Photopya <${config_1.default.email.from}>`,
                 to: Array.isArray(data.to) ? data.to.join(',') : data.to,
                 subject,
                 html,

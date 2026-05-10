@@ -57,8 +57,8 @@ EmailTemplates.header = (title) => `
   `;
 EmailTemplates.footer = `
     <div class="footer">
-      <p>© ${new Date().getFullYear()} Photopia. All rights reserved.</p>
-      <p>This email was sent by Photopia. If you have any questions, contact us at support@photopia.com</p>
+      <p>© ${new Date().getFullYear()} Photopya. All rights reserved.</p>
+      <p>This email was sent by Photopya. If you have any questions, contact us at support@Photopya.com</p>
       <p>
         <a href="{{unsubscribeLink}}" style="color: #667eea; text-decoration: none;">Unsubscribe</a> | 
         <a href="{{privacyLink}}" style="color: #667eea; text-decoration: none;">Privacy Policy</a> | 
@@ -69,8 +69,8 @@ EmailTemplates.footer = `
 EmailTemplates.templates = {
     // Welcome Email
     [notification_constant_1.NOTIFICATION_TEMPLATES.WELCOME]: {
-        getTitle: (data) => `Welcome to Photopia, ${data.userName}!`,
-        getSubject: (data) => `Welcome to Photopia!`,
+        getTitle: (data) => `Welcome to Photopya, ${data.userName}!`,
+        getSubject: (data) => `Welcome to Photopya!`,
         getBody: (data) => `
         <h2>Welcome aboard, ${data.userName}!</h2>
         <p>We're excited to have you join our community of event enthusiasts. Here's what you can do:</p>
@@ -169,7 +169,7 @@ EmailTemplates.templates = {
         <ul>
           <li>Secure your account</li>
           <li>Receive important event notifications</li>
-          <li>Access all features of Photopia</li>
+          <li>Access all features of Photopya</li>
           <li>Get personalized event recommendations</li>
         </ul>
 

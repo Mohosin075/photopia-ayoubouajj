@@ -13,9 +13,10 @@ const os_1 = __importDefault(require("os"));
 const user_service_1 = require("./app/modules/user/user.service");
 const socketHelper_1 = require("./helpers/socketHelper");
 const subscription_seed_1 = require("./app/modules/subscription/subscription.seed");
+const logger_1 = require("./shared/logger");
 // Uncaught exceptions
 process.on('uncaughtException', error => {
-    console.error('🔥 UncaughtException Detected:', error);
+    logger_1.errorLogger.error('🔥 UncaughtException Detected:', error);
     process.exit(1);
 });
 exports.onlineUsers = new Map();
@@ -23,24 +24,21 @@ let server;
 async function main() {
     try {
         await mongoose_1.default.connect(config_1.default.database_url);
-        console.log(colors_1.default.green('🚀 Database connected successfully'));
+        logger_1.logger.info(colors_1.default.green('🚀 Database connected successfully'));
         const port = typeof config_1.default.port === 'number' ? config_1.default.port : Number(config_1.default.port);
-        const host = config_1.default.ip_address || '0.0.0.0';
         server = app_1.default.listen(port, '0.0.0.0', () => {
-            console.log(colors_1.default.yellow(`♻️  Server is running on:`));
-            console.log(colors_1.default.cyan(`   - Local:    http://localhost:${port}`));
-            // const location =await geocodeAddress("aqua tower dhaka 1212");
-            // console.log("location", location);
+            logger_1.logger.info(colors_1.default.yellow(`♻️  Server is running on:`));
+            logger_1.logger.info(colors_1.default.cyan(`   - Local:    http://localhost:${port}`));
             const interfaces = os_1.default.networkInterfaces();
             for (const name of Object.keys(interfaces)) {
                 for (const iface of interfaces[name]) {
                     if (iface.family === 'IPv4' && !iface.internal) {
-                        console.log(colors_1.default.cyan(`   - Network:  http://${iface.address}:${port}`));
+                        logger_1.logger.info(colors_1.default.cyan(`   - Network:  http://${iface.address}:${port}`));
                     }
                 }
             }
             if (config_1.default.ip_address) {
-                console.log(colors_1.default.green(`   - Requested IP: http://${config_1.default.ip_address}:${port}`));
+                logger_1.logger.info(colors_1.default.green(`   - Requested IP: http://${config_1.default.ip_address}:${port}`));
             }
         });
         // Socket.IO setup
@@ -55,21 +53,21 @@ async function main() {
         // Socket helper
         socketHelper_1.socketHelper.socket(exports.io);
         global.io = exports.io;
-        console.log(colors_1.default.green('🍁 Socket.IO initialized successfully'));
+        logger_1.logger.info(colors_1.default.green('🍁 Socket.IO initialized successfully'));
     }
     catch (error) {
-        console.error(colors_1.default.red('🤢 Failed to start the server or connect to DB'), error);
+        logger_1.errorLogger.error(colors_1.default.red('🤢 Failed to start the server or connect to DB'), error);
     }
     // Handle unhandled promise rejections
     process.on('unhandledRejection', error => {
         if (server) {
             server.close(() => {
-                console.error('🔥 UnhandledRejection Detected:', error);
+                logger_1.errorLogger.error('🔥 UnhandledRejection Detected:', error);
                 process.exit(1);
             });
         }
         else {
-            console.error('🔥 UnhandledRejection Detected:', error);
+            logger_1.errorLogger.error('🔥 UnhandledRejection Detected:', error);
             process.exit(1);
         }
     });
@@ -78,7 +76,7 @@ async function main() {
 main();
 // Graceful shutdown on SIGTERM
 process.on('SIGTERM', async () => {
-    console.log('👋 SIGTERM received, shutting down server...');
+    logger_1.logger.info('👋 SIGTERM received, shutting down server...');
     if (server) {
         server.close();
     }

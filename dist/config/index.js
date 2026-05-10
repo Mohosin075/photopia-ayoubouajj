@@ -2,24 +2,48 @@
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-/* eslint-disable no-undef */
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
+const zod_1 = require("zod");
 dotenv_1.default.config({ path: path_1.default.join(process.cwd(), '.env') });
+const envVarsSchema = zod_1.z.object({
+    IP_ADDRESS: zod_1.z.string().optional(),
+    DATABASE_URL: zod_1.z.string({ required_error: 'DATABASE_URL is required' }),
+    NODE_ENV: zod_1.z.enum(['development', 'production', 'test']).default('development'),
+    PORT: zod_1.z.string().default('5000'),
+    BCRYPT_SALT_ROUNDS: zod_1.z.string().default('12'),
+    JWT_SECRET: zod_1.z.string({ required_error: 'JWT_SECRET is required' }),
+    JWT_EXPIRE_IN: zod_1.z.string().default('1d'),
+    JWT_REFRESH_SECRET: zod_1.z.string({ required_error: 'JWT_REFRESH_SECRET is required' }),
+    JWT_REFRESH_EXPIRES_IN: zod_1.z.string().default('30d'),
+    GOOGLE_CLIENT_ID: zod_1.z.string().optional(),
+    GOOGLE_CLIENT_SECRET: zod_1.z.string().optional(),
+    GOOGLE_CALLBACK_URL: zod_1.z.string().optional(),
+    STRIPE_API_SECRET: zod_1.z.string().optional(),
+    WEBHOOK_SECRET: zod_1.z.string().optional(),
+    EMAIL_USER: zod_1.z.string().optional(),
+    EMAIL_PASS: zod_1.z.string().optional(),
+    SUPER_ADMIN_NAME: zod_1.z.string().optional(),
+    SUPER_ADMIN_EMAIL: zod_1.z.string().optional(),
+    SUPER_ADMIN_PASSWORD: zod_1.z.string().optional(),
+    CORS_ORIGINS: zod_1.z.string().optional(),
+});
+const envVars = envVarsSchema.parse(process.env);
 exports.default = {
-    ip_address: process.env.IP_ADDRESS,
-    database_url: process.env.DATABASE_URL,
-    node_env: process.env.NODE_ENV,
+    ip_address: envVars.IP_ADDRESS,
+    database_url: envVars.DATABASE_URL,
+    node_env: envVars.NODE_ENV,
     clientUrl: process.env.clientUrl,
-    port: process.env.PORT,
-    bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
+    port: envVars.PORT,
+    bcrypt_salt_rounds: envVars.BCRYPT_SALT_ROUNDS,
     firebase_service_account_base64: process.env.FIREBASE_SERVICE_ACCOUNT_BASE64,
     server_map_api_key: process.env.SERVER_MAP_API_KEY,
     google: {
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        callback_url: process.env.GOOGLE_CALLBACK_URL,
+        client_id: envVars.GOOGLE_CLIENT_ID,
+        client_secret: envVars.GOOGLE_CLIENT_SECRET,
+        callback_url: envVars.GOOGLE_CALLBACK_URL,
     },
     facebook: {
         app_id: process.env.FACEBOOK_APP_ID,
@@ -43,8 +67,8 @@ exports.default = {
         bucket_name: process.env.AWS_BUCKET_NAME,
     },
     stripe: {
-        stripeSecretKey: process.env.STRIPE_API_SECRET,
-        webhookSecret: process.env.WEBHOOK_SECRET,
+        stripeSecretKey: envVars.STRIPE_API_SECRET,
+        webhookSecret: envVars.WEBHOOK_SECRET,
         paymentSuccess: process.env.SUCCESS_URL,
     },
     agora: {
@@ -53,10 +77,10 @@ exports.default = {
         web_hook_secret: process.env.AGORA_WEB_HOOK_SECRET,
     },
     jwt: {
-        jwt_secret: process.env.JWT_SECRET,
-        jwt_expire_in: process.env.JWT_EXPIRE_IN,
-        jwt_refresh_secret: process.env.JWT_REFRESH_SECRET,
-        jwt_refresh_expire_in: process.env.JWT_REFRESH_EXPIRES_IN,
+        jwt_secret: envVars.JWT_SECRET,
+        jwt_expire_in: envVars.JWT_EXPIRE_IN,
+        jwt_refresh_secret: envVars.JWT_REFRESH_SECRET,
+        jwt_refresh_expire_in: envVars.JWT_REFRESH_EXPIRES_IN,
         jwt_refresh_expire_long: process.env.JWT_REFRESH_EXPIRE_LONG,
         temp_jwt_secret: process.env.TEMP_JWT_SECRET,
         temp_jwt_expire_in: process.env.TEMP_JWT_EXPIRE_IN,
@@ -66,10 +90,10 @@ exports.default = {
     openAi_api_key: process.env.OPENAI_API_KEY,
     email: {
         from: process.env.EMAIL_FROM,
-        user: process.env.EMAIL_USER,
+        user: envVars.EMAIL_USER,
         port: process.env.EMAIL_PORT,
         host: process.env.EMAIL_HOST,
-        pass: process.env.EMAIL_PASS,
+        pass: envVars.EMAIL_PASS,
         resend_api_key: process.env.RESEND_API_KEY,
     },
     twilio: {
@@ -83,8 +107,9 @@ exports.default = {
         cloudinary_secret: process.env.CLOUDINARY_SECRET,
     },
     super_admin: {
-        name: process.env.SUPER_ADMIN_NAME,
-        email: process.env.SUPER_ADMIN_EMAIL,
-        password: process.env.SUPER_ADMIN_PASSWORD,
+        name: envVars.SUPER_ADMIN_NAME,
+        email: envVars.SUPER_ADMIN_EMAIL,
+        password: envVars.SUPER_ADMIN_PASSWORD,
     },
+    cors_origins: ((_a = envVars.CORS_ORIGINS) === null || _a === void 0 ? void 0 : _a.split(',').map(origin => origin.trim())) || [],
 };

@@ -119,7 +119,7 @@ const customLogin = async (payload) => {
     const query = email ? { email: email.toLowerCase().trim() } : { phone: phone };
     const isUserExist = await user_model_1.User.findOne({
         ...query,
-        status: { $in: [user_1.USER_STATUS.ACTIVE] },
+        status: { $in: [user_1.USER_STATUS.ACTIVE, user_1.USER_STATUS.INACTIVE] },
     })
         .select('+password +authentication')
         .lean();
@@ -325,6 +325,9 @@ const socialLogin = async (appId, deviceToken) => {
         await user_model_1.User.findByIdAndUpdate(isUserExist._id, {
             $set: {
                 deviceToken,
+                status: user_1.USER_STATUS.ACTIVE,
+                'authentication.restrictionLeftAt': null,
+                'authentication.wrongLoginAttempts': 0,
             },
         });
         const tokens = auth_helper_1.AuthHelper.createToken(isUserExist._id, isUserExist.roles[0], isUserExist.activeRole, isUserExist.name, isUserExist.email);

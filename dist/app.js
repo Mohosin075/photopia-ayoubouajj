@@ -17,9 +17,22 @@ const webhook_1 = __importDefault(require("./webhook"));
 const sendResponse_1 = __importDefault(require("./shared/sendResponse"));
 const morgan_1 = __importDefault(require("morgan"));
 const helmet_1 = __importDefault(require("helmet"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
+const swagger_1 = __importDefault(require("./utils/swagger"));
 const app = (0, express_1.default)();
 // Security headers
 app.use((0, helmet_1.default)());
+// Rate limiting
+const limiter = (0, express_rate_limit_1.default)({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again after 15 minutes',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+if (config_1.default.node_env !== 'development') {
+    app.use('/api', limiter);
+}
 // ⚠️ CRITICAL: Webhook MUST be before body parsers to receive raw body
 app.use(webhook_1.default);
 // -------------------- Middleware --------------------
@@ -31,54 +44,44 @@ app.use((0, express_session_1.default)({
     secret: config_1.default.jwt.jwt_secret || 'secret',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // true if using HTTPS
+    cookie: {
+        secure: config_1.default.node_env === 'production', // true if using HTTPS
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
 }));
 // Initialize Passport
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
-// CORS
+// CORS - Using env based origins
 app.use((0, cors_1.default)({
-    origin: [
-        '*',
-        'http://195.35.6.13:3000',
-        'http://10.10.7.58:3001',
-        'http://10.10.7.13:3001',
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3002',
-        'http://localhost:3003',
-        'http://localhost:3004',
-        'http://localhost:3005',
-        'http://10.10.7.11:5173'
-    ],
+    origin: config_1.default.cors_origins.length > 0 ? config_1.default.cors_origins : ['*'],
     credentials: true,
 }));
 // Cookie parser
 app.use((0, cookie_parser_1.default)());
-// Logging enabled for troubleshooting
+// Logging
 app.use((0, morgan_1.default)('dev'));
 // -------------------- Static Files --------------------
-app.use(express_1.default.static('uploads'));
+// Serve uploads folder statically
 app.use('/uploads', express_1.default.static(path_1.default.join(process.cwd(), 'uploads')));
 // -------------------- API Routes --------------------
 app.use('/api/v1', routes_1.default);
+// Swagger Documentation
+(0, swagger_1.default)(app, Number(config_1.default.port));
 // -------------------- Privacy Policy --------------------
 app.get('/privacy-policy', (req, res) => {
     res.sendFile(path_1.default.join(__dirname, 'privacy-policy.html'));
 });
 routes_1.default.get('/status', (req, res) => {
     try {
-        // You can add more health checks here like:
-        // - Database connection status
-        // - Memory usage
-        // - Other service dependencies
         const healthCheck = {
             success: true,
             message: 'Server is running smoothly',
             timestamp: new Date().toISOString(),
             uptime: process.uptime(),
             memory: process.memoryUsage(),
-            environment: process.env.NODE_ENV,
+            environment: config_1.default.node_env,
         };
         res.status(http_status_codes_1.StatusCodes.OK).json(healthCheck);
     }
@@ -90,15 +93,16 @@ routes_1.default.get('/status', (req, res) => {
         });
     }
 });
-// -------------------- Root / Live Response --------------------
+// -------------------- Root Response --------------------
 app.get('/', (req, res) => {
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
-        message: 'Welcome to the Photopia API',
+        message: 'Welcome to the Photopya API',
         data: {
             timestamp: new Date().toISOString(),
-            projectName: 'Photopia',
+            projectName: 'Photopya',
+            version: '1.0.0',
         },
     });
 });
@@ -108,18 +112,13 @@ app.use(globalErrorHandler_1.default);
 app.use((req, res) => {
     res.status(http_status_codes_1.StatusCodes.NOT_FOUND).json({
         success: false,
-        message: 'Lost, are we?',
+        message: 'The requested resource was not found on this server.',
         errorMessages: [
             {
                 path: req.originalUrl,
-                message: "Congratulations, you've reached a completely useless API endpoint 👏",
-            },
-            {
-                path: '/docs',
-                message: 'Hint: Maybe try reading the docs next time? 📚',
+                message: 'Endpoint does not exist',
             },
         ],
-        roast: '404 brain cells not found. Try harder. 🧠❌',
         timestamp: new Date().toISOString(),
     });
 });

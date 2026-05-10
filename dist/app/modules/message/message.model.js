@@ -21,6 +21,10 @@ const messageSchema = new mongoose_1.Schema({
         type: String,
         required: false
     },
+    file: {
+        type: String,
+        required: false
+    },
     seen: {
         type: Boolean,
         default: false,

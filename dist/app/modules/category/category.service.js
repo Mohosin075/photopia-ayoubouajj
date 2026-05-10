@@ -46,6 +46,7 @@ const getAllCategories = async (filters, paginationOptions) => {
     const whereConditions = andConditions.length > 0 ? { $and: andConditions } : {};
     const [result, total] = await Promise.all([
         category_model_1.Category.find(whereConditions)
+            .populate('parent')
             .skip(skip)
             .limit(limit)
             .sort({ [sortBy]: sortOrder }),
@@ -62,10 +63,31 @@ const getAllCategories = async (filters, paginationOptions) => {
     };
 };
 const getSingleCategory = async (id) => {
-    const result = await category_model_1.Category.findById(id);
+    const result = await category_model_1.Category.findById(id).populate('parent');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Category not found');
     }
+    return result;
+};
+const getPopularCategories = async () => {
+    const result = await category_model_1.Category.find({
+        type: 'category',
+        isPopular: true,
+        isActive: true,
+    })
+        .select('name image icon description')
+        .lean();
+    return result;
+};
+const getTrendingSubcategories = async () => {
+    const result = await category_model_1.Category.find({
+        type: 'subcategory',
+        isTrending: true,
+        isActive: true,
+    })
+        .select('name image icon theme trendingBadge description')
+        .populate('parent', 'name')
+        .lean();
     return result;
 };
 const updateCategory = async (id, payload) => {
@@ -95,6 +117,8 @@ const deleteCategory = async (id) => {
     if (!category) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Category not found');
     }
+    // Delete associated subcategories if any
+    await category_model_1.Category.deleteMany({ parent: id });
     const result = await category_model_1.Category.findByIdAndDelete(id);
     return result;
 };
@@ -102,6 +126,8 @@ exports.CategoryServices = {
     createCategory,
     getAllCategories,
     getSingleCategory,
+    getPopularCategories,
+    getTrendingSubcategories,
     updateCategory,
     deleteCategory,
 };

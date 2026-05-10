@@ -23,7 +23,7 @@ const transporter = nodemailer_1.default.createTransport({
 const sendEmail = async (values) => {
     try {
         const info = await transporter.sendMail({
-            from: `"Photopia" ${config_1.default.email.from}`,
+            from: `"Photopya" ${config_1.default.email.from}`,
             to: values.to,
             subject: values.subject,
             html: values.html,

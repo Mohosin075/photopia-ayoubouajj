@@ -35,7 +35,7 @@ exports.SERVICE_CONSTANTS = {
         IS_ACTIVE: true,
         SERVICE_RADIUS_KM: 50,
     },
-    SEARCH_FIELDS: ['title', 'description', 'tags', 'equipment', 'subCategory'],
+    SEARCH_FIELDS: ['title', 'description', 'tags', 'equipment'],
     FILTERABLE_FIELDS: [
         'searchTerm',
         'title',
@@ -53,7 +53,13 @@ exports.SERVICE_CONSTANTS = {
         'isVerified',
         'providerId',
         'serviceType',
-        'isActive'
+        'isActive',
+        'theme',
+        'isOnline',
+        'quickResponse',
+        'expressDelivery',
+        'thisWeekend',
+        'lastMinute'
     ],
     SORTABLE_FIELDS: ['createdAt', 'updatedAt', 'price'],
     PAGINATION: {
@@ -63,7 +69,7 @@ exports.SERVICE_CONSTANTS = {
     },
 };
 // List view projection for performance
-exports.SERVICE_LIST_PROJECTION = 'title category subCategory price currency coverMedia duration location status isActive serviceType providerId';
+exports.SERVICE_LIST_PROJECTION = 'title category subCategory price currency coverMedia duration location status isActive serviceType providerId totalView totalBooking';
 // Service filterable fields for query filtering
 exports.serviceFilterableFields = [...exports.SERVICE_CONSTANTS.FILTERABLE_FIELDS];
 // Service searchable fields

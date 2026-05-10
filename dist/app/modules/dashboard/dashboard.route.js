@@ -29,4 +29,5 @@ router.get('/recent-transactions/:transactionId', (0, auth_1.default)(user_1.USE
 router.get('/subscription-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), dashboard_controller_1.DashboardController.getSubscriptionManagementStats);
 router.get('/subscribers', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), dashboard_controller_1.DashboardController.getSubscriberList);
 router.get('/advanced-analytics', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), dashboard_controller_1.DashboardController.getAdvancedAnalyticsStats);
+router.get('/category-stats', (0, auth_1.default)(user_1.USER_ROLES.ADMIN, user_1.USER_ROLES.SUPER_ADMIN), dashboard_controller_1.DashboardController.getCategoryStats);
 exports.DashboardRoutes = router;

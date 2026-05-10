@@ -9,6 +9,7 @@ import { paginationHelper } from '../../../helpers/paginationHelper'
 import { paymentSearchableFields } from './payment.constants'
 import { Types } from 'mongoose'
 import { User } from '../user/user.model'
+import { Booking } from '../booking/booking.model'
 
 import stripe from '../../../config/stripe'
 import config from '../../../config'
@@ -167,6 +168,25 @@ const createPaymentIntent = async (
   payload: any,
 ): Promise<{ clientSecret: string; paymentIntentId: string; amount: number; status: string }> => {
   try {
+    // ---- Booking Validation ----
+    if (!payload.bookingId) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Booking ID is required');
+    }
+
+    if (!Types.ObjectId.isValid(payload.bookingId)) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID');
+    }
+
+    const booking = await Booking.findById(payload.bookingId);
+    if (!booking) {
+      throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found with the provided booking ID');
+    }
+
+    // ---- Amount Validation ----
+    if (!payload.amount || payload.amount <= 0) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'A valid payment amount is required');
+    }
+
     // Get or create Stripe customer (needed for saved card payments)
     const userData = await User.findById(user.userId);
     if (!userData) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
@@ -235,6 +255,7 @@ const createPaymentIntent = async (
       status: paymentIntent.status,
     }
   } catch (error: any) {
+    if (error instanceof ApiError) throw error;
     throw new ApiError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       `Payment Intent creation failed: ${error.message}`,

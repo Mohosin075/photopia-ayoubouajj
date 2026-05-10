@@ -25,6 +25,10 @@ const wallet_route_1 = require("../app/modules/wallet/wallet.route");
 const withdrawal_route_1 = require("../app/modules/withdrawal/withdrawal.route");
 const analytics_route_1 = require("../app/modules/analytics/analytics.route");
 const dashboard_route_1 = require("../app/modules/dashboard/dashboard.route");
+const recentlyViewed_route_1 = require("../app/modules/recentlyViewed/recentlyViewed.route");
+const home_route_1 = require("../app/modules/home/home.route");
+const inspiration_route_1 = require("../app/modules/inspiration/inspiration.route");
+const location_route_1 = require("../app/modules/location/location.route");
 const router = express_1.default.Router();
 const apiRoutes = [
     {
@@ -71,7 +75,11 @@ const apiRoutes = [
     { path: '/wallet', route: wallet_route_1.WalletRoutes },
     { path: '/withdrawal', route: withdrawal_route_1.WithdrawalRoutes },
     { path: '/analytics', route: analytics_route_1.AnalyticsRoutes },
-    { path: '/public', route: public_route_1.PublicRoutes }
+    { path: '/recently-viewed', route: recentlyViewed_route_1.RecentlyViewedRoutes },
+    { path: '/public', route: public_route_1.PublicRoutes },
+    { path: '/home', route: home_route_1.HomeRoutes },
+    { path: '/inspiration', route: inspiration_route_1.InspirationRoutes },
+    { path: '/locations', route: location_route_1.LocationRoutes }
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

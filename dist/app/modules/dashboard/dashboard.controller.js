@@ -175,6 +175,15 @@ const getDetailedStats = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const getCategoryStats = (0, catchAsync_1.default)(async (req, res) => {
+    const result = await dashboard_service_1.DashboardService.getCategoryStats();
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Category stats retrieved successfully',
+        data: result,
+    });
+});
 exports.DashboardController = {
     getUserManagementStats,
     getUserDetailsStats,
@@ -194,4 +203,5 @@ exports.DashboardController = {
     exportPayments,
     getLocationList,
     getDetailedStats,
+    getCategoryStats,
 };

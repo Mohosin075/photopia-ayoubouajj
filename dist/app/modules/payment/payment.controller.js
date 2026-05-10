@@ -151,6 +151,48 @@ const generateInvoice = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const createSetupIntent = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const result = await payment_service_1.PaymentServices.createSetupIntent(user);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Setup intent created successfully',
+        data: result,
+    });
+});
+const getMyPaymentMethods = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const result = await payment_service_1.PaymentServices.getMyPaymentMethods(user);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Payment methods retrieved successfully',
+        data: result,
+    });
+});
+const deletePaymentMethod = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const { id } = req.params;
+    const result = await payment_service_1.PaymentServices.deletePaymentMethod(user, id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Payment method deleted successfully',
+        data: result,
+    });
+});
+const setDefaultPaymentMethod = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const { id } = req.params;
+    const result = await payment_service_1.PaymentServices.setDefaultPaymentMethod(user, id);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'Default payment method updated successfully',
+        data: result,
+    });
+});
 exports.PaymentController = {
     handleWebhook,
     getAllPayments,
@@ -164,4 +206,8 @@ exports.PaymentController = {
     createPaymentIntent,
     createEphemeralKey,
     generateInvoice,
+    createSetupIntent,
+    getMyPaymentMethods,
+    deletePaymentMethod,
+    setDefaultPaymentMethod,
 };

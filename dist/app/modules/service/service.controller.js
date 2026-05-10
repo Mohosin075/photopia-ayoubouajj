@@ -11,6 +11,7 @@ const pagination_1 = require("../../../interfaces/pagination");
 const pick_1 = __importDefault(require("../../../shared/pick"));
 const service_service_1 = require("./service.service");
 const service_constants_1 = require("./service.constants");
+const recentlyViewed_service_1 = require("../recentlyViewed/recentlyViewed.service");
 const createService = (0, catchAsync_1.default)(async (req, res) => {
     const serviceData = req.body;
     const { userId } = req.user;
@@ -45,6 +46,13 @@ const getAllServices = (0, catchAsync_1.default)(async (req, res) => {
 const getSingleService = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
     const result = await service_service_1.ServiceServices.getSingleService(id);
+    // Record view if user is authenticated
+    const user = req.user;
+    if (user === null || user === void 0 ? void 0 : user.userId) {
+        recentlyViewed_service_1.RecentlyViewedServices.recordView(user.userId, id).catch(err => {
+            console.error('Failed to record view:', err);
+        });
+    }
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

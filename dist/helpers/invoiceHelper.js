@@ -27,9 +27,9 @@ const generatePDFInvoice = async (payment) => {
         doc
             .fillColor('#444444')
             .fontSize(20)
-            .text('PHOTOPIA', 50, 57)
+            .text('PHOTOPYA', 50, 57)
             .fontSize(10)
-            .text('Photopia Marketplace', 200, 50, { align: 'right' })
+            .text('Photopya Marketplace', 200, 50, { align: 'right' })
             .text('123 Digital Square', 200, 65, { align: 'right' })
             .text('Tech City, TC 10101', 200, 80, { align: 'right' })
             .moveDown();
@@ -89,7 +89,7 @@ const generatePDFInvoice = async (payment) => {
         doc
             .fontSize(10)
             .fillColor('#aaaaaa')
-            .text('Thank you for choosing Photopia. For assistance, contact support@photopia.com', 50, 700, { align: 'center', width: 500 });
+            .text('Thank you for choosing Photopya. For assistance, contact support@photopya.com', 50, 700, { align: 'center', width: 500 });
         doc.end();
     });
 };

@@ -62,6 +62,20 @@ const deleteProfile = (0, catchAsync_1.default)(async (req, res) => {
         data: result,
     });
 });
+const deactivateProfile = (0, catchAsync_1.default)(async (req, res) => {
+    const user = req.user;
+    const { password } = req.body;
+    if (!password) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Password is required');
+    }
+    const result = await user_service_1.UserServices.deactivateProfile(user.userId, password);
+    (0, sendResponse_1.default)(res, {
+        statusCode: http_status_codes_1.StatusCodes.OK,
+        success: true,
+        message: 'User profile deactivated successfully. You can reactivate by logging in again.',
+        data: result,
+    });
+});
 const getUserById = (0, catchAsync_1.default)(async (req, res) => {
     const { userId } = req.params;
     const result = await user_service_1.UserServices.getUserById(userId);
@@ -121,5 +135,6 @@ exports.UserController = {
     updateUserStatus,
     getProfile,
     deleteProfile,
+    deactivateProfile,
     switchRole,
 };

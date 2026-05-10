@@ -127,6 +127,21 @@ const modifyBookingOffer = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
+const payRemainingBalance = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params
+  const user = req.user as JwtPayload
+  if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+
+  const result = await BookingService.payRemainingBalance(id, user, req.body)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Payment intent created for remaining balance',
+    data: result,
+  })
+})
+
 export const BookingController = {
   createBooking,
   updateBookingStatus,
@@ -134,5 +149,6 @@ export const BookingController = {
   calculatePrice,
   getSingleBooking,
   getMyBookingsByDate,
-  modifyBookingOffer
+  modifyBookingOffer,
+  payRemainingBalance,
 }

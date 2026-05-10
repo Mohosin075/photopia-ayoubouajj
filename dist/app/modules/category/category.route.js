@@ -12,6 +12,8 @@ const validateRequest_1 = __importDefault(require("../../middleware/validateRequ
 const category_validation_1 = require("./category.validation");
 const processReqBody_1 = require("../../middleware/processReqBody");
 const router = express_1.default.Router();
+router.get('/popular-categories', category_controller_1.CategoryController.getPopularCategories);
+router.get('/trending-subcategories', category_controller_1.CategoryController.getTrendingSubcategories);
 router
     .route('/')
     .get(category_controller_1.CategoryController.getAllCategories)

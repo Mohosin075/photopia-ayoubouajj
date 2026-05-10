@@ -17,8 +17,27 @@ const config_1 = __importDefault(require("../../../config"));
 const webhook_service_1 = require("./webhook.service");
 const emailHelper_1 = require("../../../helpers/emailHelper");
 const invoiceHelper_1 = require("../../../helpers/invoiceHelper");
+const resolveUserEmailForPayment = async (user, payload) => {
+    const fromJwt = typeof (user === null || user === void 0 ? void 0 : user.email) === 'string' ? user.email.trim() : '';
+    const fromPayload = typeof (payload === null || payload === void 0 ? void 0 : payload.userEmail) === 'string' ? payload.userEmail.trim() : '';
+    if (fromJwt)
+        return fromJwt;
+    if (fromPayload)
+        return fromPayload;
+    if (user === null || user === void 0 ? void 0 : user.userId) {
+        const doc = await user_model_1.User.findById(user.userId).select('email').lean();
+        const fromDb = (doc === null || doc === void 0 ? void 0 : doc.email) != null ? String(doc.email).trim() : '';
+        if (fromDb)
+            return fromDb;
+    }
+    return '';
+};
 const createCheckoutSession = async (user, payload) => {
     try {
+        const userEmail = await resolveUserEmailForPayment(user, payload);
+        if (!userEmail) {
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Email is required to start checkout. Add an email to your account or re-login.');
+        }
         // Basic checkout session creation without ticket dependency
         const session = await stripe_1.default.checkout.sessions.create({
             payment_method_types: ['card'],
@@ -38,7 +57,7 @@ const createCheckoutSession = async (user, payload) => {
             mode: 'payment',
             success_url: `${config_1.default.clientUrl}?session_id={CHECKOUT_SESSION_ID}&success=true`,
             cancel_url: `${config_1.default.clientUrl}/payment/cancel?success=false`,
-            customer_email: user.email,
+            customer_email: userEmail,
             metadata: {
                 userId: user.userId.toString(),
                 bookingId: payload.bookingId.toString(),
@@ -48,7 +67,7 @@ const createCheckoutSession = async (user, payload) => {
         await payment_model_1.Payment.create({
             userId: user.userId,
             bookingId: payload.bookingId,
-            userEmail: user.email,
+            userEmail,
             amount: payload.amount,
             currency: payload.currency || 'EUR',
             paymentMethod: 'stripe',
@@ -66,6 +85,9 @@ const createCheckoutSession = async (user, payload) => {
         };
     }
     catch (error) {
+        if (error instanceof ApiError_1.default) {
+            throw error;
+        }
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Checkout session creation failed: ${error.message}`);
     }
 };
@@ -136,39 +158,91 @@ const verifyCheckoutSession = async (sessionId) => {
 /**
  * Create Payment Intent for Flutter App
  * Used by flutter_stripe SDK for native mobile payments
+ *
+ * Supports two modes:
+ * 1. NEW CARD: No paymentMethodId → returns clientSecret for Flutter SDK to collect card
+ * 2. SAVED CARD: paymentMethodId provided → attaches saved card & auto-confirms off-session
  */
 const createPaymentIntent = async (user, payload) => {
     try {
-        const paymentIntent = await stripe_1.default.paymentIntents.create({
+        // Get or create Stripe customer (needed for saved card payments)
+        const userData = await user_model_1.User.findById(user.userId);
+        if (!userData)
+            throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+        const userEmail = userData.email;
+        let customerId = userData.stripeCustomerId;
+        if (!customerId) {
+            const customer = await stripe_1.default.customers.create({
+                email: userData.email,
+                name: userData.fullName || userData.name,
+                metadata: { userId: userData._id.toString() },
+            });
+            customerId = customer.id;
+            userData.stripeCustomerId = customer.id;
+            await userData.save();
+        }
+        // Build PaymentIntent params
+        const intentParams = {
             amount: Math.round(payload.amount * 100), // Convert to cents
             currency: payload.currency || 'eur',
+            customer: customerId,
             metadata: {
                 userId: user.userId,
-                userEmail: user.email,
+                userEmail,
                 bookingId: payload.bookingId,
                 ...payload.metadata
             },
-        });
+        };
+        // If paymentMethodId is provided → pay with saved card (off-session)
+        if (payload.paymentMethodId) {
+            intentParams.payment_method = payload.paymentMethodId;
+            intentParams.off_session = true;
+            intentParams.confirm = true; // Auto-confirm with saved card
+        }
+        else {
+            // New card → Flutter SDK will collect card details using clientSecret
+            intentParams.payment_method_types = ['card'];
+        }
+        const paymentIntent = await stripe_1.default.paymentIntents.create(intentParams);
         // Create payment record
         await payment_model_1.Payment.create({
             userId: user.userId,
             bookingId: payload.bookingId,
-            userEmail: user.email,
+            userEmail,
             amount: payload.amount,
             currency: (payload.currency || 'EUR').toUpperCase(),
             paymentMethod: 'stripe',
             paymentIntentId: paymentIntent.id,
-            status: 'pending',
+            status: paymentIntent.status === 'succeeded' ? 'succeeded' : 'pending',
             metadata: {
                 userId: user.userId,
                 bookingId: payload.bookingId,
+                usedSavedCard: !!payload.paymentMethodId,
                 ...payload.metadata
             },
         });
+        // Saved-card flow often completes synchronously; webhook used to skip booking when status was already `succeeded`.
+        // Confirm here so booking works even before Stripe delivers `payment_intent.succeeded`.
+        if (paymentIntent.status === 'succeeded' && payload.bookingId) {
+            const mongoSession = await payment_model_1.Payment.startSession();
+            mongoSession.startTransaction();
+            try {
+                await (0, webhook_service_1.confirmBookingAfterSuccessfulDeposit)(payload.bookingId, paymentIntent.id, mongoSession);
+                await mongoSession.commitTransaction();
+            }
+            catch (err) {
+                await mongoSession.abortTransaction();
+                throw err;
+            }
+            finally {
+                mongoSession.endSession();
+            }
+        }
         return {
             clientSecret: paymentIntent.client_secret,
             paymentIntentId: paymentIntent.id,
             amount: payload.amount,
+            status: paymentIntent.status,
         };
     }
     catch (error) {
@@ -405,6 +479,87 @@ const generateInvoice = async (id) => {
     // 2. Fallback to custom PDF invoice generation
     return await (0, invoiceHelper_1.generatePDFInvoice)(payment);
 };
+/**
+ * Create Setup Intent to save payment method for future use
+ */
+const createSetupIntent = async (user) => {
+    const userData = await user_model_1.User.findById(user.userId);
+    if (!userData)
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
+    let customerId = userData.stripeCustomerId;
+    if (!customerId) {
+        const customer = await stripe_1.default.customers.create({
+            email: userData.email,
+            name: userData.fullName || userData.name,
+            metadata: { userId: userData._id.toString() },
+        });
+        customerId = customer.id;
+        userData.stripeCustomerId = customer.id;
+        await userData.save();
+    }
+    const setupIntent = await stripe_1.default.setupIntents.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+    });
+    return {
+        clientSecret: setupIntent.client_secret,
+    };
+};
+/**
+ * List all saved payment methods for a user
+ */
+const getMyPaymentMethods = async (user) => {
+    var _a;
+    const userData = await user_model_1.User.findById(user.userId);
+    if (!(userData === null || userData === void 0 ? void 0 : userData.stripeCustomerId))
+        return [];
+    const paymentMethods = await stripe_1.default.paymentMethods.list({
+        customer: userData.stripeCustomerId,
+        type: 'card',
+    });
+    const customer = await stripe_1.default.customers.retrieve(userData.stripeCustomerId);
+    const defaultPaymentMethodId = (_a = customer.invoice_settings) === null || _a === void 0 ? void 0 : _a.default_payment_method;
+    return paymentMethods.data.map(pm => {
+        var _a, _b, _c, _d;
+        return ({
+            id: pm.id,
+            brand: (_a = pm.card) === null || _a === void 0 ? void 0 : _a.brand,
+            last4: (_b = pm.card) === null || _b === void 0 ? void 0 : _b.last4,
+            expMonth: (_c = pm.card) === null || _c === void 0 ? void 0 : _c.exp_month,
+            expYear: (_d = pm.card) === null || _d === void 0 ? void 0 : _d.exp_year,
+            isDefault: pm.id === defaultPaymentMethodId,
+        });
+    });
+};
+/**
+ * Delete a saved payment method
+ */
+const deletePaymentMethod = async (user, paymentMethodId) => {
+    const userData = await user_model_1.User.findById(user.userId);
+    if (!(userData === null || userData === void 0 ? void 0 : userData.stripeCustomerId))
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No stripe customer found');
+    // Verify ownership (optional check, Stripe handles detachment but good for safety)
+    const pm = await stripe_1.default.paymentMethods.retrieve(paymentMethodId);
+    if (pm.customer !== userData.stripeCustomerId) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Payment method does not belong to this user');
+    }
+    await stripe_1.default.paymentMethods.detach(paymentMethodId);
+    return { success: true };
+};
+/**
+ * Set a payment method as default
+ */
+const setDefaultPaymentMethod = async (user, paymentMethodId) => {
+    const userData = await user_model_1.User.findById(user.userId);
+    if (!(userData === null || userData === void 0 ? void 0 : userData.stripeCustomerId))
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'No stripe customer found');
+    await stripe_1.default.customers.update(userData.stripeCustomerId, {
+        invoice_settings: {
+            default_payment_method: paymentMethodId,
+        },
+    });
+    return { success: true };
+};
 exports.PaymentServices = {
     getAllPayments,
     getSinglePayment,
@@ -418,4 +573,8 @@ exports.PaymentServices = {
     createEphemeralKey,
     handlePaymentIntentWebhook,
     generateInvoice,
+    createSetupIntent,
+    getMyPaymentMethods,
+    deletePaymentMethod,
+    setDefaultPaymentMethod,
 };

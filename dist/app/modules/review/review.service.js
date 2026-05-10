@@ -9,6 +9,8 @@ const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const review_model_1 = require("./review.model");
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = require("../user/user.model");
+const booking_model_1 = require("../booking/booking.model");
+const service_model_1 = require("../service/service.model");
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
 // import { redisClient } from '../../../helpers/redis';
 const createReview = async (user, payload) => {
@@ -49,6 +51,23 @@ const createReview = async (user, payload) => {
                 },
             },
         ], { session, new: true });
+        // Update isOriginal for the specific service
+        const booking = await booking_model_1.Booking.findById(payload.bookingId).session(session);
+        if (booking && booking.serviceId) {
+            // Fetch all reviews for this service
+            const reviews = await review_model_1.Review.find({ serviceId: booking.serviceId }).session(session);
+            const totalRating = reviews.reduce((acc, curr) => acc + curr.rating, 0);
+            const avgRating = reviews.length > 0 ? totalRating / reviews.length : 0;
+            const reviewCount = reviews.length;
+            if (avgRating >= 4.0 && reviewCount >= 5) {
+                await service_model_1.Service.findByIdAndUpdate(booking.serviceId, { isOriginal: true }).session(session);
+            }
+            else {
+                await service_model_1.Service.findByIdAndUpdate(booking.serviceId, { isOriginal: false }).session(session);
+            }
+            // Also update the review record with serviceId for future reference
+            await review_model_1.Review.findByIdAndUpdate(result[0]._id, { serviceId: booking.serviceId }).session(session);
+        }
         await session.commitTransaction();
         return result[0];
     }

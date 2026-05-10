@@ -5,7 +5,7 @@ exports.updateSubscriptionPlans = updateSubscriptionPlans;
 exports.createSpecificPlan = createSpecificPlan;
 const subscription_plan_model_1 = require("./subscription-plan.model");
 const stripe_service_1 = require("./stripe.service");
-// Default subscription plans for Photopia
+// Default subscription plans for Photopya
 const defaultPlans = [
     {
         name: 'Free Plan',

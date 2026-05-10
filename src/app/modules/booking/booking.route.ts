@@ -52,6 +52,12 @@ router.patch(
   validateRequest(modifyOfferValidationSchema),
   BookingController.modifyBookingOffer
 )
+
+router.post(
+  '/:id/pay-balance',
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  BookingController.payRemainingBalance
+)
     
 
 

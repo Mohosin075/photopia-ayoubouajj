@@ -51,6 +51,7 @@ exports.createServiceSchema = zod_1.z.object({
             required_error: 'Service type is required',
         }),
         subCategory: zod_1.z.string().optional(),
+        theme: zod_1.z.string().optional(),
         tags: zod_1.z.array(zod_1.z.string().min(1).max(30)).optional(),
         equipment: zod_1.z.array(zod_1.z.string().min(1).max(50)).optional(),
         price: zod_1.z.number()
@@ -99,6 +100,7 @@ exports.updateServiceSchema = zod_1.z.object({
         category: zod_1.z.string().min(2).max(50).optional(),
         serviceType: zod_1.z.enum(serviceTypeValues).optional(),
         subCategory: zod_1.z.string().optional(),
+        theme: zod_1.z.string().optional(),
         tags: zod_1.z.array(zod_1.z.string().min(1).max(30)).optional(),
         equipment: zod_1.z.array(zod_1.z.string().min(1).max(50)).optional(),
         price: zod_1.z.number()
@@ -115,6 +117,7 @@ exports.updateServiceSchema = zod_1.z.object({
         status: zod_1.z.enum(statusValues).optional(),
         isVerified: zod_1.z.boolean().optional(),
         isActive: zod_1.z.boolean().optional(),
+        isOriginal: zod_1.z.boolean().optional(),
     }).superRefine((data, ctx) => {
         if (data.pricingType === service_1.SERVICE_PRICING_TYPE.DAILY) {
             if (data.pricingModel && !data.pricingModel.dailyRate) {
