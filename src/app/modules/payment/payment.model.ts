@@ -25,7 +25,7 @@ const paymentSchema = new Schema<IPayment, PaymentModel>(
     },
     currency: {
       type: String,
-      default: 'USD',
+      default: 'EUR',
     },
     paymentMethod: {
       type: String,

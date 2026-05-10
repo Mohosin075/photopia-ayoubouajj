@@ -20,7 +20,7 @@ const subscriptionPlanSchema = new Schema<ISubscriptionPlan, SubscriptionPlanMod
     currency: {
       type: String,
       required: true,
-      default: 'usd',
+      default: 'eur',
     },
     interval: {
       type: String,

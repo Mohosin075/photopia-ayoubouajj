@@ -2,6 +2,8 @@
 
 Integration guide for client applications using the [flutter_stripe](https://pub.dev/packages/flutter_stripe) SDK against the Photopia HTTP API. Behavior described here matches the payment module implementation (routes, validation, and `createPaymentIntent` / `createEphemeralKey` / setup intent flows).
 
+**Booking + deposit + balance + saved cards (end-to-end):** use **[`flutter-booking-payment.md`](./flutter-booking-payment.md)** as the main Flutter product guide. This document focuses on **payment module** endpoints and behaviour details.
+
 ---
 
 ## 1. Scope
@@ -11,6 +13,7 @@ Integration guide for client applications using the [flutter_stripe](https://pub
 | One-time charge with **new card** (client confirms PaymentIntent) | Yes |
 | One-time charge with **saved** card (`pm_…` from this API) | Yes |
 | Listing / saving / deleting cards | Yes |
+| **Booking-integrated** deposit/balance (recommended path) | See [`flutter-booking-payment.md`](./flutter-booking-payment.md) |
 | Stripe Checkout (`/create-checkout-session`) | No |
 
 ---
@@ -74,25 +77,29 @@ Validated fields (Zod `PaymentValidations.create`):
 
 | Field | Required | Type | Rules |
 |-------|----------|------|--------|
-| `bookingId` | Yes | string | Non-empty booking identifier (stored on the payment record / metadata). |
-| `amount` | Yes | number | **Major currency units** (e.g. `49.99` for €49.99). Server sends `Math.round(amount * 100)` to Stripe as the integer amount. |
+| `bookingId` | Yes | string | MongoDB ObjectId string of the booking. |
+| `amount` | **No** | number | **Optional.** If omitted, the server computes the charge from the booking (see §5.2). If provided, it must **exactly match** the server-computed payable amount (same decimals) or the API returns **400**. When provided, Zod requires **`amount >= 1`**. |
 | `currency` | No | string | If omitted in the request JSON, the service uses **`eur`** for Stripe (`currency` parameter) and **`EUR`** for the stored payment document. If provided, the same value is lowercased for Stripe and uppercased in the database. |
-| `productName` | No | string | Not used by `createPaymentIntent` (used by checkout validation only). Safe to omit. |
-| `description` | No | string | Same as above for this handler. |
+| `productName` | No | string | Not used by `createPaymentIntent` (checkout validation only). |
+| `description` | No | string | Not used by `createPaymentIntent`. |
+| `paymentMethodId` | No | string | Stripe PaymentMethod id (`pm_…`). When present, server sets `off_session: true` and `confirm: true`. |
 
-**Validation constraint:** `amount` must satisfy **`amount >= 1`** (Zod `.min(1)`). Amounts below `1` are rejected before the service runs.
+Optional passthrough: `metadata` merged into Stripe PaymentIntent `metadata` (e.g. `paymentType: 'deposit' | 'balance'` when calling manually).
 
-**Optional field (service only):** `paymentMethodId` — Stripe PaymentMethod id (`pm_…`). Not declared in the Zod schema; it is still read from `req.body` by the controller/service. When present, behavior changes as in §5.3.
+**Authorization:** only the user who owns the booking (`booking.clientId` === JWT `userId`) may call this endpoint; otherwise **403**.
 
-Optional passthrough: `metadata` object merged into Stripe PaymentIntent `metadata` when present on the body.
+### 5.2 Server behaviour (amount + booking state)
 
-### 5.2 Server behavior (summary)
-
-1. Loads the user from the database by JWT `userId`; resolves **email** from the user document (not from the request body).
-2. Ensures a Stripe **Customer** exists (`stripeCustomerId` on the user); creates and saves one if missing.
-3. Builds the PaymentIntent:
-   - **Without** `paymentMethodId`: sets `payment_method_types: ['card']`. Client must collect payment details and confirm using the returned `clientSecret`.
-   - **With** `paymentMethodId`: sets `payment_method`, `off_session: true`, and `confirm: true` (immediate charge attempt with the saved card).
+1. Loads the **booking** by `bookingId`. Ensures the authenticated user is the **client** on that booking.
+2. **Payable amount** (major currency units, server-side source of truth):
+   - If `booking.paymentStatus === 'pending'` → uses **`booking.depositAmount`**
+   - Else if `booking.paymentStatus === 'deposit_paid'` and **`booking.balanceAmount > 0`** → uses **`booking.balanceAmount`**
+   - Else → **400** (e.g. already `fully_paid`, or no balance left)
+3. If `amount` is present in the body, it must equal that payable amount (to avoid stale client values).
+4. Loads **User** from DB by JWT `userId`; ensures Stripe **Customer** exists (`stripeCustomerId`); creates and saves if missing.
+5. Builds the PaymentIntent:
+   - **Without** `paymentMethodId`: `payment_method_types: ['card']`; client confirms with `clientSecret`.
+   - **With** `paymentMethodId`: `payment_method`, `off_session: true`, `confirm: true` (saved card; may need 3DS — see §5.5).
 
 ### 5.3 Success response (`data`)
 
@@ -100,19 +107,19 @@ Optional passthrough: `metadata` object merged into Stripe PaymentIntent `metada
 |-------|------|-------------|
 | `clientSecret` | string | PaymentIntent client secret for the Stripe SDK. |
 | `paymentIntentId` | string | Stripe PaymentIntent id (`pi_…`). |
-| `amount` | number | Echo of the request `amount` (major units). |
+| `amount` | number | **Server-computed** payable amount in major units (deposit or balance). |
 | `status` | string | Stripe PaymentIntent `status` after creation (e.g. `requires_payment_method`, `requires_confirmation`, `requires_action`, `succeeded`, `processing`). |
 
 ### 5.4 Client flow: new card
 
-1. Call `POST /create-payment-intent` **without** `paymentMethodId`.
+1. Call `POST /create-payment-intent` with **`bookingId` only** (and optional `currency`). Omit `amount` unless you are mirroring the server value for debugging.
 2. Use `clientSecret` with Payment Sheet (`paymentIntentClientSecret`) or `confirmPayment`, per [flutter_stripe](https://pub.dev/packages/flutter_stripe) patterns.
 3. Initial `status` is commonly `requires_payment_method` until the user completes the flow.
 
 ### 5.5 Client flow: saved card
 
 1. Call `GET /methods` (roles permitting) and display cards; each item’s `id` is a `pm_…` value.
-2. Call `POST /create-payment-intent` with the same `bookingId`, `amount`, `currency`, and **`paymentMethodId`: `pm_…`**.
+2. Call `POST /create-payment-intent` with `bookingId` and **`paymentMethodId`: `pm_…`** (optional `currency`; `amount` optional — server derives it).
 3. Interpret `status`:
    - **`succeeded`** — payment completed; no further SDK step for confirmation.
    - **`requires_action`** — SCA / 3DS may be required; use the same `clientSecret` with the SDK’s flow to handle the next action (see current `flutter_stripe` docs for `handleNextAction` / `confirmPayment` / Payment Sheet).
@@ -177,7 +184,7 @@ If `apiVersion` is omitted, the server uses **`2025-05-28.basil`** when creating
 }
 ```
 
-**Implementation note:** This handler resolves `stripeCustomerId` from the **JWT payload** first, then creates a Stripe customer using **`user.email` and `user.name` from the JWT** if no customer id exists. Tokens that omit `email` may cause customer creation to fail; ensuring tokens carry `email` after login, or aligning this handler with the DB-backed user lookup used in `createPaymentIntent`, avoids inconsistency. The response does **not** include `customerId`; for Payment Sheet parameters you need the Stripe Customer id (`cus_…`) from your user/profile domain if exposed.
+**Implementation note:** The handler loads the user from the **database** by JWT `userId`, reads **`stripeCustomerId`** from that document, and creates a Stripe Customer from **`userData.email`** / **`fullName` or `name`** if missing — **aligned with `createPaymentIntent`**. The response does **not** include `customerId`; after `createBooking` with `paymentMode: intent`, `data.payment.customerId` may be returned when the user already had a Stripe customer; otherwise create the customer via payment intent or ephemeral-key flow first.
 
 ---
 
@@ -192,14 +199,15 @@ If `apiVersion` is omitted, the server uses **`2025-05-28.basil`** when creating
 
 ## 10. Operational checklist (Flutter)
 
-- [ ] Use the same **currency** consistently with product pricing; remember omitted currency defaults to **EUR** in the payment service.
-- [ ] Respect **`amount >= 1`** validation.
-- [ ] Handle **403** using the role matrix (e.g. professional vs saved-card endpoints).
-- [ ] For production, point `BASE_URL` at the deployed API and use live Stripe keys only in release builds.
-- [ ] After payment, refresh booking or payment state from your backend; rely on webhooks for authoritative settlement where implemented.
+- [ ] Prefer **[`flutter-booking-payment.md`](./flutter-booking-payment.md)** for deposit/balance UX; use this doc for payment endpoint details.
+- [ ] Use **currency** consistently with product pricing; omitted `currency` on PaymentIntent defaults to **eur** in the payment service.
+- [ ] If you send **`amount`** on `create-payment-intent`, it must match the server-computed deposit/balance; otherwise omit it.
+- [ ] Handle **403** (not booking owner) and **403** from the role matrix (e.g. professional vs saved-card endpoints).
+- [ ] For production, use HTTPS, live keys only in release builds, and configure **`/webhook`** in Stripe.
+- [ ] After payment, **refresh booking** (`GET /booking/:id`); webhooks drive authoritative `paymentStatus` updates.
 
 ---
 
 ## 11. Reference implementation
 
-Server logic: `src/app/modules/payment/payment.service.ts` (`createPaymentIntent`, `createEphemeralKey`, `getMyPaymentMethods`, `createSetupIntent`), routes in `payment.route.ts`, request schema in `payment.validation.ts`.
+Server logic: `src/app/modules/payment/payment.service.ts` (`createPaymentIntent`, `createEphemeralKey`, `getMyPaymentMethods`, `createSetupIntent`), routes in `payment.route.ts`, request schema in `payment.validation.ts`. Booking integration: `src/app/modules/booking/booking.service.ts`.

@@ -10,11 +10,11 @@ const stripe = new Stripe(process.env.STRIPE_API_SECRET as string, {
 
 const transferToProfessional = async (connectedAccountId: string, amount: number) => {
   try {
-    console.log(`Attempting to transfer $${amount} to ${connectedAccountId}...`);
+    console.log(`Attempting to transfer €${amount} (EUR) to ${connectedAccountId}...`);
     
     const transfer = await stripe.transfers.create({
       amount: amount * 100, // Amount in cents
-      currency: 'usd',
+      currency: 'eur',
       destination: connectedAccountId,
       description: 'Test transfer for withdrawal verification',
     });

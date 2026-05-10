@@ -7,7 +7,7 @@ export const PaymentValidations = {
         required_error: 'Booking ID is required',
       }),
       amount: z.number().min(1, 'Amount must be at least 1').optional(),
-      currency: z.string().default('USD'),
+      currency: z.string().default('EUR'),
       productName: z.string().optional(),
       description: z.string().optional(),
       paymentMethodId: z.string().optional(),

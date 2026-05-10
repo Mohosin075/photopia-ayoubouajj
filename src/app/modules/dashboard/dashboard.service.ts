@@ -1029,7 +1029,7 @@ const exportPayments = async () => {
       userName: payment.userId?.fullName || payment.userId?.name || 'N/A',
       userEmail: payment.userEmail || payment.userId?.email || 'N/A',
       amount: payment.amount,
-      currency: payment.currency || 'USD',
+      currency: payment.currency || 'EUR',
       method: payment.paymentMethod || 'Stripe',
       transactionId: payment.paymentIntentId || 'N/A',
       status: payment.status,
