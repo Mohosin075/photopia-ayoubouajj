@@ -412,7 +412,8 @@ const updateSuperStatus = async (userId: string) => {
         profile.responseRate > 90 && 
         profile.responseTime <= 120 && 
         (profile.projects || 0) >= 10 && 
-        profile.satisfactionRate > 98
+        profile.satisfactionRate > 98 &&
+        profile.deliveryRate > 95
 
     if (profile.isSuperPro !== isSuperPro) {
         await ProfessionalProfile.findOneAndUpdate({ user: userId }, { isSuperPro })

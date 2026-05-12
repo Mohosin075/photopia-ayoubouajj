@@ -23,7 +23,7 @@ const paymentSchema = new mongoose_1.Schema({
     },
     currency: {
         type: String,
-        default: 'USD',
+        default: 'EUR',
     },
     paymentMethod: {
         type: String,

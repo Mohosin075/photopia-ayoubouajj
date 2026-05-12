@@ -10,13 +10,26 @@ const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const booking_service_1 = require("./booking.service");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const pick_1 = __importDefault(require("../../../shared/pick"));
+const user_model_1 = require("../user/user.model");
 const createBooking = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
-    if (!user)
+    if (!(user === null || user === void 0 ? void 0 : user.userId))
         throw new ApiError_1.default(http_status_codes_1.default.UNAUTHORIZED, 'User not found');
+    let clientEmail = user.email;
+    if (!clientEmail) {
+        const dbUser = await user_model_1.User.findById(user.userId).select('email').lean();
+        clientEmail = dbUser === null || dbUser === void 0 ? void 0 : dbUser.email;
+    }
+    if (!clientEmail) {
+        clientEmail = req.body.clientEmail;
+    }
+    if (!clientEmail) {
+        throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Email not found for your account. Please update your profile or sign in again.');
+    }
     const bookingData = {
         ...req.body,
-        clientId: user.userId
+        clientId: user.userId,
+        clientEmail,
     };
     const result = await booking_service_1.BookingService.createBooking(bookingData, user);
     (0, sendResponse_1.default)(res, {

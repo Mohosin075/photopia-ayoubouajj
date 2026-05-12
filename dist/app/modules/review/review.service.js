@@ -12,9 +12,13 @@ const user_model_1 = require("../user/user.model");
 const booking_model_1 = require("../booking/booking.model");
 const service_model_1 = require("../service/service.model");
 const paginationHelper_1 = require("../../../helpers/paginationHelper");
+const professionalProfile_service_1 = require("../professionalProfile/professionalProfile.service");
 // import { redisClient } from '../../../helpers/redis';
 const createReview = async (user, payload) => {
     payload.reviewer = user.userId;
+    if (!payload.reviewee) {
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Reviewee is required');
+    }
     const isUserExist = await user_model_1.User.findById(user.userId);
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found');
@@ -67,6 +71,10 @@ const createReview = async (user, payload) => {
             }
             // Also update the review record with serviceId for future reference
             await review_model_1.Review.findByIdAndUpdate(result[0]._id, { serviceId: booking.serviceId }).session(session);
+        }
+        // Update Super Pro status
+        if (payload.reviewee) {
+            await professionalProfile_service_1.ProfessionalProfileServices.updateSuperStatus(payload.reviewee.toString());
         }
         await session.commitTransaction();
         return result[0];

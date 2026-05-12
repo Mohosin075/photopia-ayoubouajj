@@ -905,7 +905,7 @@ const exportPayments = async () => {
             userName: ((_a = payment.userId) === null || _a === void 0 ? void 0 : _a.fullName) || ((_b = payment.userId) === null || _b === void 0 ? void 0 : _b.name) || 'N/A',
             userEmail: payment.userEmail || ((_c = payment.userId) === null || _c === void 0 ? void 0 : _c.email) || 'N/A',
             amount: payment.amount,
-            currency: payment.currency || 'USD',
+            currency: payment.currency || 'EUR',
             method: payment.paymentMethod || 'Stripe',
             transactionId: payment.paymentIntentId || 'N/A',
             status: payment.status,

@@ -20,7 +20,7 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
     currency: {
         type: String,
         required: true,
-        default: 'usd',
+        default: 'eur',
     },
     interval: {
         type: String,

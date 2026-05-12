@@ -6,12 +6,19 @@ import { IProfessionalProfile } from '../professionalProfile/professionalProfile
 
 export interface IHomeData {
     recentlyViewed: IRecentlyViewed[]
-    popularCategories: ICategory[]
-    trendingSubcategories: ICategory[]
-    availableNow: IService[]
+    mainCategories: ICategory[]
+    trendingThisWeek: ICategory[]
+    availableNow: IProfessionalProfile[]
+    availableNowCounts: {
+        online: number
+        quickResponse: number
+        expressDelivery: number
+        thisWeekend: number
+        lastMinute: number
+    }
     superPros: IProfessionalProfile[]
-    styles: string[]
-    popularLocations: any[]
+    creativeStyles: any[]
+    nearYou: any[]
     originalProjects: IService[]
-    inspirations: IInspiration[]
+    ideas: IInspiration[]
 }

@@ -345,6 +345,24 @@ const exportStatisticsReport = async (userId) => {
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
 };
+const updateSuperStatus = async (userId) => {
+    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId });
+    if (!profile)
+        return;
+    const isSuperPro = profile.rating >= 4.5 &&
+        profile.responseRate > 90 &&
+        profile.responseTime <= 120 &&
+        (profile.projects || 0) >= 10 &&
+        profile.satisfactionRate > 98 &&
+        profile.deliveryRate > 95;
+    if (profile.isSuperPro !== isSuperPro) {
+        await professionalProfile_model_1.ProfessionalProfile.findOneAndUpdate({ user: userId }, { isSuperPro });
+    }
+};
+const incrementProjectsCount = async (userId) => {
+    await professionalProfile_model_1.ProfessionalProfile.findOneAndUpdate({ user: userId }, { $inc: { projects: 1 } });
+    await updateSuperStatus(userId);
+};
 exports.ProfessionalProfileServices = {
     createProfile,
     getProfile,
@@ -354,4 +372,6 @@ exports.ProfessionalProfileServices = {
     checkStripeAccountStatus,
     getDetailedStatistics,
     exportStatisticsReport,
+    updateSuperStatus,
+    incrementProjectsCount
 };

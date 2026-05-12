@@ -27,7 +27,7 @@ const createCheckoutSession = async (user, payload) => {
             line_items: [
                 {
                     price_data: {
-                        currency: (payload.currency || 'EUR').toLowerCase(),
+                        currency: 'eur',
                         product_data: {
                             name: payload.productName || 'Payment',
                             description: payload.description,
@@ -52,7 +52,7 @@ const createCheckoutSession = async (user, payload) => {
             bookingId: payload.bookingId,
             userEmail: user.email,
             amount: payload.amount,
-            currency: payload.currency || 'EUR',
+            currency: 'EUR',
             paymentMethod: 'stripe',
             paymentIntentId: session.payment_intent || session.id,
             status: 'pending',
@@ -220,7 +220,7 @@ const createPaymentIntent = async (user, payload) => {
         // Build PaymentIntent params
         const intentParams = {
             amount: Math.round(payableAmount * 100), // Convert to cents
-            currency: payload.currency || 'eur',
+            currency: 'eur',
             customer: customerId,
             metadata: {
                 userId: user.userId,
@@ -246,7 +246,7 @@ const createPaymentIntent = async (user, payload) => {
             bookingId: payload.bookingId,
             userEmail,
             amount: payableAmount,
-            currency: (payload.currency || 'EUR').toUpperCase(),
+            currency: 'EUR',
             paymentMethod: 'stripe',
             paymentIntentId: paymentIntent.id,
             status: paymentIntent.status === 'succeeded' ? 'succeeded' : 'pending',

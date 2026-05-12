@@ -23,7 +23,7 @@ exports.createBookingValidationSchema = zod_1.z.object({
             notes: zod_1.z.string().optional()
         }),
         clientName: zod_1.z.string({ required_error: 'Client name is required' }),
-        clientEmail: zod_1.z.string({ required_error: 'Client email is required' }).email(),
+        clientEmail: zod_1.z.string().email().optional(),
         clientPhone: zod_1.z.string().optional(),
         eventType: zod_1.z.string().optional(),
         specialRequests: zod_1.z.string().optional(),

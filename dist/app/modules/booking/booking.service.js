@@ -15,6 +15,7 @@ const service_1 = require("../../../enum/service");
 const wallet_service_1 = require("../wallet/wallet.service");
 const stripe_1 = __importDefault(require("../../../config/stripe"));
 const professionalProfile_model_1 = require("../professionalProfile/professionalProfile.model");
+const professionalProfile_service_1 = require("../professionalProfile/professionalProfile.service");
 const payment_service_1 = require("../payment/payment.service");
 const geocodeAddress_1 = require("../../../utils/geocodeAddress");
 // Helper for Haversine distance
@@ -311,6 +312,8 @@ const updateBookingStatus = async (bookingId, status, userId) => {
             if (previousStatus !== 'completed') {
                 // 1. Move from pending to actual balance in local wallet
                 await wallet_service_1.WalletService.completePendingEarnings(booking.providerId, booking.pricingDetails.providerEarnings, session);
+                // 1.5 Increment projects count for the provider
+                await professionalProfile_service_1.ProfessionalProfileServices.incrementProjectsCount(booking.providerId.toString());
                 // 2. Stripe Connect Transfer
                 const professionalProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: booking.providerId });
                 if (professionalProfile === null || professionalProfile === void 0 ? void 0 : professionalProfile.stripeAccountId) {

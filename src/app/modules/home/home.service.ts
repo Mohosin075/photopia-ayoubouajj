@@ -1,4 +1,5 @@
 import { Category } from '../category/category.model'
+import { PipelineStage } from 'mongoose'
 import { ICategory } from '../category/category.interface'
 import { IService } from '../service/service.interface'
 import { IRecentlyViewed } from '../recentlyViewed/recentlyViewed.interface'
@@ -11,100 +12,8 @@ import { ProfessionalProfile } from '../professionalProfile/professionalProfile.
 import { SERVICE_STATUS } from '../../../enum/service'
 import { IHomeData } from './home.interface'
 import { User } from '../user/user.model'
-
-// Demo data for fallbacks
-const DEMO_CATEGORIES = [
-    { name: 'Portrait', icon: '📸', theme: 'PHOTOGRAPHY', isPopular: true },
-    { name: 'Wedding', icon: '💍', theme: 'PHOTOGRAPHY', isPopular: true },
-    { name: 'Events', icon: '🎉', theme: 'VIDEOGRAPHY', isPopular: true },
-    { name: 'Fashion', icon: '👗', theme: 'PHOTOGRAPHY', isPopular: true },
-    { name: 'Corporate', icon: '🏢', theme: 'VIDEOGRAPHY', isPopular: true },
-    { name: 'Nature', icon: '🌿', theme: 'PHOTOGRAPHY', isPopular: true },
-]
-
-const DEMO_TRENDING = [
-    { name: 'TikTok & Reels', theme: 'VIDEOGRAPHY', isTrending: true, trendingBadge: '🔥 TRENDING' },
-    { name: 'Drone Shots', theme: 'PHOTOGRAPHY', isTrending: true, trendingBadge: '⚡ POPULAR' },
-    { name: 'Product Packshot', theme: 'PHOTOGRAPHY', isTrending: true, trendingBadge: '📈 +45%' },
-]
-
-const DEMO_STYLES = ['Cinematic', 'Natural', 'Vintage', 'Modern', 'Minimalist', 'Dramatic']
-
-const DEMO_LOCATIONS = [
-    { _id: 'Paris', count: 12, image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34' },
-    { _id: 'London', count: 8, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad' },
-    { _id: 'Berlin', count: 5, image: 'https://images.unsplash.com/photo-1560969184-10fe8719e047' },
-    { _id: 'Rome', count: 7, image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5' },
-]
-
-const DEMO_INSPIRATIONS = [
-    { title: 'Planning a wedding?', description: 'See our wedding packages', link: '/packages/wedding', icon: '💒' },
-    { title: 'Need social content?', description: 'Social Media Plans', link: '/plans/social', icon: '📱' },
-    { title: 'Newborn Session?', description: 'Capturing first moments', link: '/packages/newborn', icon: '👶' },
-    { title: 'Corporate Rebrand?', description: 'Professional identity films', link: '/packages/corporate', icon: '🏢' },
-]
-
-const DEMO_SERVICES = [
-    { 
-        _id: 's1',
-        title: 'Cinematic Wedding Film', 
-        price: 1200, 
-        coverMedia: 'https://images.unsplash.com/photo-1519741497674-611481863552',
-        providerId: { name: 'John Doe', fullName: 'John Doe', profile: '', isOnline: true },
-        category: { name: 'Events', theme: 'PHOTOGRAPHY' }
-    },
-    { 
-        _id: 's2',
-        title: 'Professional Corporate Portrait', 
-        price: 150, 
-        coverMedia: 'https://images.unsplash.com/photo-1560250097-0b93528c311a',
-        providerId: { name: 'Jane Smith', fullName: 'Jane Smith', profile: '', isOnline: true },
-        category: { name: 'Corporate', theme: 'PHOTOGRAPHY' }
-    },
-    { 
-        _id: 's3',
-        title: 'Real Estate Drone Tour', 
-        price: 450, 
-        coverMedia: 'https://images.unsplash.com/photo-1473177104440-f463f5899c23',
-        providerId: { name: 'Mike Drone', fullName: 'Mike Drone', profile: '', isOnline: true },
-        category: { name: 'Real Estate', theme: 'VIDEOGRAPHY' }
-    },
-    { 
-        _id: 's4',
-        title: 'Artistic Music Video', 
-        price: 2500, 
-        coverMedia: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9',
-        providerId: { name: 'Chris Clip', fullName: 'Chris Clip', profile: '', isOnline: true },
-        category: { name: 'Music', theme: 'VIDEOGRAPHY' }
-    }
-]
-
-const DEMO_RECENTLY_VIEWED = [
-    { serviceId: DEMO_SERVICES[0], viewedAt: new Date() },
-    { serviceId: DEMO_SERVICES[1], viewedAt: new Date() },
-    { serviceId: DEMO_SERVICES[2], viewedAt: new Date() },
-]
-
-const DEMO_PROFILES = [
-    { 
-        rating: 4.9, 
-        projects: 25, 
-        isSuperPro: true,
-        user: { name: 'Alex Creator', fullName: 'Alex Creator', profile: '', isOnline: true } 
-    },
-    { 
-        rating: 4.8, 
-        projects: 42, 
-        isSuperPro: true,
-        user: { name: 'Sarah Photo', fullName: 'Sarah Photo', profile: '', isOnline: true } 
-    },
-    { 
-        rating: 4.7, 
-        projects: 15, 
-        isSuperPro: true,
-        user: { name: 'Tom Video', fullName: 'Tom Video', profile: '', isOnline: true } 
-    }
-]
+import { Availability } from '../availability/availability.model'
+import { USER_ROLES } from '../../../enum/user'
 
 const getHomeData = async (userId?: string): Promise<IHomeData> => {
     // Section 2: Recently Viewed
@@ -128,89 +37,186 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
     }
 
     if (recentlyViewed.length === 0) {
-        recentlyViewed = DEMO_RECENTLY_VIEWED as unknown as IRecentlyViewed[]
+        recentlyViewed = await RecentlyViewed.find()
+            .populate({
+                path: 'serviceId',
+                populate: [
+                    { path: 'providerId', select: 'name fullName profile isOnline' },
+                    { path: 'category', select: 'name image icon theme' },
+                ],
+            })
+            .sort({ viewedAt: -1 })
+            .limit(3) as unknown as IRecentlyViewed[]
     }
 
-    // Section 3: Main Categories (Popular)
-    let popularCategories = await Category.find({ 
+    // Section 3: Main Categories
+    let mainCategories = await Category.find({ 
         isPopular: true, 
         isActive: true,
         type: 'category'
     }).limit(12) as unknown as ICategory[]
     
-    if (popularCategories.length === 0) {
-        popularCategories = DEMO_CATEGORIES as unknown as ICategory[]
+    if (mainCategories.length === 0) {
+        mainCategories = await Category.find({ isActive: true, type: 'category' }).limit(3) as unknown as ICategory[]
     }
 
-    // Section 4: Trending Projects (Trending Subcategories)
-    let trendingSubcategories = await Category.find({
+    // Section 4: Trending This Week
+    let trendingThisWeek = await Category.find({
         isTrending: true,
         isActive: true,
         type: 'subcategory'
     }).limit(6) as unknown as ICategory[]
     
-    if (trendingSubcategories.length === 0) {
-        trendingSubcategories = DEMO_TRENDING as unknown as ICategory[]
+    if (trendingThisWeek.length === 0) {
+        trendingThisWeek = await Category.find({ isActive: true, type: 'subcategory' }).limit(3) as unknown as ICategory[]
     }
 
     // Section 5: Available Right Now
     const onlineUsers = await User.find({ isOnline: true }).select('_id').lean()
     const quickResProfiles = await ProfessionalProfile.find({ responseTime: { $lte: 120 } }).select('user').lean()
+    const expressProfiles = await ProfessionalProfile.find({ deliveryRate: { $gte: 95 } }).select('user').lean()
+    
+    const weekendAvailability = await Availability.find({
+        $or: [
+            { 'defaultSchedule.saturday.isActive': true },
+            { 'defaultSchedule.sunday.isActive': true }
+        ]
+    }).select('providerId').lean()
+    
+    const lastMinuteAvailability = await Availability.find({
+        advanceNoticeHours: { $lte: 4 }
+    }).select('providerId').lean()
+
+    const availableNowCounts = {
+        online: onlineUsers.length,
+        quickResponse: quickResProfiles.length,
+        expressDelivery: expressProfiles.length,
+        thisWeekend: weekendAvailability.length,
+        lastMinute: lastMinuteAvailability.length
+    }
+
     const availableUserIds = Array.from(new Set([
         ...onlineUsers.map(u => u._id.toString()),
         ...quickResProfiles.map(p => p.user.toString())
     ]))
 
-    const availableNow = await Service.find({
-        status: SERVICE_STATUS.ACTIVE,
-        isActive: true,
-        providerId: { $in: availableUserIds }
+    const availableNow = await ProfessionalProfile.find({
+        user: { $in: availableUserIds }
     })
-    .populate({
-        path: 'providerId',
-        select: 'name fullName profile isOnline lastActive'
-    })
+    .populate('user', 'name fullName profile isOnline lastActive')
     .limit(10)
-    .lean()
+    .lean() as unknown as IProfessionalProfile[]
 
-    let availableNowFiltered = availableNow as unknown as IService[]
+    let availableNowFiltered = availableNow
     if (availableNowFiltered.length === 0) {
-        availableNowFiltered = DEMO_SERVICES as unknown as IService[]
+        availableNowFiltered = await ProfessionalProfile.find()
+            .populate('user', 'name fullName profile isOnline lastActive')
+            .limit(3) as unknown as IProfessionalProfile[]
     }
 
     // Section 6: Super Pros
     let superPros = await ProfessionalProfile.find({ isSuperPro: true })
         .populate('user', 'name fullName profile isOnline')
-        .limit(5) as unknown as IProfessionalProfile[]
+        .select('user rating reviewCount projects specialties isVerified primaryDomain isSuperPro')
+        .sort({ rating: -1, projects: -1 })
+        .limit(10) as unknown as IProfessionalProfile[]
     
     if (superPros.length === 0) {
-        superPros = DEMO_PROFILES as unknown as IProfessionalProfile[]
+        superPros = await ProfessionalProfile.find()
+            .populate('user', 'name fullName profile isOnline')
+            .select('user rating reviewCount projects specialties isVerified primaryDomain isSuperPro')
+            .sort({ rating: -1, projects: -1 })
+            .limit(3) as unknown as IProfessionalProfile[]
     }
 
-    // Section 8: By Creative Style (Theme-based)
-    let styles = await Category.distinct('theme', { theme: { $ne: null }, isActive: true }) as string[]
-    if (styles.length === 0) {
-        styles = DEMO_STYLES
+    // Section 8: Creative Styles
+    let creativeStyles = await Category.find({ theme: { $ne: null }, isActive: true })
+        .select('name theme description image')
+        .limit(10)
+        .lean()
+
+    if (creativeStyles.length === 0) {
+        creativeStyles = await Category.find({ isActive: true })
+            .select('name theme description image')
+            .limit(3)
+            .lean() as any
     }
     
-    // Section 9: By Location
-    let popularLocations: any[] = []
+    // Section 9: Near You (Dynamic from DB)
+    let nearYou: any[] = []
     
-    const aggregationPipeline = [
-        { $match: { status: SERVICE_STATUS.ACTIVE, isActive: true } },
-        { $group: { 
-            _id: "$location.city", 
-            count: { $sum: 1 },
-            image: { $first: "$coverMedia" }
-        } },
-        { $sort: { count: -1 } as const },
-        { $limit: 6 }
-    ]
+    // Default placeholder in case no service cover media is found
+    const PLACEHOLDER_CITY_IMAGE = 'https://images.unsplash.com/photo-1493863641943-9b68992a8d07' // High-quality photography image
+    
+    if (userLocation && userLocation.coordinates && userLocation.coordinates[0] !== 0) {
+        const nearMePipeline: PipelineStage[] = [
+            {
+                $geoNear: {
+                    near: userLocation,
+                    distanceField: "dist.calculated",
+                    maxDistance: 500000, // 500km
+                    query: { roles: USER_ROLES.PROFESSIONAL },
+                    spherical: true
+                }
+            },
+            {
+                $group: {
+                    _id: "$address.city",
+                    count: { $sum: 1 }
+                }
+            },
+            { $match: { _id: { $ne: null } } },
+            { $sort: { count: -1 as const } },
+            { $limit: 6 }
+        ]
+        
+        const cities = await User.aggregate(nearMePipeline)
+        
+        for (const city of cities) {
+            // Trying to get a real work sample from that city
+            const service = await Service.findOne({ 'location.city': city._id, isActive: true })
+                .select('coverMedia')
+                .lean()
+            nearYou.push({
+                town: city._id,
+                count: city.count,
+                image: service?.coverMedia || PLACEHOLDER_CITY_IMAGE
+            })
+        }
+    }
 
-    popularLocations = await Service.aggregate(aggregationPipeline)
-    
-    if (popularLocations.length === 0) {
-        popularLocations = DEMO_LOCATIONS
+    if (nearYou.length === 0) {
+        // Fallback: Show any cities from DB that have professionals
+        const fallbackPipeline: PipelineStage[] = [
+            { $match: { roles: USER_ROLES.PROFESSIONAL, 'address.city': { $ne: null } } },
+            { $group: { 
+                _id: "$address.city", 
+                count: { $sum: 1 }
+            } },
+            { $sort: { count: -1 as const } },
+            { $limit: 3 }
+        ]
+        const cities = await User.aggregate(fallbackPipeline)
+        
+        for (const city of cities) {
+            const service = await Service.findOne({ 'location.city': city._id, isActive: true })
+                .select('coverMedia')
+                .lean()
+            nearYou.push({
+                town: city._id,
+                count: city.count,
+                image: service?.coverMedia || PLACEHOLDER_CITY_IMAGE
+            })
+        }
+    }
+
+    // Final Fallback: If DB is completely empty of professionals, show demo data from document
+    if (nearYou.length === 0) {
+        nearYou = [
+            { town: 'Paris', count: 1247, image: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34' },
+            { town: 'Lyon', count: 423, image: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad' },
+            { town: 'Nice', count: 187, image: 'https://images.unsplash.com/photo-1560969184-10fe8719e047' }
+        ]
     }
 
     // Section: Original Projects
@@ -225,25 +231,42 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
     .lean() as unknown as IService[]
     
     if (originalProjects.length === 0) {
-        originalProjects = DEMO_SERVICES as unknown as IService[]
+        originalProjects = await Service.find({ status: SERVICE_STATUS.ACTIVE, isActive: true })
+            .populate('providerId', 'name fullName profile isOnline')
+            .populate('category', 'name image icon theme')
+            .limit(3)
+            .lean() as unknown as IService[]
     }
 
-    // Section 10: Inspirations
-    let inspirations = await Inspiration.find().limit(6) as unknown as IInspiration[]
-    if (inspirations.length === 0) {
-        inspirations = DEMO_INSPIRATIONS as unknown as IInspiration[]
+    // Section 10: Ideas
+    let ideas = await Inspiration.find().limit(6).lean() as unknown as IInspiration[]
+    
+    // Fallback Section 10: If Inspiration collection is empty, get 3 services as related demo data from DB
+    if (ideas.length === 0) {
+        const fallbackServices = await Service.find({ status: SERVICE_STATUS.ACTIVE, isActive: true })
+            .limit(3)
+            .select('title description coverMedia')
+            .lean()
+            
+        ideas = fallbackServices.map(s => ({
+            title: s.title,
+            description: s.description,
+            link: `/services/${(s as any)._id}`,
+            icon: '💡' 
+        })) as any
     }
 
     return {
         recentlyViewed,
-        popularCategories,
-        trendingSubcategories,
+        mainCategories,
+        trendingThisWeek,
         availableNow: availableNowFiltered,
+        availableNowCounts: availableNowCounts,
         superPros,
-        styles,
-        popularLocations,
+        creativeStyles,
+        nearYou,
         originalProjects,
-        inspirations
+        ideas
     }
 }
 
