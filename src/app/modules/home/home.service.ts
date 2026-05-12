@@ -257,16 +257,16 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
     }
 
     return {
+        originalProjects,
         recentlyViewed,
         mainCategories,
         trendingThisWeek,
         availableNow: availableNowFiltered,
-        availableNowCounts: availableNowCounts,
         superPros,
         creativeStyles,
         nearYou,
-        originalProjects,
-        ideas
+        ideas,
+        availableNowCounts: availableNowCounts,
     }
 }
 
