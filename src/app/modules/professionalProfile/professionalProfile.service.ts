@@ -403,6 +403,30 @@ const exportStatisticsReport = async (userId: string) => {
     return buffer
 }
 
+const updateSuperStatus = async (userId: string) => {
+    const profile = await ProfessionalProfile.findOne({ user: userId })
+    if (!profile) return
+
+    const isSuperPro = 
+        profile.rating >= 4.5 && 
+        profile.responseRate > 90 && 
+        profile.responseTime <= 120 && 
+        (profile.projects || 0) >= 10 && 
+        profile.satisfactionRate > 98
+
+    if (profile.isSuperPro !== isSuperPro) {
+        await ProfessionalProfile.findOneAndUpdate({ user: userId }, { isSuperPro })
+    }
+}
+
+const incrementProjectsCount = async (userId: string) => {
+    await ProfessionalProfile.findOneAndUpdate(
+        { user: userId },
+        { $inc: { projects: 1 } }
+    )
+    await updateSuperStatus(userId)
+}
+
 export const ProfessionalProfileServices = {
     createProfile,
     getProfile,
@@ -412,4 +436,6 @@ export const ProfessionalProfileServices = {
     checkStripeAccountStatus,
     getDetailedStatistics,
     exportStatisticsReport,
+    updateSuperStatus,
+    incrementProjectsCount
 }

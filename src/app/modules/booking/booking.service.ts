@@ -10,6 +10,7 @@ import { SERVICE_PRICING_TYPE } from '../../../enum/service'
 import { WalletService } from '../wallet/wallet.service'
 import stripe from '../../../config/stripe'
 import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
+import { ProfessionalProfileServices } from '../professionalProfile/professionalProfile.service'
 import { PaymentServices } from '../payment/payment.service'
 import { geocodeAddress } from '../../../utils/geocodeAddress'
 
@@ -383,6 +384,9 @@ const updateBookingStatus = async (
           booking.pricingDetails.providerEarnings,
           session
         )
+
+        // 1.5 Increment projects count for the provider
+        await ProfessionalProfileServices.incrementProjectsCount(booking.providerId.toString())
 
         // 2. Stripe Connect Transfer
         const professionalProfile = await ProfessionalProfile.findOne({ user: booking.providerId })

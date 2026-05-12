@@ -161,12 +161,14 @@ When the socket connection is lost (app closed, network lost):
 ---
 
 ## 🏆 Super Pro Logic
-The `isSuperPro` badge is automatically calculated by the server based on:
-- Rating >= 4.5
-- Response Rate > 90%
-- Response Time <= 2 hours
-- Projects Completed >= 10
-- Satisfaction Rate > 98%
+The `isSuperPro` badge is automatically calculated by the server in real-time whenever a new review is submitted or a booking is completed.
+
+**Criteria**:
+- **Rating**: 4.5 or higher.
+- **Response Rate**: 90% or higher.
+- **Response Time**: 120 minutes (2 hours) or less.
+- **Projects Completed**: 10 or more.
+- **Satisfaction Rate**: 98% or higher.
 
 Flutter Devs just need to display the badge if `isSuperPro == true`.
 

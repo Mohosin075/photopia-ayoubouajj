@@ -9,10 +9,16 @@ import { Booking } from '../booking/booking.model'
 import { Service } from '../service/service.model'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
+import { ProfessionalProfileServices } from '../professionalProfile/professionalProfile.service'
+import { ProfessionalProfile } from '../professionalProfile/professionalProfile.model'
 // import { redisClient } from '../../../helpers/redis';
 
 const createReview = async (user: JwtPayload, payload: IReview) => {
   payload.reviewer = user.userId
+
+  if (!payload.reviewee) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Reviewee is required')
+  }
 
   const isUserExist = await User.findById(user.userId)
 
@@ -78,6 +84,11 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
         
         // Also update the review record with serviceId for future reference
         await Review.findByIdAndUpdate(result[0]._id, { serviceId: booking.serviceId }).session(session)
+    }
+
+    // Update Super Pro status
+    if (payload.reviewee) {
+        await ProfessionalProfileServices.updateSuperStatus(payload.reviewee.toString())
     }
 
     await session.commitTransaction()
