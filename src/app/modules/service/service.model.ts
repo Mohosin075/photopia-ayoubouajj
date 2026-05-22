@@ -1,7 +1,7 @@
 import { Schema, model } from 'mongoose'
 import { IService, ServiceModel } from './service.interface'
 import { SERVICE_CONSTANTS } from './service.constants'
-import { SERVICE_TYPE } from '../../../enum/user'
+
 import {
   SERVICE_LOCATION_TYPE,
   SERVICE_PRICING_TYPE,
@@ -144,11 +144,6 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       ref: 'Category',
       required: true,
     },
-    serviceType: {
-      type: String,
-      enum: Object.values(SERVICE_TYPE),
-      required: true,
-    },
     subCategory: {
       type: Schema.Types.ObjectId,
       ref: 'Category',
@@ -279,7 +274,6 @@ const serviceSchema = new Schema<IService, ServiceModel>(
 // Indexes for better query performance
 serviceSchema.index({ providerId: 1 })
 serviceSchema.index({ category: 1 })
-serviceSchema.index({ serviceType: 1 })
 serviceSchema.index({ subCategory: 1 })
 serviceSchema.index({ tags: 1 })
 serviceSchema.index({ 'location.type': 1 })

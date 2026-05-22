@@ -54,7 +54,6 @@ export const SERVICE_CONSTANTS = {
     'status',
     'isVerified',
     'providerId',
-    'serviceType',
     'isActive',
     'theme',
     'isOnline',
@@ -72,7 +71,7 @@ export const SERVICE_CONSTANTS = {
 } as const
 
 // List view projection for performance
-export const SERVICE_LIST_PROJECTION = 'title category subCategory price currency coverMedia duration location status isActive serviceType providerId totalView totalBooking'
+export const SERVICE_LIST_PROJECTION = 'title category subCategory price currency coverMedia duration location status isActive providerId totalView totalBooking'
 
 // Service filterable fields for query filtering
 export const serviceFilterableFields = [...SERVICE_CONSTANTS.FILTERABLE_FIELDS]

@@ -280,7 +280,7 @@ export type IAdvancedAnalyticsStats = {
     conversionRate: { rate: number; percentageChange: number }
   }
   breakdownByService: Array<{
-    serviceType: string
+    category: string
     bookings: number
     avgPrice: number
     grossRevenue: number
