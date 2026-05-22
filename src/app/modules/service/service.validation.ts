@@ -13,6 +13,25 @@ const pricingTypeValues = Object.values(SERVICE_PRICING_TYPE) as [string, ...str
 const locationTypeValues = Object.values(SERVICE_LOCATION_TYPE) as [string, ...string[]]
 const statusValues = Object.values(SERVICE_STATUS) as [string, ...string[]]
 
+const durationSchema = z.union([
+  z.object({
+    value: z.number().min(1),
+    unit: z.enum(['minute', 'hour']),
+  }),
+  z.string().transform((val) => {
+    const num = parseFloat(val);
+    const isMinute = val.toLowerCase().includes('min') || val.toLowerCase().includes('minute');
+    return {
+      value: isNaN(num) ? 1 : num,
+      unit: isMinute ? ('minute' as const) : ('hour' as const),
+    };
+  }),
+  z.number().transform((val) => ({
+    value: val,
+    unit: 'hour' as const,
+  }))
+])
+
 const locationSchema = z.object({
   type: z.enum(locationTypeValues),
   country: z.string().min(2).max(100),
@@ -65,7 +84,7 @@ export const createServiceSchema = z.object({
     currency: z.string().length(3).default('EUR'),
     pricingType: z.enum(pricingTypeValues),
     pricingModel: pricingModelSchema.optional(),
-    duration: z.string().min(1).max(100),
+    duration: durationSchema,
     location: locationSchema,
     // coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),
@@ -116,7 +135,7 @@ export const updateServiceSchema = z.object({
     currency: z.string().length(3).optional(),
     pricingType: z.enum(pricingTypeValues).optional(),
     pricingModel: pricingModelSchema.partial().optional(),
-    duration: z.string().min(1).max(100).optional(),
+    duration: durationSchema.optional(),
     location: locationSchema.partial().optional(),
     coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),

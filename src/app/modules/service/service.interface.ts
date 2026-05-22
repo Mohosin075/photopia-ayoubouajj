@@ -98,7 +98,10 @@ export interface IService {
     partialRefundHours: number
     noRefundHours: number
   }
-  duration: string
+  duration: {
+    value: number
+    unit: 'minute' | 'hour'
+  }
   location: ILocation
   coverMedia?: string
   gallery?: string[]

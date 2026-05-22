@@ -82,8 +82,16 @@ const calculatePrice = async (
     } else {
       subtotal = service.price
       // Use service duration if available, otherwise default to what user selected
-      if (service.duration && !isNaN(parseInt(service.duration))) {
-        durationHours = parseInt(service.duration)
+      if (service.duration) {
+        if (typeof service.duration === 'object' && 'value' in service.duration && 'unit' in service.duration) {
+          const { value, unit } = service.duration as { value: number; unit: 'minute' | 'hour' };
+          durationHours = unit === 'hour' ? value : value / 60;
+        } else {
+          const durationStr = String(service.duration);
+          const num = parseFloat(durationStr);
+          const isMinute = durationStr.toLowerCase().includes('min') || durationStr.toLowerCase().includes('minute');
+          durationHours = isMinute ? num / 60 : num;
+        }
       }
     }
   }

@@ -220,8 +220,16 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       }
     },
     duration: {
-      type: String,
-      required: true,
+      value: {
+        type: Number,
+        required: true,
+        min: 1
+      },
+      unit: {
+        type: String,
+        enum: ['minute', 'hour'],
+        required: true
+      }
     },
     location: {
       type: locationSchema,
@@ -281,6 +289,5 @@ serviceSchema.index({ isActive: 1 })
 serviceSchema.index({ isOriginal: 1 })
 serviceSchema.index({ price: 1 })
 serviceSchema.index({ title: 'text', description: 'text', tags: 'text' })
-
 
 export const Service = model<IService, ServiceModel>('Service', serviceSchema)
