@@ -73,6 +73,12 @@ const UserSchema = new Schema<IUser, UserModel>(
       emailNotification: { type: Boolean, default: true },
       locationService: { type: Boolean, default: true },
       profileStatus: { type: String, default: 'public' },
+      smsNotification: { type: Boolean, default: true },
+      dndMode: { type: Boolean, default: false },
+      quietHoursEnabled: { type: Boolean, default: true },
+      quietHoursStart: { type: String, default: '22:00' },
+      quietHoursEnd: { type: String, default: '08:00' },
+      disabledCategories: { type: [String], default: [] },
     },
 
     authentication: {

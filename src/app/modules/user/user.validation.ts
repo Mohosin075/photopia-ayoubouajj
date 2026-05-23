@@ -27,6 +27,19 @@ const pointSchema = z.object({
   coordinates: z.tuple([z.number(), z.number()]).optional(), // [longitude, latitude]
 })
 
+const settingsSchema = z.object({
+  pushNotification: z.boolean().optional(),
+  emailNotification: z.boolean().optional(),
+  smsNotification: z.boolean().optional(),
+  locationService: z.boolean().optional(),
+  profileStatus: z.enum(['public', 'private']).optional(),
+  dndMode: z.boolean().optional(),
+  quietHoursEnabled: z.boolean().optional(),
+  quietHoursStart: z.string().optional(),
+  quietHoursEnd: z.string().optional(),
+  disabledCategories: z.array(z.string()).optional(),
+})
+
 // ------------------ UPDATE USER VALIDATION ------------------
 export const updateUserSchema = z.object({
   body: z
@@ -42,7 +55,8 @@ export const updateUserSchema = z.object({
 
       appId: z.string().optional(),
       deviceToken: z.string().optional(),
-
+      
+      settings: settingsSchema.optional(),
     })
 })
 

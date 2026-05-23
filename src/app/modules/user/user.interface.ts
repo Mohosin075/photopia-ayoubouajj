@@ -74,8 +74,14 @@ export interface IUser {
   settings?: {
     pushNotification?: boolean
     emailNotification?: boolean
+    smsNotification?: boolean
     locationService?: boolean
     profileStatus: 'public' | 'private'
+    dndMode?: boolean
+    quietHoursEnabled?: boolean
+    quietHoursStart?: string
+    quietHoursEnd?: string
+    disabledCategories?: string[]
   }
 
   authentication: IAuthentication

@@ -25,6 +25,7 @@ import { Payment } from '../payment/payment.model'
 import config from '../../../config'
 import { io } from '../../../server'
 import { sendPushNotification } from '../../../helpers/pushnotificationHelper'
+import { sendSMSNotification } from '../../../helpers/smsHelper'
 
 const createNotification = async (
   payload: CreateNotificationDto,
@@ -32,6 +33,32 @@ const createNotification = async (
   sendPush: boolean = true,
 ): Promise<INotification> => {
   try {
+    // 1. Anti-Spam Filter: Max 1 similar notification per hour
+    // Exempt real-time chat messages, call alerts, and urgent payments from throttling
+    const exemptSpamTypes = [
+      NotificationType.NEW_MESSAGE,
+      NotificationType.INCOMING_VIDEO_CALL,
+      NotificationType.URGENT_MESSAGE,
+      NotificationType.SYSTEM_ALERT,
+      NotificationType.PAYMENT_SUCCESS,
+      NotificationType.PAYMENT_FAILED,
+    ]
+
+    if (!exemptSpamTypes.includes(payload.type)) {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+      const existingSpam = await Notification.findOne({
+        userId: payload.userId,
+        type: payload.type,
+        content: payload.content, // Matching identical content to permit different notifications
+        createdAt: { $gte: oneHourAgo },
+      })
+
+      if (existingSpam) {
+        console.log(`[Anti-Spam] Suppressed duplicate notification ${payload.type} for user ${payload.userId} within 1 hour.`)
+        return existingSpam
+      }
+    }
+
     const notificationData: any = {
       userId: payload.userId,
       title: payload.title,
@@ -70,13 +97,18 @@ const createNotification = async (
     }
 
     // Send push notification if requested
-    // if (
-    //   (sendPush &&
-    //     (notification.channel === NotificationChannel.PUSH ||
-    //       notification.channel === NotificationChannel.ALL))
-    // ) {
-      await sendNotificationPush(notification)
-    // }
+    await sendNotificationPush(notification)
+
+    // Send SMS notification if requested
+    if (
+      notification.channel === NotificationChannel.SMS ||
+      notification.channel === NotificationChannel.ALL
+    ) {
+      const user = await User.findById(notification.userId)
+      if (user && user.phone) {
+        await sendSMSNotification(user.phone, notification.content)
+      }
+    }
 
     return notification
   } catch (error: any) {
@@ -107,6 +139,46 @@ const sendNotificationPush = async (
       notification.priority !== NotificationPriority.URGENT
     ) {
       return
+    }
+
+    // Skip if user has enabled DND Mode and priority is not URGENT
+    if (
+      user.settings?.dndMode === true &&
+      notification.priority !== NotificationPriority.URGENT
+    ) {
+      console.log(`[DND Suppression] Suppressed push notification due to DND mode for user ${user._id}.`)
+      return
+    }
+
+    // Skip if quiet hours are enabled, active, and priority is not URGENT
+    if (
+      user.settings?.quietHoursEnabled !== false &&
+      notification.priority !== NotificationPriority.URGENT
+    ) {
+      const timezone = user.timezone || 'UTC'
+      try {
+        // Get user's current local hour
+        const localTimeStr = new Date().toLocaleString('en-US', {
+          timeZone: timezone,
+          hour: 'numeric',
+          hour12: false,
+        })
+        const localHour = parseInt(localTimeStr, 10)
+
+        const startHour = parseInt(user.settings?.quietHoursStart?.split(':')[0] || '22', 10)
+        const endHour = parseInt(user.settings?.quietHoursEnd?.split(':')[0] || '8', 10)
+
+        const isQuietTime = startHour > endHour
+          ? (localHour >= startHour || localHour < endHour)
+          : (localHour >= startHour && localHour < endHour)
+
+        if (isQuietTime) {
+          console.log(`[Quiet Hours] Suppressed push notification for user ${user._id} during quiet hours (${localHour}:00).`)
+          return
+        }
+      } catch (err) {
+        console.error('Quiet Hours calculation failed, falling back to sending:', err)
+      }
     }
 
     const pushPayload: any = {

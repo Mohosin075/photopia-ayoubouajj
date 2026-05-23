@@ -10,6 +10,7 @@ import { UserServices } from './app/modules/user/user.service'
 import { socketHelper } from './helpers/socketHelper'
 import { seedSubscriptionPlans } from './app/modules/subscription/subscription.seed'
 import { logger, errorLogger } from './shared/logger'
+import { notificationScheduler } from './app/modules/notification/notification.scheduler'
 
 // Uncaught exceptions
 process.on('uncaughtException', error => {
@@ -59,6 +60,9 @@ async function main() {
 
     // Seed subscription plans
     await seedSubscriptionPlans()
+
+    // Initialize notification schedulers (Cron jobs)
+    notificationScheduler
 
     // Socket helper
     socketHelper.socket(io)
