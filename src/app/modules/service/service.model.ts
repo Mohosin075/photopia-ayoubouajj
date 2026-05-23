@@ -213,7 +213,7 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     },
     depositPercentage: {
       type: Number,
-      default: 0.5,
+      default: 0,
       min: 0,
       max: 1
     },

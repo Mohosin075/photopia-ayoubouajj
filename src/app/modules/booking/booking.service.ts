@@ -260,11 +260,11 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
     throw new ApiError(httpStatus.CONFLICT, 'Time slot overlaps with an existing booking')
   }
   
-  // Implement 50% deposit logic
-   payload.depositPercentage = 0.5 // 50%
-   payload.depositAmount = Number((pricing.clientTotal * payload.depositPercentage).toFixed(2))
-   payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2))
-   payload.bookingDate = bookingDate // Ensure the Date object is saved
+  // Dynamically read depositPercentage from service (defaults to 0 / 0%)
+  payload.depositPercentage = service.depositPercentage !== undefined ? service.depositPercentage : 0
+  payload.depositAmount = Number((pricing.clientTotal * payload.depositPercentage).toFixed(2))
+  payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2))
+  payload.bookingDate = bookingDate // Ensure the Date object is saved
 
   const createdBookings = await Booking.create([payload])
   const booking = createdBookings[0] as IBooking
@@ -278,6 +278,14 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
   // PAYMENT FLOW: intent (Flutter) vs checkout (Web)
   // ============================================
   const paymentMode = (payload as any).paymentMode || 'intent'
+
+  if (payload.depositAmount === 0) {
+    // If deposit amount is zero (0% deposit), upfront Stripe payment is not required!
+    return {
+      booking,
+      payment: null
+    }
+  }
 
   if (paymentMode === 'intent') {
     // ------- FLUTTER FLOW: PaymentIntent + EphemeralKey -------
@@ -659,8 +667,9 @@ const modifyBookingOffer = async (
     currency
   }
   
-  // Update deposit/balance
-  booking.depositPercentage = 0.5 
+  // Fetch service to get depositPercentage dynamically (defaults to 0 / 0%)
+  const service = await Service.findById(booking.serviceId)
+  booking.depositPercentage = service?.depositPercentage !== undefined ? service.depositPercentage : 0
   booking.depositAmount = Number((clientTotal * booking.depositPercentage).toFixed(2))
   booking.balanceAmount = Number((clientTotal - booking.depositAmount).toFixed(2))
 
