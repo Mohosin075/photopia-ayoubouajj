@@ -118,6 +118,12 @@ export interface IService {
   totalView: number
   totalBooking: number
   addOns?: IAddOn[]
+  autoAcceptBookings?: {
+    enabled: boolean
+    minimumBudget?: number
+    withinRadiusKm?: number
+    verifiedClientsOnly?: boolean
+  }
 }
 
 export type ServiceModel = Model<IService, {}, {}>

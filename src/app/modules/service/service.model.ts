@@ -284,6 +284,12 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: [addOnSchema],
       default: [],
     },
+    autoAcceptBookings: {
+      enabled: { type: Boolean, default: false },
+      minimumBudget: { type: Number, default: 0 },
+      withinRadiusKm: { type: Number, default: 30 },
+      verifiedClientsOnly: { type: Boolean, default: false }
+    },
   },
   {
     timestamps: true,

@@ -266,6 +266,40 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
   payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2))
   payload.bookingDate = bookingDate // Ensure the Date object is saved
 
+  // Evaluate Auto-Accept Bookings Rules
+  if (service && (service as any).autoAcceptBookings?.enabled) {
+    const rules = (service as any).autoAcceptBookings
+    let isAutoAcceptMatched = true
+
+    // Rule 1: Minimum Budget
+    if (rules.minimumBudget !== undefined && rules.minimumBudget > 0) {
+      if (pricing.clientTotal < rules.minimumBudget) {
+        isAutoAcceptMatched = false
+      }
+    }
+
+    // Rule 2: Within Radius
+    if (isAutoAcceptMatched && rules.withinRadiusKm !== undefined && rules.withinRadiusKm > 0) {
+      const distance = payload.eventLocation?.distanceFromProviderKm || 0
+      if (distance > rules.withinRadiusKm) {
+        isAutoAcceptMatched = false
+      }
+    }
+
+    // Rule 3: Verified Clients Only
+    if (isAutoAcceptMatched && rules.verifiedClientsOnly) {
+      const clientUser = await User.findById(payload.clientId)
+      if (!clientUser || !clientUser.verified) {
+        isAutoAcceptMatched = false
+      }
+    }
+
+    if (isAutoAcceptMatched) {
+      payload.status = 'confirmed'
+      payload.confirmedAt = new Date()
+    }
+  }
+
   const createdBookings = await Booking.create([payload])
   const booking = createdBookings[0] as IBooking
 

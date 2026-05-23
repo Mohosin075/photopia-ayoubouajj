@@ -47,3 +47,32 @@ This document tracks all changes made to make "Service by Day" and "Service by P
   - If a selected add-on does not exist on the service, or the price is tampered/changed, it immediately throws a `400 Bad Request` validation error.
 - [x] Updated `BookingController.calculatePrice` to dynamically parse and forward `packageName` and `customOptions`.
 
+## Version 1.2.0 (Dynamic Deposit Configuration & 0% Default)
+
+### Service Schema Updates
+- [x] Changed `depositPercentage` default inside `Service` schema from `0.5` (50%) to `0` (0% deposit).
+- [x] Allows professionals to hide the deposit setting on the frontend (saving `0` as the default).
+
+### Booking Pricing & Payment Integration
+- [x] Modified booking creation flow in `booking.service.ts` to dynamically fetch the service's `depositPercentage` rather than using a hardcoded `0.5` (50%).
+- [x] Implemented seamless **0% upfront deposit support**: If the service has a `0%` deposit configured, it bypasses Stripe PaymentIntent / Stripe Checkout session generation, marking the booking directly and returning `payment: null` safely.
+- [x] Updated `modifyBookingOffer` to fetch `depositPercentage` from the corresponding service dynamically.
+
+## Version 1.3.0 (Auto-Accept Bookings Rules)
+
+### Professional Profile Schema & Validations
+- [x] Added `autoAcceptBookings` object to `IProfessionalProfile` interface.
+- [x] Registered `autoAcceptBookings` sub-schema in the `ProfessionalProfile` mongoose model with default values:
+  - `enabled: false`
+  - `minimumBudget: 0`
+  - `withinRadiusKm: 30`
+  - `verifiedClientsOnly: false`
+- [x] Implemented Zod validations under `createProfessionalProfileSchema` and `updateProfessionalProfileSchema` inside `professionalProfile.validation.ts` to accept the rules parameters.
+
+### Booking Auto-Accept Integration & Pipeline
+- [x] In booking creation (`createBooking` inside `booking.service.ts`), fetched the provider's `ProfessionalProfile`.
+- [x] Integrated rule matching checks:
+  - **Budget rule:** Evaluated if booking budget is at or above the provider's minimum budget threshold.
+  - **Distance radius rule:** Evaluated if event distance is within the provider's allowed radius.
+  - **Verification rule:** Evaluated if client is a verified user.
+- [x] Automatically sets booking status to `confirmed` and updates `confirmedAt` if all conditions match, else defaults to `pending` status.
