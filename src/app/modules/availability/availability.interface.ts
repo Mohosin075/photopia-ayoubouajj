@@ -2,7 +2,7 @@ import { Document, Model, Types } from 'mongoose'
 
 export interface IAvailability extends Document {
   providerId: Types.ObjectId
-  // serviceId?: Types.ObjectId
+  serviceId?: Types.ObjectId
   defaultSchedule: {
     [day: string]: {
       start: string

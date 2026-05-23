@@ -196,7 +196,8 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
   // 2. Check Availability
   const availabilityCheck = await AvailabilityService.checkAvailabilityForDate(
     payload.providerId.toString(),
-    bookingDate
+    bookingDate,
+    payload.serviceId.toString()
   )
 
   console.log('Availability Check:', availabilityCheck)

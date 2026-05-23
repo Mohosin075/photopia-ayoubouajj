@@ -101,12 +101,11 @@ const availabilitySchema = new Schema<IAvailability, AvailabilityModel>(
       required: true,
       index: true
     },
-    // not using serviceId for now because one provider can have multiple services and each service can have different availability
-    // serviceId: {
-    //   type: Schema.Types.ObjectId,
-    //   ref: 'Service',
-    //   index: true
-    // },
+    serviceId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Service',
+      index: true
+    },
     
     defaultSchedule: {
       monday: {

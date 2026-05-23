@@ -9,10 +9,17 @@ const createOrUpdateAvailability = async (
   providerId: string,
   payload: Partial<IAvailability>
 ): Promise<IAvailability> => {
-  const isExist = await Availability.findOne({ providerId })
+  const query: any = { providerId }
+  if (payload.serviceId) {
+    query.serviceId = payload.serviceId
+  } else {
+    query.$or = [{ serviceId: null }, { serviceId: { $exists: false } }]
+  }
+
+  const isExist = await Availability.findOne(query)
 
   if (isExist) {
-    const result = await Availability.findOneAndUpdate({ providerId }, payload, {
+    const result = await Availability.findOneAndUpdate(query, payload, {
       new: true,
       runValidators: true,
     })
@@ -24,22 +31,39 @@ const createOrUpdateAvailability = async (
 }
 
 const getProviderAvailability = async (
-  providerId: string
+  providerId: string,
+  serviceId?: string
 ): Promise<IAvailability | null> => {
-  const result = await Availability.findOne({ providerId })
+  const query: any = { providerId }
+  if (serviceId) {
+    query.serviceId = serviceId
+  } else {
+    query.$or = [{ serviceId: null }, { serviceId: { $exists: false } }]
+  }
+  const result = await Availability.findOne(query)
   return result
 }
 
 const checkAvailabilityForDate = async (
   providerId: string,
-  date: Date
+  date: Date,
+  serviceId?: string
 ): Promise<{ 
   isAvailable: boolean; 
   reason?: string; 
   workingHours?: { start: string; end: string };
   pricing?: { priceOverride?: number; rateMultiplier?: number };
 }> => {
-  const availability = await Availability.findOne({ providerId })
+  let availability = null
+  if (serviceId) {
+    availability = await Availability.findOne({ providerId, serviceId })
+  }
+  if (!availability) {
+    availability = await Availability.findOne({ 
+      providerId, 
+      $or: [{ serviceId: null }, { serviceId: { $exists: false } }] 
+    })
+  }
   
   if (!availability) {
     return { isAvailable: false, reason: 'Provider has not set availability' }
@@ -144,16 +168,26 @@ const checkAvailabilityForDate = async (
 const getAvailableTimeSlots = async (
   providerId: string,
   date: Date,
-  serviceDuration: number
+  serviceDuration: number,
+  serviceId?: string
 ): Promise<string[]> => {
-  const availability = await Availability.findOne({ providerId })
+  let availability = null
+  if (serviceId) {
+    availability = await Availability.findOne({ providerId, serviceId })
+  }
+  if (!availability) {
+    availability = await Availability.findOne({
+      providerId,
+      $or: [{ serviceId: null }, { serviceId: { $exists: false } }]
+    })
+  }
   
   if (!availability) {
     return []
   }
 
   // First check if the date is available
-  const dateCheck = await checkAvailabilityForDate(providerId, date)
+  const dateCheck = await checkAvailabilityForDate(providerId, date, serviceId)
   if (!dateCheck.isAvailable || !dateCheck.workingHours) {
     return []
   }
@@ -220,14 +254,24 @@ const getAvailableTimeSlots = async (
 const getMonthCalendar = async (
   providerId: string,
   month: number,
-  year: number
+  year: number,
+  serviceId?: string
 ): Promise<{
   date: string;
   isAvailable: boolean;
   reason?: string;
   hasSpecialPricing?: boolean;
 }[]> => {
-  const availability = await Availability.findOne({ providerId })
+  let availability = null
+  if (serviceId) {
+    availability = await Availability.findOne({ providerId, serviceId })
+  }
+  if (!availability) {
+    availability = await Availability.findOne({
+      providerId,
+      $or: [{ serviceId: null }, { serviceId: { $exists: false } }]
+    })
+  }
   
   if (!availability) {
     return []
@@ -238,7 +282,7 @@ const getMonthCalendar = async (
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month - 1, day)
-    const dateCheck = await checkAvailabilityForDate(providerId, date)
+    const dateCheck = await checkAvailabilityForDate(providerId, date, serviceId)
     
     calendar.push({
       date: date.toISOString().split('T')[0],

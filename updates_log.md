@@ -58,21 +58,39 @@ This document tracks all changes made to make "Service by Day" and "Service by P
 - [x] Implemented seamless **0% upfront deposit support**: If the service has a `0%` deposit configured, it bypasses Stripe PaymentIntent / Stripe Checkout session generation, marking the booking directly and returning `payment: null` safely.
 - [x] Updated `modifyBookingOffer` to fetch `depositPercentage` from the corresponding service dynamically.
 
-## Version 1.3.0 (Auto-Accept Bookings Rules)
+## Version 1.3.0 (Per-Service Auto-Accept Bookings Rules)
 
-### Professional Profile Schema & Validations
-- [x] Added `autoAcceptBookings` object to `IProfessionalProfile` interface.
-- [x] Registered `autoAcceptBookings` sub-schema in the `ProfessionalProfile` mongoose model with default values:
+### Service Schema & Validations
+- [x] Added `autoAcceptBookings` object to `IService` interface in `service.interface.ts`.
+- [x] Registered `autoAcceptBookings` sub-schema in the `Service` mongoose model in `service.model.ts` with default values:
   - `enabled: false`
   - `minimumBudget: 0`
   - `withinRadiusKm: 30`
   - `verifiedClientsOnly: false`
-- [x] Implemented Zod validations under `createProfessionalProfileSchema` and `updateProfessionalProfileSchema` inside `professionalProfile.validation.ts` to accept the rules parameters.
+- [x] Implemented Zod validations under `createServiceSchema` and `updateServiceSchema` inside `service.validation.ts` to accept the rules parameters.
 
 ### Booking Auto-Accept Integration & Pipeline
-- [x] In booking creation (`createBooking` inside `booking.service.ts`), fetched the provider's `ProfessionalProfile`.
-- [x] Integrated rule matching checks:
-  - **Budget rule:** Evaluated if booking budget is at or above the provider's minimum budget threshold.
-  - **Distance radius rule:** Evaluated if event distance is within the provider's allowed radius.
+- [x] In booking creation (`createBooking` inside `booking.service.ts`), fetched the provider's `Service` details.
+- [x] Integrated rule matching checks directly from the selected Service:
+  - **Budget rule:** Evaluated if booking budget is at or above the service's minimum budget threshold.
+  - **Distance radius rule:** Evaluated if event distance is within the service's allowed radius.
   - **Verification rule:** Evaluated if client is a verified user.
 - [x] Automatically sets booking status to `confirmed` and updates `confirmedAt` if all conditions match, else defaults to `pending` status.
+- [x] Completely cleaned up all legacy global `autoAcceptBookings` configurations in `ProfessionalProfile` schema, interface, and validations.
+
+## Version 1.4.0 (Dual-Level Availability Slots: Per-Service & Global)
+
+### Availability Schema Updates
+- [x] Uncommented and enabled `serviceId?: Types.ObjectId` in `IAvailability` interface.
+- [x] Uncommented and registered `serviceId` inside `Availability` mongoose model schema, referencing `'Service'` with indexing.
+
+### Availability Queries with Fallback Engine
+- [x] Refactored `AvailabilityService`:
+  - `createOrUpdateAvailability`: Queries/updates specific service availability if `serviceId` is present, else targets global settings.
+  - `getProviderAvailability`: Queries specific service settings with fallback filters.
+  - `checkAvailabilityForDate`: Implemented a robust fallback engine—first queries availability specific to the service, and if not found, falls back to the global calendar settings.
+  - `getAvailableTimeSlots` & `getMonthCalendar`: Enabled optional `serviceId` argument and forwarded to the fallback engine.
+
+### Controller & Validation Integration
+- [x] Updated all Express endpoints in `availability.controller.ts` (`getMyAvailability`, `getProviderAvailability`, `checkDateAvailability`, `getTimeSlots`, `getMonthCalendar`) to retrieve `serviceId` from query strings and forward them to the database services.
+- [x] Updated booking creation flow in `booking.service.ts` to forward `serviceId` during availability validation checks.

@@ -22,7 +22,8 @@ const createOrUpdateAvailability = catchAsync(async (req: Request, res: Response
 const getMyAvailability = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
-  const result = await AvailabilityService.getProviderAvailability(user.userId)
+  const { serviceId } = req.query
+  const result = await AvailabilityService.getProviderAvailability(user.userId, serviceId as string)
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -34,7 +35,8 @@ const getMyAvailability = catchAsync(async (req: Request, res: Response) => {
 
 const getProviderAvailability = catchAsync(async (req: Request, res: Response) => {
   const { providerId } = req.params
-  const result = await AvailabilityService.getProviderAvailability(providerId)
+  const { serviceId } = req.query
+  const result = await AvailabilityService.getProviderAvailability(providerId, serviceId as string)
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -46,13 +48,13 @@ const getProviderAvailability = catchAsync(async (req: Request, res: Response) =
 
 const checkDateAvailability = catchAsync(async (req: Request, res: Response) => {
   const { providerId } = req.params
-  const { date } = req.query
+  const { date, serviceId } = req.query
   
   if (!date || typeof date !== 'string') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Date query parameter is required')
   }
   
-  const result = await AvailabilityService.checkAvailabilityForDate(providerId, new Date(date))
+  const result = await AvailabilityService.checkAvailabilityForDate(providerId, new Date(date), serviceId as string)
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -64,7 +66,7 @@ const checkDateAvailability = catchAsync(async (req: Request, res: Response) => 
 
 const getTimeSlots = catchAsync(async (req: Request, res: Response) => {
   const { providerId } = req.params
-  const { date, duration } = req.query
+  const { date, duration, serviceId } = req.query
   
   if (!date || typeof date !== 'string') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Date query parameter is required')
@@ -82,7 +84,8 @@ const getTimeSlots = catchAsync(async (req: Request, res: Response) => {
   const result = await AvailabilityService.getAvailableTimeSlots(
     providerId,
     new Date(date),
-    serviceDuration
+    serviceDuration,
+    serviceId as string
   )
 
   sendResponse(res, {
@@ -95,7 +98,7 @@ const getTimeSlots = catchAsync(async (req: Request, res: Response) => {
 
 const getMonthCalendar = catchAsync(async (req: Request, res: Response) => {
   const { providerId } = req.params
-  const { month, year } = req.query
+  const { month, year, serviceId } = req.query
   
   if (!month || typeof month !== 'string') {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Month query parameter is required')
@@ -116,7 +119,7 @@ const getMonthCalendar = catchAsync(async (req: Request, res: Response) => {
     throw new ApiError(httpStatus.BAD_REQUEST, 'Year must be between 2020 and 2100')
   }
   
-  const result = await AvailabilityService.getMonthCalendar(providerId, monthNum, yearNum)
+  const result = await AvailabilityService.getMonthCalendar(providerId, monthNum, yearNum, serviceId as string)
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
