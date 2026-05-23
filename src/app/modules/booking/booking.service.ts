@@ -35,7 +35,8 @@ const calculatePrice = async (
   distanceFromProviderKm: number,
   overrides?: { priceOverride?: number; rateMultiplier?: number },
   packageName?: string,
-  customOptions?: { name: string; price: number }[]
+  customOptions?: { name: string; price: number }[],
+  strictAddOnsCheck = false
 ) => {
   const service = await Service.findById(serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
@@ -110,6 +111,20 @@ const calculatePrice = async (
 
   // Add Custom Options
   if (customOptions && customOptions.length > 0) {
+    if (strictAddOnsCheck) {
+      for (const opt of customOptions) {
+        const matchedAddOn = service.addOns?.find(addon => addon.name === opt.name)
+        if (!matchedAddOn) {
+          throw new ApiError(httpStatus.BAD_REQUEST, `Add-on '${opt.name}' is not offered for this service`)
+        }
+        if (matchedAddOn.price !== opt.price) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `Invalid price for add-on '${opt.name}'. Expected: ${matchedAddOn.price}, got: ${opt.price}`
+          )
+        }
+      }
+    }
     const optionsTotal = customOptions.reduce((acc, opt) => acc + opt.price, 0)
     subtotal += optionsTotal
   }
@@ -199,7 +214,8 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
     payload.eventLocation.distanceFromProviderKm || 0,
     availabilityCheck.pricing,
     payload.packageName,
-    payload.customOptions
+    payload.customOptions,
+    true // strictAddOnsCheck
   )
 
   // Calculate actual end time based on the duration returned from pricing

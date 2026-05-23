@@ -89,6 +89,23 @@ const servicePricingSchema = new Schema({
   }]
 })
 
+const addOnSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  description: {
+    type: String,
+    trim: true
+  }
+})
+
 const pricingRuleSchema = new Schema({
   ruleType: {
     type: String,
@@ -262,6 +279,10 @@ const serviceSchema = new Schema<IService, ServiceModel>(
     totalBooking: {
       type: Number,
       default: 0,
+    },
+    addOns: {
+      type: [addOnSchema],
+      default: [],
     },
   },
   {

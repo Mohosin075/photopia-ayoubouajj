@@ -6,6 +6,12 @@ import {
   SERVICE_STATUS,
 } from '../../../enum/service'
 
+export interface IAddOn {
+  name: string
+  price: number
+  description?: string
+}
+
 export interface ILocation {
   type: SERVICE_LOCATION_TYPE
   country: string
@@ -111,6 +117,7 @@ export interface IService {
   updatedAt: Date
   totalView: number
   totalBooking: number
+  addOns?: IAddOn[]
 }
 
 export type ServiceModel = Model<IService, {}, {}>

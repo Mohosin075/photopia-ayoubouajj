@@ -78,7 +78,7 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
 })
 
 const calculatePrice = catchAsync(async (req: Request, res: Response) => {
-  const { serviceId, startTime, endTime, date, distanceFromProviderKm } = req.body
+  const { serviceId, startTime, endTime, date, distanceFromProviderKm, packageName, customOptions } = req.body
   
   const result = await BookingService.calculatePrice(
     serviceId,
@@ -86,7 +86,9 @@ const calculatePrice = catchAsync(async (req: Request, res: Response) => {
     endTime,
     new Date(date),
     distanceFromProviderKm || 0,
-    undefined // Overrides not currently fetched in this standalone calculation
+    undefined, // Overrides
+    packageName,
+    customOptions
   )
 
   sendResponse(res, {

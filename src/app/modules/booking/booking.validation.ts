@@ -27,7 +27,11 @@ export const createBookingValidationSchema = z.object({
     eventType: z.string().optional(),
     specialRequests: z.string().optional(),
     paymentMode: z.enum(['intent', 'checkout']).optional(),
-    paymentMethodId: z.string().optional()
+    paymentMethodId: z.string().optional(),
+    customOptions: z.array(z.object({
+      name: z.string(),
+      price: z.number().min(0)
+    })).optional()
   })
 })
 

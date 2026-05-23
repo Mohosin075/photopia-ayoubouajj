@@ -88,6 +88,8 @@ class ServiceModel {
   final String status; // 'DRAFT', 'ACTIVE', 'INACTIVE', etc.
   final bool isVerified;
   final bool isActive;
+  final List<ServiceAddOn>? addOns;
+
 
   ServiceModel({
     required this.id,
@@ -116,6 +118,7 @@ class ServiceModel {
     required this.status,
     required this.isVerified,
     required this.isActive,
+    this.addOns,
   });
 
   factory ServiceModel.fromJson(Map<String, dynamic> json) {
@@ -148,6 +151,9 @@ class ServiceModel {
       status: json['status'],
       isVerified: json['isVerified'] ?? false,
       isActive: json['isActive'] ?? true,
+      addOns: json['addOns'] != null
+        ? (json['addOns'] as List).map((a) => ServiceAddOn.fromJson(a)).toList()
+        : null,
     );
   }
 }
@@ -256,6 +262,31 @@ class CancellationPolicy {
     );
   }
 }
+
+class ServiceAddOn {
+  final String name;
+  final double price;
+  final String? description;
+
+  ServiceAddOn({required this.name, required this.price, this.description});
+
+  factory ServiceAddOn.fromJson(Map<String, dynamic> json) {
+    return ServiceAddOn(
+      name: json['name'],
+      price: (json['price'] as num).toDouble(),
+      description: json['description'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'price': price,
+      if (description != null) 'description': description,
+    };
+  }
+}
+
 ```
 
 ---
@@ -275,6 +306,68 @@ Each `pricingType` has specific validation and booking behavior.
     - `endTime` is automatically recalculated by the backend based on `startTime` + package `duration`.
 
 ---
+
+## 3.1 Add-ons & Custom Options Integration
+
+You can offer predefined extra options (like "Drone footage", "Extra hour", "Rush delivery") for services.
+
+### A. Creating a Service with Predefined Add-ons
+When a Professional creates or updates a service, they can pass an `addOns` list:
+```json
+{
+  "title": "Professional Portrait Shoot",
+  "pricingType": "HOURLY",
+  "price": 100,
+  "addOns": [
+    {
+      "name": "Extra hour of coverage",
+      "price": 150,
+      "description": "Add one extra hour of shooting time"
+    },
+    {
+      "name": "Drone footage",
+      "price": 300,
+      "description": "Aerial video shots included"
+    },
+    {
+      "name": "Rush delivery (48h)",
+      "price": 200,
+      "description": "Receive edited photos within 48 hours"
+    }
+  ]
+}
+```
+
+### B. Client Booking with Add-ons (Custom Options)
+When booking the service, the client can select which add-ons they want. The selected options should be sent in the `customOptions` field:
+```json
+{
+  "serviceId": "SERVICE_ID",
+  "providerId": "PROVIDER_ID",
+  "bookingDate": "2026-06-15",
+  "startTime": "14:00",
+  "endTime": "16:00",
+  "customOptions": [
+    {
+      "name": "Drone footage",
+      "price": 300
+    },
+    {
+      "name": "Rush delivery (48h)",
+      "price": 200
+    }
+  ]
+}
+```
+
+> [!WARNING]
+> **Strict Security price validation:** 
+> The backend matches each item in the client-submitted `customOptions` against the service's predefined `addOns` array.
+> - If the add-on `name` does not exist on the service, or the `price` does not match the configured price exactly, the backend will reject the request with `400 Bad Request` ("Invalid price for add-on").
+> - Always query the service first and map the selected add-on names and prices exactly. Do not allow manually edited inputs for price.
+
+---
+
 
 ## 4. Demo Data for Smooth Integration
 

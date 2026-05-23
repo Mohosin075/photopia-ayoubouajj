@@ -62,6 +62,12 @@ const pricingModelSchema = z.object({
   })).optional(),
 })
 
+const addOnSchema = z.object({
+  name: z.string().min(1, 'Add-on name is required'),
+  price: z.number().min(0, 'Add-on price must be positive'),
+  description: z.string().optional()
+})
+
 export const createServiceSchema = z.object({
   body: z.object({
     title: z.string()
@@ -86,6 +92,7 @@ export const createServiceSchema = z.object({
     // coverMedia: z.string().url().optional(),
     gallery: z.array(z.string().url()).optional(),
     status: z.enum(statusValues).default(SERVICE_STATUS.ACTIVE),
+    addOns: z.array(addOnSchema).optional(),
   }).superRefine((data, ctx) => {
     if (data.pricingType === SERVICE_PRICING_TYPE.DAILY) {
       if (!data.pricingModel?.dailyRate) {
@@ -139,6 +146,7 @@ export const updateServiceSchema = z.object({
     isVerified: z.boolean().optional(),
     isActive: z.boolean().optional(),
     isOriginal: z.boolean().optional(),
+    addOns: z.array(addOnSchema).optional(),
   }).superRefine((data, ctx) => {
     if (data.pricingType === SERVICE_PRICING_TYPE.DAILY) {
       if (data.pricingModel && !data.pricingModel.dailyRate) {

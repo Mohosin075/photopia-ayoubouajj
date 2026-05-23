@@ -30,3 +30,20 @@ This document tracks all changes made to make "Service by Day" and "Service by P
 ### Availability & Slot System
 - [x] Verified that package-specific `duration` is correctly used during overlap checking.
 - [x] Ensured `DAILY` service bookings use the correct `dailyHours` for slot blocking.
+
+## Version 1.1.0 (Service-Level Add-ons & Pricing Security Validation)
+
+### Service Schema & Models
+- [x] Defined and added `IAddOn` interface containing `name`, `price`, and optional `description`.
+- [x] Added `addOns` mongoose schema and sub-array inside `Service` Schema model.
+
+### Service Validation
+- [x] Included Zod schema validation for optional `addOns` array when creating or updating services.
+
+### Booking System & Security Validation
+- [x] Updated `createBookingValidationSchema` (Zod) to accept client-selected `customOptions` (Add-ons).
+- [x] Enhanced `calculatePrice` helper with a `strictAddOnsCheck` security parameter:
+  - If enabled (during dynamic price calculation and booking creation by client), it matches each selected option against the Service's predefined `addOns` list.
+  - If a selected add-on does not exist on the service, or the price is tampered/changed, it immediately throws a `400 Bad Request` validation error.
+- [x] Updated `BookingController.calculatePrice` to dynamically parse and forward `packageName` and `customOptions`.
+
