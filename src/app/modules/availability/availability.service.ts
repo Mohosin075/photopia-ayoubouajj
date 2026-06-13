@@ -70,11 +70,27 @@ const checkAvailabilityForDate = async (
   }
 
   const targetDate = new Date(date)
+  const checkDate = new Date(targetDate)
+  checkDate.setHours(0, 0, 0, 0)
+
   let workingHours: { start: string; end: string } | undefined
   let pricing: { priceOverride?: number; rateMultiplier?: number } | undefined
   let maxBookings = availability.maxBookingsPerDay
 
-  // 1. Check specific custom dates (overrides everything)
+  // 1. Check blocked date ranges (highest priority)
+  if (availability.blockedDateRanges && availability.blockedDateRanges.length > 0) {
+    for (const range of availability.blockedDateRanges) {
+      const start = new Date(range.startDate)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(range.endDate)
+      end.setHours(0, 0, 0, 0)
+      if (checkDate >= start && checkDate <= end) {
+        return { isAvailable: false, reason: `Date falls within a blocked date range: ${range.note || ''}` }
+      }
+    }
+  }
+
+  // 2. Check specific custom dates (single day overrides)
   const customDate = availability.customDates.find(
     (cd) => new Date(cd.date).toDateString() === targetDate.toDateString()
   )
@@ -90,52 +106,76 @@ const checkAvailabilityForDate = async (
     }
     if (customDate.maxBookings) maxBookings = customDate.maxBookings
   } else {
-    // 2. Check recurring rules
-    let ruleMatched = false
-    if (availability.recurringRules && availability.recurringRules.length > 0) {
-      for (const rule of availability.recurringRules) {
-        if (!rule.active) continue
+    // 3. Check availability periods (if defined)
+    let periodMatched = false
+    if (availability.availabilityPeriods && availability.availabilityPeriods.length > 0) {
+      for (const period of availability.availabilityPeriods) {
+        const start = new Date(period.startDate)
+        start.setHours(0, 0, 0, 0)
+        const end = new Date(period.endDate)
+        end.setHours(0, 0, 0, 0)
+        if (checkDate >= start && checkDate <= end) {
+          workingHours = { start: period.startTime, end: period.endTime }
+          pricing = {
+            priceOverride: period.priceOverride,
+            rateMultiplier: period.rateMultiplier
+          }
+          if (period.maxBookings) maxBookings = period.maxBookings
+          periodMatched = true
+          break
+        }
+      }
+      if (!periodMatched) {
+        return { isAvailable: false, reason: 'Date is outside the configured availability periods' }
+      }
+    } else {
+      // 4. Fallback to recurring rules and default schedule
+      let ruleMatched = false
+      if (availability.recurringRules && availability.recurringRules.length > 0) {
+        for (const rule of availability.recurringRules) {
+          if (!rule.active) continue
 
-        // Weekday check
-        if (rule.type === 'block_weekly' || rule.type === 'special_hours_weekly') {
-          if (rule.dayOfWeek !== undefined && rule.dayOfWeek === targetDate.getDay()) {
-            if (rule.type === 'block_weekly') {
-              return { isAvailable: false, reason: 'Date matches a recurring block rule' }
-            }
-            if (rule.type === 'special_hours_weekly' && rule.start && rule.end) {
-              workingHours = { start: rule.start, end: rule.end }
-              if (rule.maxBookings) maxBookings = rule.maxBookings
-              ruleMatched = true
-              break
+          // Weekday check
+          if (rule.type === 'block_weekly' || rule.type === 'special_hours_weekly') {
+            if (rule.dayOfWeek !== undefined && rule.dayOfWeek === targetDate.getDay()) {
+              if (rule.type === 'block_weekly') {
+                return { isAvailable: false, reason: 'Date matches a recurring block rule' }
+              }
+              if (rule.type === 'special_hours_weekly' && rule.start && rule.end) {
+                workingHours = { start: rule.start, end: rule.end }
+                if (rule.maxBookings) maxBookings = rule.maxBookings
+                ruleMatched = true
+                break
+              }
             }
           }
-        }
-        
-        // Monthly check
-        if (rule.type === 'block_monthly') {
-          const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
-          const dayOfMonth = targetDate.getDate()
-          const weekOfMonth = Math.ceil((dayOfMonth + firstDayOfMonth.getDay()) / 7)
           
-          if (rule.weekOfMonth !== undefined && rule.weekOfMonth === weekOfMonth) {
-            return { isAvailable: false, reason: 'Date matches a recurring monthly block rule' }
+          // Monthly check
+          if (rule.type === 'block_monthly') {
+            const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
+            const dayOfMonth = targetDate.getDate()
+            const weekOfMonth = Math.ceil((dayOfMonth + firstDayOfMonth.getDay()) / 7)
+            
+            if (rule.weekOfMonth !== undefined && rule.weekOfMonth === weekOfMonth) {
+              return { isAvailable: false, reason: 'Date matches a recurring monthly block rule' }
+            }
           }
         }
       }
-    }
 
-    if (!ruleMatched) {
-      // 3. Check default schedule
-      const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
-      const dayName = days[targetDate.getDay()]
-      const defaultSchedule = availability.defaultSchedule as any
-      const daySchedule = defaultSchedule[dayName] || defaultSchedule.get?.(dayName)
+      if (!ruleMatched) {
+        // Check default schedule
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+        const dayName = days[targetDate.getDay()]
+        const defaultSchedule = availability.defaultSchedule as any
+        const daySchedule = defaultSchedule[dayName] || defaultSchedule.get?.(dayName)
 
-      if (!daySchedule || !daySchedule.isActive) {
-        return { isAvailable: false, reason: `Day (${dayName}) is not a working day in default schedule` }
+        if (!daySchedule || !daySchedule.isActive) {
+          return { isAvailable: false, reason: `Day (${dayName}) is not a working day in default schedule` }
+        }
+        workingHours = { start: daySchedule.start, end: daySchedule.end }
+        if (daySchedule.maxBookings) maxBookings = daySchedule.maxBookings
       }
-      workingHours = { start: daySchedule.start, end: daySchedule.end }
-      if (daySchedule.maxBookings) maxBookings = daySchedule.maxBookings
     }
   }
 

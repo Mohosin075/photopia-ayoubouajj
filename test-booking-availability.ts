@@ -49,7 +49,7 @@ const runTest = async () => {
       price: 100,
       currency: 'EUR',
       pricingType: 'HOURLY',
-      duration: '60',
+      duration: { value: 60, unit: 'minute' },
         location: {
             type: 'ONSITE',
             city: 'Paris',

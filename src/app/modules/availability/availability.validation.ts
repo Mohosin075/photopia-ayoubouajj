@@ -20,6 +20,22 @@ const customDateSchema = z.object({
   priceOverride: z.number().min(0).optional()
 })
 
+const availabilityPeriodSchema = z.object({
+  startDate: z.string().or(z.date()).transform(val => new Date(val)),
+  endDate: z.string().or(z.date()).transform(val => new Date(val)),
+  startTime: timeStringSchema,
+  endTime: timeStringSchema,
+  maxBookings: z.number().min(1).optional(),
+  rateMultiplier: z.number().min(0.5).max(3).optional(),
+  priceOverride: z.number().min(0).optional()
+})
+
+const blockedDateRangeSchema = z.object({
+  startDate: z.string().or(z.date()).transform(val => new Date(val)),
+  endDate: z.string().or(z.date()).transform(val => new Date(val)),
+  note: z.string().optional()
+})
+
 const recurringRuleSchema = z.object({
   type: z.enum(['block_weekly', 'block_monthly', 'special_hours_weekly']),
   dayOfWeek: z.number().min(0).max(6).optional(),
@@ -44,6 +60,8 @@ export const createAvailabilityValidationSchema = z.object({
     }).optional(),
     customDates: z.array(customDateSchema).optional(),
     recurringRules: z.array(recurringRuleSchema).optional(),
+    availabilityPeriods: z.array(availabilityPeriodSchema).optional(),
+    blockedDateRanges: z.array(blockedDateRangeSchema).optional(),
     bufferMinutes: z.number().min(0).max(120).optional(),
     advanceNoticeHours: z.number().min(1).max(720).optional(),
     maxBookingsPerDay: z.number().min(1).optional(),
@@ -67,6 +85,8 @@ export const updateAvailabilityValidationSchema = z.object({
     }).optional(),
     customDates: z.array(customDateSchema).optional(),
     recurringRules: z.array(recurringRuleSchema).optional(),
+    availabilityPeriods: z.array(availabilityPeriodSchema).optional(),
+    blockedDateRanges: z.array(blockedDateRangeSchema).optional(),
     bufferMinutes: z.number().min(0).max(120).optional(),
     advanceNoticeHours: z.number().min(1).max(720).optional(),
     maxBookingsPerDay: z.number().min(1).optional(),
@@ -75,3 +95,4 @@ export const updateAvailabilityValidationSchema = z.object({
     autoBlockDuration: z.number().min(0).max(240).optional()
   })
 })
+

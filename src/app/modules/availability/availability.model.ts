@@ -37,6 +37,54 @@ const customDateSchema = new Schema({
   }
 })
 
+const availabilityPeriodSchema = new Schema({
+  startDate: {
+    type: Date,
+    required: true
+  },
+  endDate: {
+    type: Date,
+    required: true
+  },
+  startTime: {
+    type: String,
+    required: true,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  endTime: {
+    type: String,
+    required: true,
+    match: /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/
+  },
+  maxBookings: {
+    type: Number,
+    min: 1
+  },
+  rateMultiplier: {
+    type: Number,
+    min: 0.5,
+    max: 3
+  },
+  priceOverride: {
+    type: Number,
+    min: 0
+  }
+})
+
+const blockedDateRangeSchema = new Schema({
+  startDate: {
+    type: Date,
+    required: true
+  },
+  endDate: {
+    type: Date,
+    required: true
+  },
+  note: {
+    type: String
+  }
+})
+
 const recurringRuleSchema = new Schema({
   type: {
     type: String,
@@ -147,6 +195,16 @@ const availabilitySchema = new Schema<IAvailability, AvailabilityModel>(
       type: [recurringRuleSchema],
       default: []
     },
+
+    availabilityPeriods: {
+      type: [availabilityPeriodSchema],
+      default: []
+    },
+
+    blockedDateRanges: {
+      type: [blockedDateRangeSchema],
+      default: []
+    },
     
     bufferMinutes: {
       type: Number,
@@ -207,3 +265,4 @@ availabilitySchema.index({ 'customDates.date': 1 })
 availabilitySchema.index({ providerId: 1, 'customDates.date': 1 })
 
 export const Availability = model<IAvailability, AvailabilityModel>('Availability', availabilitySchema)
+

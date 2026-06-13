@@ -1,5 +1,21 @@
 import { Document, Model, Types } from 'mongoose'
 
+export interface IAvailabilityPeriod {
+  startDate: Date
+  endDate: Date
+  startTime: string
+  endTime: string
+  maxBookings?: number
+  rateMultiplier?: number
+  priceOverride?: number
+}
+
+export interface IBlockedDateRange {
+  startDate: Date
+  endDate: Date
+  note?: string
+}
+
 export interface IAvailability extends Document {
   providerId: Types.ObjectId
   serviceId?: Types.ObjectId
@@ -30,6 +46,8 @@ export interface IAvailability extends Document {
     maxBookings?: number
     active: boolean
   }>
+  availabilityPeriods?: IAvailabilityPeriod[]
+  blockedDateRanges?: IBlockedDateRange[]
   bufferMinutes: number
   advanceNoticeHours: number
   maxBookingsPerDay: number
@@ -46,3 +64,4 @@ export interface IAvailability extends Document {
 }
 
 export type AvailabilityModel = Model<IAvailability>
+
