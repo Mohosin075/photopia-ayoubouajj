@@ -1,7 +1,13 @@
 import mongoose, { Schema, model } from 'mongoose'
-import { ISubscriptionPlan, SubscriptionPlanModel } from './subscription.interface'
+import {
+  ISubscriptionPlan,
+  SubscriptionPlanModel,
+} from './subscription.interface'
 
-const subscriptionPlanSchema = new Schema<ISubscriptionPlan, SubscriptionPlanModel>(
+const subscriptionPlanSchema = new Schema<
+  ISubscriptionPlan,
+  SubscriptionPlanModel
+>(
   {
     name: {
       type: String,
@@ -37,10 +43,12 @@ const subscriptionPlanSchema = new Schema<ISubscriptionPlan, SubscriptionPlanMod
       default: 10,
       min: 0,
     },
-    features: [{
-      type: String,
-      required: true,
-    }],
+    features: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
     maxTeamMembers: {
       type: Number,
       default: 1,
@@ -62,11 +70,13 @@ const subscriptionPlanSchema = new Schema<ISubscriptionPlan, SubscriptionPlanMod
       type: String,
       required: true,
     },
-    userTypes: [{
-      type: String,
-      enum: ['user', 'professional', 'admin', 'super_admin'],
-      required: true,
-    }],
+    userTypes: [
+      {
+        type: String,
+        enum: ['user', 'professional', 'admin', 'super_admin'],
+        required: true,
+      },
+    ],
     priority: {
       type: Number,
       default: 0,

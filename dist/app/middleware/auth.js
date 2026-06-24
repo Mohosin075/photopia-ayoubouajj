@@ -50,7 +50,9 @@ const auth = (...roles) => async (req, res, next) => {
             return next(new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, 'Invalid Access Token'));
         }
         // VERIFY USER STATUS IN DB
-        const userStatusCheck = await user_model_1.User.findById(verifyUser.userId).select('status').lean();
+        const userStatusCheck = await user_model_1.User.findById(verifyUser.userId)
+            .select('status')
+            .lean();
         if (!userStatusCheck) {
             return next(new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, 'User does not exist'));
         }
@@ -100,7 +102,8 @@ const tempAuth = (...roles) => async (req, res, next) => {
                 // Set user to header
                 req.user = verifyUser;
                 // Guard user
-                if (roles.length && !roles.includes(verifyUser.activeRole || verifyUser.role)) {
+                if (roles.length &&
+                    !roles.includes(verifyUser.activeRole || verifyUser.role)) {
                     throw new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this API");
                 }
                 next();

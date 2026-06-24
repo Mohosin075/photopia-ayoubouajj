@@ -54,7 +54,10 @@ class SubscriptionService {
             if (userType) {
                 query.userTypes = { $in: [userType] };
             }
-            const plans = await subscription_plan_model_1.SubscriptionPlan.find(query).sort({ priority: 1, price: 1 });
+            const plans = await subscription_plan_model_1.SubscriptionPlan.find(query).sort({
+                priority: 1,
+                price: 1,
+            });
             return plans;
         }
         catch (error) {
@@ -90,7 +93,9 @@ class SubscriptionService {
                 isEligible,
                 hasUsedTrial: !!existingSubscription,
                 trialDays: 10, // Default trial period
-                reason: isEligible ? undefined : 'User has already used their free trial',
+                reason: isEligible
+                    ? undefined
+                    : 'User has already used their free trial',
             };
         }
         catch (error) {
@@ -130,12 +135,14 @@ class SubscriptionService {
                 await stripe_service_1.stripeService.attachPaymentMethod(request.paymentMethodId, stripeCustomerId);
                 await stripe_service_1.stripeService.setDefaultPaymentMethod(stripeCustomerId, request.paymentMethodId);
             }
-            console.log("Metadata", userId, request.planId);
+            console.log('Metadata', userId, request.planId);
             // Create Stripe subscription
             const stripeSubscription = await stripe_service_1.stripeService.createSubscription({
                 customerId: stripeCustomerId,
                 priceId: plan.stripePriceId,
-                trialPeriodDays: trialInfo.isEligible ? plan.trialPeriodDays : undefined,
+                trialPeriodDays: trialInfo.isEligible
+                    ? plan.trialPeriodDays
+                    : undefined,
                 paymentMethodId: request.paymentMethodId,
                 metadata: {
                     userId: userId.toString(),
@@ -145,8 +152,10 @@ class SubscriptionService {
             // Create local subscription record
             // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
             const subscriptionItem = stripeSubscription.items.data[0];
-            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
-            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
+            const currentPeriodStart = stripeSubscription.current_period_start ||
+                subscriptionItem.current_period_start;
+            const currentPeriodEnd = stripeSubscription.current_period_end ||
+                subscriptionItem.current_period_end;
             const subscription = new subscription_model_1.Subscription({
                 userId: new mongoose_1.Types.ObjectId(userId),
                 planId: new mongoose_1.Types.ObjectId(request.planId),
@@ -154,8 +163,12 @@ class SubscriptionService {
                 stripeSubscriptionId: stripeSubscription.id,
                 stripePriceId: plan.stripePriceId,
                 status: stripeSubscription.status,
-                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : new Date(),
-                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                currentPeriodStart: currentPeriodStart
+                    ? new Date(currentPeriodStart * 1000)
+                    : new Date(),
+                currentPeriodEnd: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000)
+                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 trialStart: stripeSubscription.trial_start
                     ? new Date(stripeSubscription.trial_start * 1000)
                     : null,
@@ -172,7 +185,9 @@ class SubscriptionService {
                 subscriptionStatus: stripeSubscription.status,
                 subscriptionTier: this.getSubscriptionTier(plan.name),
                 trialUsed: trialInfo.isEligible,
-                subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                subscriptionExpiresAt: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000)
+                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             });
             // Send welcome email
             await email_notification_service_1.emailNotificationService.sendSubscriptionWelcomeEmail(subscription, plan, !!stripeSubscription.trial_start);
@@ -181,13 +196,17 @@ class SubscriptionService {
             console.log('--- Debugging Subscription ---');
             console.log('Subscription Status:', stripeSubscription.status);
             // Try getting from latest invoice's payment intent
-            if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object') {
+            if (stripeSubscription.latest_invoice &&
+                typeof stripeSubscription.latest_invoice === 'object') {
                 const invoice = stripeSubscription.latest_invoice;
-                if (invoice.payment_intent && typeof invoice.payment_intent === 'object') {
-                    clientSecret = invoice.payment_intent.client_secret || undefined;
+                if (invoice.payment_intent &&
+                    typeof invoice.payment_intent === 'object') {
+                    clientSecret =
+                        invoice.payment_intent.client_secret || undefined;
                     console.log('Client Secret found in latest_invoice.payment_intent');
                 }
-                else if (invoice.payment_intent && typeof invoice.payment_intent === 'string') {
+                else if (invoice.payment_intent &&
+                    typeof invoice.payment_intent === 'string') {
                     // If it's a string, it means it wasn't expanded properly
                     console.log('Payment Intent found as string, but not expanded:', invoice.payment_intent);
                 }
@@ -195,7 +214,9 @@ class SubscriptionService {
             // If still undefined, try setup_intent (common for free trials or setup flow)
             if (!clientSecret && stripeSubscription.pending_setup_intent) {
                 if (typeof stripeSubscription.pending_setup_intent === 'object') {
-                    clientSecret = stripeSubscription.pending_setup_intent.client_secret || undefined;
+                    clientSecret =
+                        stripeSubscription.pending_setup_intent.client_secret ||
+                            undefined;
                     console.log('Client Secret found in pending_setup_intent');
                 }
                 else {
@@ -245,43 +266,43 @@ class SubscriptionService {
                         _id: 'demo_1',
                         userId: {
                             name: 'Jane Smith',
-                            email: 'jane@example.com'
+                            email: 'jane@example.com',
                         },
                         planId: {
                             name: 'Monthly',
                             price: 14.99,
-                            interval: 'month'
+                            interval: 'month',
                         },
                         status: 'active',
                         currentPeriodStart: new Date('2025-12-15'),
                         currentPeriodEnd: new Date('2026-02-15'),
                         cancelAtPeriodEnd: false,
-                        paymentMethod: 'Visa **** 4242'
+                        paymentMethod: 'Visa **** 4242',
                     },
                     {
                         _id: 'demo_2',
                         userId: {
                             name: 'Mike Ross',
-                            email: 'mike@example.com'
+                            email: 'mike@example.com',
                         },
                         planId: {
                             name: 'Yearly',
                             price: 199.98,
-                            interval: 'year'
+                            interval: 'year',
                         },
                         status: 'active',
                         currentPeriodStart: new Date('2025-01-01'),
                         currentPeriodEnd: new Date('2026-01-01'),
                         cancelAtPeriodEnd: false,
-                        paymentMethod: 'Mastercard **** 8888'
-                    }
+                        paymentMethod: 'Mastercard **** 8888',
+                    },
                 ];
                 return {
                     meta: {
                         page: 1,
                         limit: 10,
                         total: 2,
-                        totalPage: 1
+                        totalPage: 1,
                     },
                     result: demoData,
                 };
@@ -498,7 +519,9 @@ class SubscriptionService {
                 priceId: plan.stripePriceId,
                 successUrl,
                 cancelUrl,
-                trialPeriodDays: trialInfo.isEligible ? plan.trialPeriodDays : undefined,
+                trialPeriodDays: trialInfo.isEligible
+                    ? plan.trialPeriodDays
+                    : undefined,
                 metadata: {
                     userId: userId.toString(),
                     planId,
@@ -618,35 +641,37 @@ class SubscriptionService {
                         _id: null,
                         totalSubscriptions: { $sum: 1 },
                         activeSubscriptions: {
-                            $sum: { $cond: [{ $in: ['$status', ['active', 'trialing']] }, 1, 0] }
+                            $sum: {
+                                $cond: [{ $in: ['$status', ['active', 'trialing']] }, 1, 0],
+                            },
                         },
                         trialingSubscriptions: {
-                            $sum: { $cond: [{ $eq: ['$status', 'trialing'] }, 1, 0] }
+                            $sum: { $cond: [{ $eq: ['$status', 'trialing'] }, 1, 0] },
                         },
                         canceledSubscriptions: {
-                            $sum: { $cond: [{ $eq: ['$status', 'canceled'] }, 1, 0] }
+                            $sum: { $cond: [{ $eq: ['$status', 'canceled'] }, 1, 0] },
                         },
                         pastDueSubscriptions: {
-                            $sum: { $cond: [{ $eq: ['$status', 'past_due'] }, 1, 0] }
+                            $sum: { $cond: [{ $eq: ['$status', 'past_due'] }, 1, 0] },
                         },
-                    }
-                }
+                    },
+                },
             ]);
             // Calculate MRR (Monthly Recurring Revenue)
             const mrrData = await subscription_model_1.Subscription.aggregate([
                 {
                     $match: {
                         status: { $in: ['active', 'trialing'] },
-                        ...matchStage
-                    }
+                        ...matchStage,
+                    },
                 },
                 {
                     $lookup: {
                         from: 'subscriptionplans',
                         localField: 'planId',
                         foreignField: '_id',
-                        as: 'plan'
-                    }
+                        as: 'plan',
+                    },
                 },
                 { $unwind: '$plan' },
                 {
@@ -657,12 +682,12 @@ class SubscriptionService {
                                 $cond: [
                                     { $eq: ['$plan.interval', 'month'] },
                                     '$plan.price',
-                                    { $divide: ['$plan.price', 12] } // Convert yearly to monthly
-                                ]
-                            }
-                        }
-                    }
-                }
+                                    { $divide: ['$plan.price', 12] }, // Convert yearly to monthly
+                                ],
+                            },
+                        },
+                    },
+                },
             ]);
             const result = analytics[0] || {
                 totalSubscriptions: 0,
@@ -672,9 +697,11 @@ class SubscriptionService {
                 pastDueSubscriptions: 0,
             };
             result.monthlyRevenue = ((_a = mrrData[0]) === null || _a === void 0 ? void 0 : _a.monthlyRevenue) || 0;
-            result.churnRate = result.totalSubscriptions > 0
-                ? (result.canceledSubscriptions / result.totalSubscriptions * 100).toFixed(2)
-                : 0;
+            result.churnRate =
+                result.totalSubscriptions > 0
+                    ? ((result.canceledSubscriptions / result.totalSubscriptions) *
+                        100).toFixed(2)
+                    : 0;
             return result;
         }
         catch (error) {
@@ -691,7 +718,8 @@ class SubscriptionService {
             }
             // Get latest invoice from Stripe
             const stripeSubscription = await stripe_service_1.stripeService.getSubscriptionExpanded(subscription.stripeSubscriptionId);
-            if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object') {
+            if (stripeSubscription.latest_invoice &&
+                typeof stripeSubscription.latest_invoice === 'object') {
                 const invoice = stripeSubscription.latest_invoice;
                 // Retry payment on the invoice
                 await stripe_service_1.stripeService.retryInvoicePayment(invoice.id);

@@ -15,14 +15,21 @@ import { PaymentServices } from '../payment/payment.service'
 import { geocodeAddress } from '../../../utils/geocodeAddress'
 
 // Helper for Haversine distance
-const calculateDistanceInKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+const calculateDistanceInKm = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number => {
   const R = 6371 // Radius of the Earth in km
   const dLat = (lat2 - lat1) * (Math.PI / 180)
   const dLon = (lon2 - lon1) * (Math.PI / 180)
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    Math.cos(lat1 * (Math.PI / 180)) *
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   return R * c
 }
@@ -36,30 +43,33 @@ const calculatePrice = async (
   overrides?: { priceOverride?: number; rateMultiplier?: number },
   packageName?: string,
   customOptions?: { name: string; price: number }[],
-  strictAddOnsCheck = false
+  strictAddOnsCheck = false,
 ) => {
   const service = await Service.findById(serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
 
-  const start = parseInt(startTime.split(':')[0]) + parseInt(startTime.split(':')[1]) / 60
-  const end = parseInt(endTime.split(':')[0]) + parseInt(endTime.split(':')[1]) / 60
+  const start =
+    parseInt(startTime.split(':')[0]) + parseInt(startTime.split(':')[1]) / 60
+  const end =
+    parseInt(endTime.split(':')[0]) + parseInt(endTime.split(':')[1]) / 60
   let durationHours = end - start
 
-  if (durationHours <= 0) throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid duration')
+  if (durationHours <= 0)
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid duration')
 
   let baseRate = 0
   let isWeekend = false
   const day = date.getDay()
   if (day === 0 || day === 6) {
     isWeekend = true
-    baseRate = service.pricingModel?.weekendHourlyRate || (service.price * 1.2)
+    baseRate = service.pricingModel?.weekendHourlyRate || service.price * 1.2
   } else {
     baseRate = service.pricingModel?.weekdayHourlyRate || service.price
   }
 
   // Calculate subtotal
   let subtotal = 0
-  
+
   if (service.pricingType === SERVICE_PRICING_TYPE.HOURLY) {
     // Apply Overrides for hourly only
     if (overrides?.priceOverride !== undefined) {
@@ -73,25 +83,39 @@ const calculatePrice = async (
     durationHours = service.pricingModel?.dailyHours || 8
   } else if (service.pricingType === SERVICE_PRICING_TYPE.PACKAGE) {
     if (packageName && service.pricingModel?.packages) {
-      const selectedPackage = service.pricingModel.packages.find(p => p.name === packageName)
+      const selectedPackage = service.pricingModel.packages.find(
+        p => p.name === packageName,
+      )
       if (selectedPackage) {
         subtotal = selectedPackage.price
         durationHours = selectedPackage.duration
       } else {
-        throw new ApiError(httpStatus.BAD_REQUEST, `Package '${packageName}' not found in this service`)
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Package '${packageName}' not found in this service`,
+        )
       }
     } else {
       subtotal = service.price
       // Use service duration if available, otherwise default to what user selected
       if (service.duration) {
-        if (typeof service.duration === 'object' && 'value' in service.duration && 'unit' in service.duration) {
-          const { value, unit } = service.duration as { value: number; unit: 'minute' | 'hour' };
-          durationHours = unit === 'hour' ? value : value / 60;
+        if (
+          typeof service.duration === 'object' &&
+          'value' in service.duration &&
+          'unit' in service.duration
+        ) {
+          const { value, unit } = service.duration as {
+            value: number
+            unit: 'minute' | 'hour'
+          }
+          durationHours = unit === 'hour' ? value : value / 60
         } else {
-          const durationStr = String(service.duration);
-          const num = parseFloat(durationStr);
-          const isMinute = durationStr.toLowerCase().includes('min') || durationStr.toLowerCase().includes('minute');
-          durationHours = isMinute ? num / 60 : num;
+          const durationStr = String(service.duration)
+          const num = parseFloat(durationStr)
+          const isMinute =
+            durationStr.toLowerCase().includes('min') ||
+            durationStr.toLowerCase().includes('minute')
+          durationHours = isMinute ? num / 60 : num
         }
       }
     }
@@ -101,10 +125,17 @@ const calculatePrice = async (
   let travelFee = 0
   if (distanceFromProviderKm > (service.location?.serviceRadiusKm || 25)) {
     if (!service.allowOutsideRadius) {
-       throw new ApiError(httpStatus.BAD_REQUEST, `Location is outside service radius (${service.location?.serviceRadiusKm}km)`)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Location is outside service radius (${service.location?.serviceRadiusKm}km)`,
+      )
     }
-    const extraKm = distanceFromProviderKm - (service.location?.serviceRadiusKm || 25)
-    travelFee = Math.min(extraKm * (service.travelFeePerKm || 1.5), service.maxTravelFee || 100)
+    const extraKm =
+      distanceFromProviderKm - (service.location?.serviceRadiusKm || 25)
+    travelFee = Math.min(
+      extraKm * (service.travelFeePerKm || 1.5),
+      service.maxTravelFee || 100,
+    )
   }
 
   subtotal += travelFee
@@ -113,14 +144,19 @@ const calculatePrice = async (
   if (customOptions && customOptions.length > 0) {
     if (strictAddOnsCheck) {
       for (const opt of customOptions) {
-        const matchedAddOn = service.addOns?.find(addon => addon.name === opt.name)
+        const matchedAddOn = service.addOns?.find(
+          addon => addon.name === opt.name,
+        )
         if (!matchedAddOn) {
-          throw new ApiError(httpStatus.BAD_REQUEST, `Add-on '${opt.name}' is not offered for this service`)
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            `Add-on '${opt.name}' is not offered for this service`,
+          )
         }
         if (matchedAddOn.price !== opt.price) {
           throw new ApiError(
             httpStatus.BAD_REQUEST,
-            `Invalid price for add-on '${opt.name}'. Expected: ${matchedAddOn.price}, got: ${opt.price}`
+            `Invalid price for add-on '${opt.name}'. Expected: ${matchedAddOn.price}, got: ${opt.price}`,
           )
         }
       }
@@ -129,11 +165,15 @@ const calculatePrice = async (
     subtotal += optionsTotal
   }
 
-  const platformCommissionClient = 0.10 // 10% from user (client)
+  const platformCommissionClient = 0.1 // 10% from user (client)
   const platformCommissionProvider = 0.05 // 5% from provider
-  
-  const clientTotal = Number((subtotal * (1 + platformCommissionClient)).toFixed(2))
-  const providerEarnings = Number((subtotal * (1 - platformCommissionProvider)).toFixed(2))
+
+  const clientTotal = Number(
+    (subtotal * (1 + platformCommissionClient)).toFixed(2),
+  )
+  const providerEarnings = Number(
+    (subtotal * (1 - platformCommissionProvider)).toFixed(2),
+  )
 
   return {
     pricingType: service.pricingType,
@@ -148,17 +188,27 @@ const calculatePrice = async (
     providerEarnings,
     currency: service.currency || 'EUR',
     durationHours,
-    customOptions
+    customOptions,
   }
 }
 
-const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'checkout'; paymentMethodId?: string }, user: any): Promise<any> => {
+const createBooking = async (
+  payload: IBooking & {
+    paymentMode?: 'intent' | 'checkout'
+    paymentMethodId?: string
+  },
+  user: any,
+): Promise<any> => {
   // 1. Check Service Existence
   const service = await Service.findById(payload.serviceId)
   if (!service) throw new ApiError(httpStatus.NOT_FOUND, 'Service not found')
 
   // 1.5 Geocode address if coordinates are missing
-  if (!payload.eventLocation.coordinates || !payload.eventLocation.coordinates.lat || !payload.eventLocation.coordinates.lng) {
+  if (
+    !payload.eventLocation.coordinates ||
+    !payload.eventLocation.coordinates.lat ||
+    !payload.eventLocation.coordinates.lng
+  ) {
     const fullAddress = `${payload.eventLocation.address}, ${payload.eventLocation.city}, ${payload.eventLocation.country}`
     const geocoded = await geocodeAddress(fullAddress)
 
@@ -166,21 +216,25 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
     if (geocoded) {
       payload.eventLocation.coordinates = {
         lat: geocoded.lat,
-        lng: geocoded.lng
+        lng: geocoded.lng,
       }
     }
   }
 
   // 1.6 Calculate distance if not provided or 0
-  if ((!payload.eventLocation.distanceFromProviderKm || payload.eventLocation.distanceFromProviderKm === 0) &&
-      service.location?.coordinates?.lat && service.location?.coordinates?.lng &&
-      payload.eventLocation.coordinates?.lat && payload.eventLocation.coordinates?.lng) {
-    
+  if (
+    (!payload.eventLocation.distanceFromProviderKm ||
+      payload.eventLocation.distanceFromProviderKm === 0) &&
+    service.location?.coordinates?.lat &&
+    service.location?.coordinates?.lng &&
+    payload.eventLocation.coordinates?.lat &&
+    payload.eventLocation.coordinates?.lng
+  ) {
     const distance = calculateDistanceInKm(
       service.location.coordinates.lat,
       service.location.coordinates.lng,
       payload.eventLocation.coordinates.lat,
-      payload.eventLocation.coordinates.lng
+      payload.eventLocation.coordinates.lng,
     )
     payload.eventLocation.distanceFromProviderKm = Number(distance.toFixed(2))
   }
@@ -192,18 +246,21 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
 
   // Ensure bookingDate is a Date object
   const bookingDate = new Date(payload.bookingDate)
-  
+
   // 2. Check Availability
   const availabilityCheck = await AvailabilityService.checkAvailabilityForDate(
     payload.providerId.toString(),
     bookingDate,
-    payload.serviceId.toString()
+    payload.serviceId.toString(),
   )
 
   console.log('Availability Check:', availabilityCheck)
 
   if (!availabilityCheck.isAvailable) {
-    throw new ApiError(httpStatus.BAD_REQUEST, `Provider is not available: ${availabilityCheck.reason}`)
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Provider is not available: ${availabilityCheck.reason}`,
+    )
   }
 
   // 3. Calculate Price (First, to get the correct duration)
@@ -216,7 +273,7 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
     availabilityCheck.pricing,
     payload.packageName,
     payload.customOptions,
-    true // strictAddOnsCheck
+    true, // strictAddOnsCheck
   )
 
   // Calculate actual end time based on the duration returned from pricing
@@ -224,7 +281,7 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
   const startTotalMinutes = startHour * 60 + startMinute
   const durationMinutes = pricing.durationHours * 60
   const endTotalMinutes = startTotalMinutes + durationMinutes
-  
+
   const endH = Math.floor(endTotalMinutes / 60)
   const endM = endTotalMinutes % 60
   const actualEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
@@ -236,35 +293,54 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
 
   // Validate request time is within working hours
   if (availabilityCheck.workingHours) {
-    const workStart = parseInt(availabilityCheck.workingHours.start.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.start.split(':')[1])
-    const workEnd = parseInt(availabilityCheck.workingHours.end.split(':')[0]) * 60 + parseInt(availabilityCheck.workingHours.end.split(':')[1])
-    
+    const workStart =
+      parseInt(availabilityCheck.workingHours.start.split(':')[0]) * 60 +
+      parseInt(availabilityCheck.workingHours.start.split(':')[1])
+    const workEnd =
+      parseInt(availabilityCheck.workingHours.end.split(':')[0]) * 60 +
+      parseInt(availabilityCheck.workingHours.end.split(':')[1])
+
     if (startTotalMinutes < workStart || endTotalMinutes > workEnd) {
-      throw new ApiError(httpStatus.BAD_REQUEST, `Requested duration (${pricing.durationHours}h starting at ${payload.startTime}) exceeds provider working hours (${availabilityCheck.workingHours.start} - ${availabilityCheck.workingHours.end})`)
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Requested duration (${pricing.durationHours}h starting at ${payload.startTime}) exceeds provider working hours (${availabilityCheck.workingHours.start} - ${availabilityCheck.workingHours.end})`,
+      )
     }
   }
-  
+
   // Check specific time slot availability (overlap with existing bookings)
   const existingBookings = await Booking.find({
     providerId: payload.providerId,
     bookingDate: payload.bookingDate,
-    status: { $in: ['pending', 'confirmed', 'in_progress'] }
+    status: { $in: ['pending', 'confirmed', 'in_progress'] },
   })
 
   const hasOverlap = existingBookings.some(booking => {
-     const existStart = parseInt(booking.startTime.split(':')[0]) * 60 + parseInt(booking.startTime.split(':')[1])
-     const existEnd = parseInt(booking.endTime.split(':')[0]) * 60 + parseInt(booking.endTime.split(':')[1])
-     return (startTotalMinutes < existEnd && endTotalMinutes > existStart)
+    const existStart =
+      parseInt(booking.startTime.split(':')[0]) * 60 +
+      parseInt(booking.startTime.split(':')[1])
+    const existEnd =
+      parseInt(booking.endTime.split(':')[0]) * 60 +
+      parseInt(booking.endTime.split(':')[1])
+    return startTotalMinutes < existEnd && endTotalMinutes > existStart
   })
 
   if (hasOverlap) {
-    throw new ApiError(httpStatus.CONFLICT, 'Time slot overlaps with an existing booking')
+    throw new ApiError(
+      httpStatus.CONFLICT,
+      'Time slot overlaps with an existing booking',
+    )
   }
-  
+
   // Dynamically read depositPercentage from service (defaults to 0 / 0%)
-  payload.depositPercentage = service.depositPercentage !== undefined ? service.depositPercentage : 0
-  payload.depositAmount = Number((pricing.clientTotal * payload.depositPercentage).toFixed(2))
-  payload.balanceAmount = Number((pricing.clientTotal - payload.depositAmount).toFixed(2))
+  payload.depositPercentage =
+    service.depositPercentage !== undefined ? service.depositPercentage : 0
+  payload.depositAmount = Number(
+    (pricing.clientTotal * payload.depositPercentage).toFixed(2),
+  )
+  payload.balanceAmount = Number(
+    (pricing.clientTotal - payload.depositAmount).toFixed(2),
+  )
   payload.bookingDate = bookingDate // Ensure the Date object is saved
 
   // Evaluate Auto-Accept Bookings Rules
@@ -280,7 +356,11 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
     }
 
     // Rule 2: Within Radius
-    if (isAutoAcceptMatched && rules.withinRadiusKm !== undefined && rules.withinRadiusKm > 0) {
+    if (
+      isAutoAcceptMatched &&
+      rules.withinRadiusKm !== undefined &&
+      rules.withinRadiusKm > 0
+    ) {
       const distance = payload.eventLocation?.distanceFromProviderKm || 0
       if (distance > rules.withinRadiusKm) {
         isAutoAcceptMatched = false
@@ -306,7 +386,7 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
 
   // Increment totalBooking in Service
   await Service.findByIdAndUpdate(payload.serviceId, {
-    $inc: { totalBooking: 1 }
+    $inc: { totalBooking: 1 },
   })
 
   // ============================================
@@ -318,7 +398,7 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
     // If deposit amount is zero (0% deposit), upfront Stripe payment is not required!
     return {
       booking,
-      payment: null
+      payment: null,
     }
   }
 
@@ -383,7 +463,10 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
       },
     }
 
-    const checkoutSession = await PaymentServices.createCheckoutSession(user, paymentPayload)
+    const checkoutSession = await PaymentServices.createCheckoutSession(
+      user,
+      paymentPayload,
+    )
 
     booking.stripePaymentId = checkoutSession.sessionId
     await booking.save()
@@ -404,7 +487,7 @@ const createBooking = async (payload: IBooking & { paymentMode?: 'intent' | 'che
 const updateBookingStatus = async (
   bookingId: string,
   status: string,
-  userId: string
+  userId: string,
 ): Promise<IBooking | null> => {
   const session = await mongoose.startSession()
   session.startTransaction()
@@ -415,16 +498,19 @@ const updateBookingStatus = async (
 
     // Only provider or admin can confirm/cancel (client can cancel too)
     // For simplicity allowing update if user is involved
-    if (booking.clientId.toString() !== userId && booking.providerId.toString() !== userId) {
-        // Check if admin (need role passed or check logic)
-        // throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized')
+    if (
+      booking.clientId.toString() !== userId &&
+      booking.providerId.toString() !== userId
+    ) {
+      // Check if admin (need role passed or check logic)
+      // throw new ApiError(httpStatus.FORBIDDEN, 'Not authorized')
     }
 
     const previousStatus = booking.status
     booking.status = status as any
-    
+
     if (status === 'confirmed') booking.confirmedAt = new Date()
-    
+
     if (status === 'cancelled' && previousStatus !== 'cancelled') {
       booking.cancelledAt = new Date()
       // Refund pending balance if it was already credited as pending
@@ -435,42 +521,48 @@ const updateBookingStatus = async (
         await WalletService.cancelPendingEarnings(
           booking.providerId,
           booking.pricingDetails.providerEarnings,
-          session
+          session,
         )
       }
     }
 
     if (status === 'completed') {
       booking.completedAt = new Date()
-      
+
       // If booking is completed and wasn't already completed, transfer earnings
       if (previousStatus !== 'completed') {
         // 1. Move from pending to actual balance in local wallet
         await WalletService.completePendingEarnings(
           booking.providerId,
           booking.pricingDetails.providerEarnings,
-          session
+          session,
         )
 
         // 1.5 Increment projects count for the provider
-        await ProfessionalProfileServices.incrementProjectsCount(booking.providerId.toString())
+        await ProfessionalProfileServices.incrementProjectsCount(
+          booking.providerId.toString(),
+        )
 
         // 2. Stripe Connect Transfer
-        const professionalProfile = await ProfessionalProfile.findOne({ user: booking.providerId })
-        
+        const professionalProfile = await ProfessionalProfile.findOne({
+          user: booking.providerId,
+        })
+
         if (professionalProfile?.stripeAccountId) {
           try {
-            console.log(`Attempting transfer to: ${professionalProfile.stripeAccountId}`)
+            console.log(
+              `Attempting transfer to: ${professionalProfile.stripeAccountId}`,
+            )
             const transfer = await stripe.transfers.create({
               amount: Math.round(booking.pricingDetails.providerEarnings * 100), // convert to cents
               currency: booking.pricingDetails.currency.toLowerCase(),
               destination: professionalProfile.stripeAccountId,
               metadata: {
                 bookingId: booking.id,
-                bookingNumber: booking.bookingNumber
-              }
+                bookingNumber: booking.bookingNumber,
+              },
             })
-            
+
             booking.stripeTransferId = transfer.id
             booking.stripeTransferStatus = 'succeeded'
           } catch (error: any) {
@@ -498,19 +590,30 @@ import { paginationHelper } from '../../../helpers/paginationHelper'
 import { SortOrder } from 'mongoose'
 
 const getMyBookings = async (
-  userId: string, 
+  userId: string,
   role: string,
-  filters: { searchTerm?: string; status?: string; bookingDate?: string; serviceId?: string; filterType?: string },
-  options: { page?: number; limit?: number; sortBy?: string; sortOrder?: 'asc' | 'desc' }
+  filters: {
+    searchTerm?: string
+    status?: string
+    bookingDate?: string
+    serviceId?: string
+    filterType?: string
+  },
+  options: {
+    page?: number
+    limit?: number
+    sortBy?: string
+    sortOrder?: 'asc' | 'desc'
+  },
 ): Promise<{
-  meta: { page: number; limit: number; total: number };
-  data: IBooking[];
+  meta: { page: number; limit: number; total: number }
+  data: IBooking[]
 }> => {
   const { searchTerm, filterType, ...filterData } = filters
-  const { page, limit, skip, sortBy, sortOrder } = paginationHelper.calculatePagination(options)
+  const { page, limit, skip, sortBy, sortOrder } =
+    paginationHelper.calculatePagination(options)
 
   const andConditions = []
-
 
   // Role-based filter
   if (role === 'professional') {
@@ -526,15 +629,23 @@ const getMyBookings = async (
         { bookingNumber: { $regex: searchTerm, $options: 'i' } },
         { clientName: { $regex: searchTerm, $options: 'i' } },
         // { 'service.title': { $regex: searchTerm, $options: 'i' } } // Requires aggregate/lookup for efficient search usually
-      ]
+      ],
     })
   }
 
   // Filter Type Logic
   if (filterType) {
     const now = new Date()
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    )
+    const endOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+    )
 
     if (filterType === 'today') {
       andConditions.push({
@@ -561,8 +672,8 @@ const getMyBookings = async (
   if (Object.keys(filterData).length) {
     andConditions.push({
       $and: Object.entries(filterData).map(([field, value]) => ({
-        [field]: value
-      }))
+        [field]: value,
+      })),
     })
   }
 
@@ -572,7 +683,8 @@ const getMyBookings = async (
     sortConditions[sortBy] = sortOrder
   }
 
-  const whereConditions = andConditions.length > 0 ? { $and: andConditions } : {}
+  const whereConditions =
+    andConditions.length > 0 ? { $and: andConditions } : {}
 
   const result = await Booking.find(whereConditions)
     .populate('serviceId')
@@ -594,8 +706,9 @@ const getMyBookings = async (
   }
 }
 
-
-const getSingleBooking = async (bookingId: string): Promise<IBooking | null> => {
+const getSingleBooking = async (
+  bookingId: string,
+): Promise<IBooking | null> => {
   const booking = await Booking.findById(bookingId)
   if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
   return booking
@@ -604,11 +717,19 @@ const getSingleBooking = async (bookingId: string): Promise<IBooking | null> => 
 const getMyBookingsByDate = async (
   userId: string,
   role: string,
-  date: string
+  date: string,
 ): Promise<IBooking[]> => {
   const targetDate = new Date(date)
-  const startOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate())
-  const endOfDay = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1)
+  const startOfDay = new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate(),
+  )
+  const endOfDay = new Date(
+    targetDate.getFullYear(),
+    targetDate.getMonth(),
+    targetDate.getDate() + 1,
+  )
 
   const query: any = {
     bookingDate: {
@@ -636,29 +757,40 @@ const modifyBookingOffer = async (
   bookingId: string,
   providerId: string,
   payload: {
-    baseRate?: number;
-    packageName?: string;
-    customOptions?: { name: string; price: number }[];
-  }
+    baseRate?: number
+    packageName?: string
+    customOptions?: { name: string; price: number }[]
+  },
 ): Promise<IBooking | null> => {
   const booking = await Booking.findById(bookingId)
   if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
 
   if (booking.providerId.toString() !== providerId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only the professional who received this booking can modify the offer')
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Only the professional who received this booking can modify the offer',
+    )
   }
 
   if (booking.status !== 'pending') {
-    throw new ApiError(httpStatus.BAD_REQUEST, `Cannot modify offer when booking status is ${booking.status}`)
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Cannot modify offer when booking status is ${booking.status}`,
+    )
   }
 
   if (booking.paymentStatus !== 'pending') {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Cannot modify offer after payment has been initiated or completed')
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Cannot modify offer after payment has been initiated or completed',
+    )
   }
 
   // Recalculate Pricing
-  const overrides = payload.baseRate ? { priceOverride: payload.baseRate } : undefined
-  
+  const overrides = payload.baseRate
+    ? { priceOverride: payload.baseRate }
+    : undefined
+
   const pricingResult = await calculatePrice(
     booking.serviceId.toString(),
     booking.startTime,
@@ -667,26 +799,26 @@ const modifyBookingOffer = async (
     booking.eventLocation.distanceFromProviderKm || 0,
     overrides,
     payload.packageName || booking.packageName,
-    payload.customOptions || (booking.customOptions as any)
+    payload.customOptions || (booking.customOptions as any),
   )
 
   // Update Booking Top-level Properties
   booking.packageName = pricingResult.packageName
   booking.customOptions = pricingResult.customOptions as any
   booking.durationHours = pricingResult.durationHours
-  
+
   // Extract only the fields that belong in pricingDetails
-  const { 
-    pricingType, 
-    baseRate, 
-    isWeekend, 
-    travelFee, 
-    subtotal, 
-    platformCommissionClient, 
-    platformCommissionProvider, 
-    clientTotal, 
-    providerEarnings, 
-    currency 
+  const {
+    pricingType,
+    baseRate,
+    isWeekend,
+    travelFee,
+    subtotal,
+    platformCommissionClient,
+    platformCommissionProvider,
+    clientTotal,
+    providerEarnings,
+    currency,
   } = pricingResult
 
   booking.pricingDetails = {
@@ -699,14 +831,19 @@ const modifyBookingOffer = async (
     platformCommissionProvider,
     clientTotal,
     providerEarnings,
-    currency
+    currency,
   }
-  
+
   // Fetch service to get depositPercentage dynamically (defaults to 0 / 0%)
   const service = await Service.findById(booking.serviceId)
-  booking.depositPercentage = service?.depositPercentage !== undefined ? service.depositPercentage : 0
-  booking.depositAmount = Number((clientTotal * booking.depositPercentage).toFixed(2))
-  booking.balanceAmount = Number((clientTotal - booking.depositAmount).toFixed(2))
+  booking.depositPercentage =
+    service?.depositPercentage !== undefined ? service.depositPercentage : 0
+  booking.depositAmount = Number(
+    (clientTotal * booking.depositPercentage).toFixed(2),
+  )
+  booking.balanceAmount = Number(
+    (clientTotal - booking.depositAmount).toFixed(2),
+  )
 
   await booking.save()
   return booking
@@ -719,21 +856,24 @@ const modifyBookingOffer = async (
 const payRemainingBalance = async (
   bookingId: string,
   user: any,
-  payload?: { paymentMethodId?: string }
+  payload?: { paymentMethodId?: string },
 ): Promise<any> => {
   const booking = await Booking.findById(bookingId)
   if (!booking) throw new ApiError(httpStatus.NOT_FOUND, 'Booking not found')
 
   // Only the client who booked can pay
   if (booking.clientId.toString() !== user.userId) {
-    throw new ApiError(httpStatus.FORBIDDEN, 'Only the booking client can pay the remaining balance')
+    throw new ApiError(
+      httpStatus.FORBIDDEN,
+      'Only the booking client can pay the remaining balance',
+    )
   }
 
   // Must be in deposit_paid status
   if (booking.paymentStatus !== 'deposit_paid') {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
-      `Cannot pay remaining balance. Current payment status: ${booking.paymentStatus}`
+      `Cannot pay remaining balance. Current payment status: ${booking.paymentStatus}`,
     )
   }
 

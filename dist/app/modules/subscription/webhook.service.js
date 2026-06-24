@@ -174,8 +174,10 @@ class WebhookService {
             // Create subscription record
             // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
             const subscriptionItem = stripeSubscription.items.data[0];
-            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
-            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
+            const currentPeriodStart = stripeSubscription.current_period_start ||
+                subscriptionItem.current_period_start;
+            const currentPeriodEnd = stripeSubscription.current_period_end ||
+                subscriptionItem.current_period_end;
             const subscription = new subscription_model_1.Subscription({
                 userId: new mongoose_1.Types.ObjectId(userId),
                 planId: plan._id,
@@ -183,8 +185,12 @@ class WebhookService {
                 stripeSubscriptionId: stripeSubscription.id,
                 stripePriceId: stripeSubscription.items.data[0].price.id,
                 status: stripeSubscription.status,
-                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : new Date(),
-                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                currentPeriodStart: currentPeriodStart
+                    ? new Date(currentPeriodStart * 1000)
+                    : new Date(),
+                currentPeriodEnd: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000)
+                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
                 trialStart: stripeSubscription.trial_start
                     ? new Date(stripeSubscription.trial_start * 1000)
                     : null,
@@ -202,7 +208,9 @@ class WebhookService {
                 subscriptionStatus: stripeSubscription.status,
                 subscriptionTier: this.getSubscriptionTier(plan.name),
                 trialUsed: !!stripeSubscription.trial_start,
-                subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                subscriptionExpiresAt: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000)
+                    : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
             });
             // Send welcome email
             const { emailNotificationService } = await Promise.resolve().then(() => __importStar(require('./email-notification.service')));
@@ -228,12 +236,18 @@ class WebhookService {
             // Update subscription data
             // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
             const subscriptionItem = stripeSubscription.items.data[0];
-            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
-            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
+            const currentPeriodStart = stripeSubscription.current_period_start ||
+                subscriptionItem.current_period_start;
+            const currentPeriodEnd = stripeSubscription.current_period_end ||
+                subscriptionItem.current_period_end;
             const updateData = {
                 status: stripeSubscription.status,
-                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : undefined,
-                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
+                currentPeriodStart: currentPeriodStart
+                    ? new Date(currentPeriodStart * 1000)
+                    : undefined,
+                currentPeriodEnd: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000)
+                    : undefined,
                 cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
                 lastWebhookEventId: eventId,
             };
@@ -257,7 +271,9 @@ class WebhookService {
             const newPriceId = typeof newPrice === 'string' ? newPrice : newPrice.id;
             let newTier;
             if (subscription.stripePriceId !== newPriceId) {
-                const newPlan = await subscription_plan_model_1.SubscriptionPlan.findOne({ stripePriceId: newPriceId });
+                const newPlan = await subscription_plan_model_1.SubscriptionPlan.findOne({
+                    stripePriceId: newPriceId,
+                });
                 if (newPlan) {
                     updateData.planId = newPlan._id;
                     updateData.stripePriceId = newPriceId;
@@ -268,7 +284,9 @@ class WebhookService {
             // Update user profile with new subscription info
             const userUpdate = {
                 subscriptionStatus: stripeSubscription.status,
-                subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(stripeSubscription.current_period_end * 1000),
+                subscriptionExpiresAt: currentPeriodEnd
+                    ? new Date(currentPeriodEnd * 1000)
+                    : new Date(stripeSubscription.current_period_end * 1000),
                 trialUsed: !!stripeSubscription.trial_start,
             };
             if (newTier) {
@@ -469,7 +487,7 @@ class WebhookService {
                 const stripeSubscription = await stripe_service_1.stripeService.getSubscription(session.subscription);
                 await subscription_model_1.Subscription.findOneAndUpdate({ stripeSubscriptionId: stripeSubscription.id }, {
                     status: stripeSubscription.status,
-                    lastWebhookEventId: eventId
+                    lastWebhookEventId: eventId,
                 });
                 await user_model_1.User.findByIdAndUpdate(userId, {
                     subscriptionStatus: stripeSubscription.status,
@@ -667,7 +685,9 @@ class WebhookService {
             console.warn(`Dispute created: ${dispute.id} for charge: ${dispute.charge}`);
             // Find subscription related to the disputed charge
             const subscription = await subscription_model_1.Subscription.findOne({
-                stripeCustomerId: dispute.charge ? dispute.charge.customer : null,
+                stripeCustomerId: dispute.charge
+                    ? dispute.charge.customer
+                    : null,
             }).populate(['userId', 'planId']);
             if (subscription) {
                 // Suspend subscription due to dispute

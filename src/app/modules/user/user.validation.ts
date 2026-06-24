@@ -42,24 +42,22 @@ const settingsSchema = z.object({
 
 // ------------------ UPDATE USER VALIDATION ------------------
 export const updateUserSchema = z.object({
-  body: z
-    .object({
-      name: z.string().optional(),
-      profile: z.string().optional(),
-      phone: z.string().optional(),
-      description: z.string().optional(),
-      specialty: z.string().optional(),
+  body: z.object({
+    name: z.string().optional(),
+    profile: z.string().optional(),
+    phone: z.string().optional(),
+    description: z.string().optional(),
+    specialty: z.string().optional(),
 
-      address: addressSchema.optional(),
-      location: pointSchema.optional(),
+    address: addressSchema.optional(),
+    location: pointSchema.optional(),
 
-      appId: z.string().optional(),
-      deviceToken: z.string().optional(),
-      
-      settings: settingsSchema.optional(),
-    })
+    appId: z.string().optional(),
+    deviceToken: z.string().optional(),
+
+    settings: settingsSchema.optional(),
+  }),
 })
-
 
 export const updateUserStatusSchema = z.object({
   body: z.object({

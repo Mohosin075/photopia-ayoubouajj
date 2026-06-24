@@ -10,7 +10,7 @@ class EmailNotificationService {
   async sendSubscriptionWelcomeEmail(
     subscription: ISubscription,
     plan: ISubscriptionPlan,
-    isTrialing: boolean = false
+    isTrialing: boolean = false,
   ): Promise<void> {
     try {
       const user = await User.findById(subscription.userId).select('+email')
@@ -43,7 +43,7 @@ class EmailNotificationService {
   async sendTrialEndingEmail(
     subscription: ISubscription,
     plan: ISubscriptionPlan,
-    daysLeft: number
+    daysLeft: number,
   ): Promise<void> {
     try {
       const user = await User.findById(subscription.userId).select('+email')
@@ -70,7 +70,7 @@ class EmailNotificationService {
   // Send payment success email
   async sendPaymentSuccessEmail(
     subscription: ISubscription,
-    invoice: Stripe.Invoice
+    invoice: Stripe.Invoice,
   ): Promise<void> {
     try {
       const user = await User.findById(subscription.userId).select('+email')
@@ -99,7 +99,7 @@ class EmailNotificationService {
   async sendPaymentFailedEmail(
     subscription: ISubscription,
     invoice: Stripe.Invoice,
-    attemptCount: number
+    attemptCount: number,
   ): Promise<void> {
     try {
       const user = await User.findById(subscription.userId).select('+email')
@@ -115,7 +115,9 @@ class EmailNotificationService {
         planName,
         amount: (invoice.amount_due / 100).toFixed(2),
         currency: invoice.currency.toUpperCase(),
-        failureReason: (invoice as any).last_payment_error?.message || 'Payment method declined',
+        failureReason:
+          (invoice as any).last_payment_error?.message ||
+          'Payment method declined',
         retryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
         updatePaymentUrl: `${process.env.FRONTEND_URL}/billing`,
         dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
@@ -132,7 +134,7 @@ class EmailNotificationService {
   async sendSubscriptionCanceledEmail(
     subscription: ISubscription,
     plan: ISubscriptionPlan,
-    canceledAt: Date
+    canceledAt: Date,
   ): Promise<void> {
     try {
       const user = await User.findById(subscription.userId).select('+email')
@@ -159,14 +161,16 @@ class EmailNotificationService {
   async sendPlanChangeEmail(
     subscription: ISubscription,
     newPlan: ISubscriptionPlan,
-    oldPrice: Stripe.Price
+    oldPrice: Stripe.Price,
   ): Promise<void> {
     try {
       const user = await User.findById(subscription.userId).select('+email')
       if (!user || !user.email) return
 
-      const isUpgrade = newPlan.price > (oldPrice.unit_amount! / 100)
-      const priceDifference = Math.abs(newPlan.price - (oldPrice.unit_amount! / 100))
+      const isUpgrade = newPlan.price > oldPrice.unit_amount! / 100
+      const priceDifference = Math.abs(
+        newPlan.price - oldPrice.unit_amount! / 100,
+      )
 
       const emailData = emailTemplate.planChange({
         name: user.name || 'Valued Customer',

@@ -9,7 +9,7 @@ const supportSchema = new Schema<ISupport, SupportModel>(
     contentId: { type: Schema.Types.ObjectId },
     contentType: {
       type: String,
-      enum: ['comment', 'review', 'user']
+      enum: ['comment', 'review', 'user'],
     },
     reason: {
       type: String,

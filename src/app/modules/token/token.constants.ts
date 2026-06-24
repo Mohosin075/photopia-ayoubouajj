@@ -1,1 +1,1 @@
-export const TOKEN_CONSTANT = 'someValue';
+export const TOKEN_CONSTANT = 'someValue'

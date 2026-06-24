@@ -23,6 +23,7 @@ import { DashboardRoutes } from '../app/modules/dashboard/dashboard.route'
 import { RecentlyViewedRoutes } from '../app/modules/recentlyViewed/recentlyViewed.route'
 import { HomeRoutes } from '../app/modules/home/home.route'
 import { InspirationRoutes } from '../app/modules/inspiration/inspiration.route'
+import { ProjectIdeaRoutes } from '../app/modules/projectIdea/projectIdea.route'
 import { LocationRoutes } from '../app/modules/location/location.route'
 
 const router = express.Router()
@@ -76,7 +77,8 @@ const apiRoutes: { path: string; route: Router }[] = [
   { path: '/public', route: PublicRoutes },
   { path: '/home', route: HomeRoutes },
   { path: '/inspiration', route: InspirationRoutes },
-  { path: '/locations', route: LocationRoutes }
+  { path: '/project-ideas', route: ProjectIdeaRoutes },
+  { path: '/locations', route: LocationRoutes },
 ]
 
 apiRoutes.forEach(route => {

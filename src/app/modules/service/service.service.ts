@@ -6,7 +6,12 @@ import { Service } from './service.model'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 import { Types } from 'mongoose'
-import { SERVICE_CONSTANTS, serviceFilterableFields, serviceSearchableFields, SERVICE_LIST_PROJECTION } from './service.constants'
+import {
+  SERVICE_CONSTANTS,
+  serviceFilterableFields,
+  serviceSearchableFields,
+  SERVICE_LIST_PROJECTION,
+} from './service.constants'
 import { User } from '../user/user.model'
 import { SERVICE_STATUS } from '../../../enum/service'
 import { Category } from '../category/category.model'
@@ -22,7 +27,7 @@ const createService = async (payload: IService & { providerId: string }) => {
   if (existingService) {
     throw new ApiError(
       StatusCodes.CONFLICT,
-      SERVICE_CONSTANTS.MESSAGES.ALREADY_EXISTS
+      SERVICE_CONSTANTS.MESSAGES.ALREADY_EXISTS,
     )
   }
 
@@ -45,7 +50,7 @@ const createService = async (payload: IService & { providerId: string }) => {
   if (!result) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      SERVICE_CONSTANTS.MESSAGES.CREATE_FAILED
+      SERVICE_CONSTANTS.MESSAGES.CREATE_FAILED,
     )
   }
 
@@ -53,83 +58,107 @@ const createService = async (payload: IService & { providerId: string }) => {
 }
 
 const buildWhereConditions = async (filters: IServiceFilterables) => {
-  const { 
-    searchTerm, 
-    minPrice, 
-    maxPrice, 
-    isVerified, 
-    isActive, 
-    status, 
+  const {
+    searchTerm,
+    minPrice,
+    maxPrice,
+    isVerified,
+    isActive,
+    status,
     theme,
     isOnline,
     quickResponse,
     expressDelivery,
     thisWeekend,
     lastMinute,
-    ...filterData 
+    ...filterData
   } = filters
   const conditions: any = {}
 
   // ... rest of the logic ...
   // Handle new filters based on provider profile or other criteria
   if (isOnline !== undefined) {
-    const onlineUsers = await User.find({ isOnline: isOnline === 'true' || isOnline === true }).select('_id').lean();
-    conditions.providerId = { $in: onlineUsers.map(u => u._id) };
+    const onlineUsers = await User.find({
+      isOnline: isOnline === 'true' || isOnline === true,
+    })
+      .select('_id')
+      .lean()
+    conditions.providerId = { $in: onlineUsers.map(u => u._id) }
   }
 
   if (quickResponse !== undefined) {
-    const quickResProfiles = await ProfessionalProfile.find({ responseTime: { $lte: 120 } }).select('user').lean();
-    const userIds = quickResProfiles.map(p => p.user);
+    const quickResProfiles = await ProfessionalProfile.find({
+      responseTime: { $lte: 120 },
+    })
+      .select('user')
+      .lean()
+    const userIds = quickResProfiles.map(p => p.user)
     if (conditions.providerId) {
-        conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
+      conditions.providerId.$in = (conditions.providerId.$in || []).filter(
+        (id: any) => userIds.includes(id),
+      )
     } else {
-        conditions.providerId = { $in: userIds };
+      conditions.providerId = { $in: userIds }
     }
   }
 
   if (expressDelivery !== undefined) {
-       // Assuming express delivery is delivery within 48 hours
-       const expressProfiles = await ProfessionalProfile.find({ deliveryRate: { $gte: 95 } }).select('user').lean();
-       const userIds = expressProfiles.map(p => p.user);
-       if (conditions.providerId) {
-           conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
-       } else {
-           conditions.providerId = { $in: userIds };
-       }
-   }
+    // Assuming express delivery is delivery within 48 hours
+    const expressProfiles = await ProfessionalProfile.find({
+      deliveryRate: { $gte: 95 },
+    })
+      .select('user')
+      .lean()
+    const userIds = expressProfiles.map(p => p.user)
+    if (conditions.providerId) {
+      conditions.providerId.$in = (conditions.providerId.$in || []).filter(
+        (id: any) => userIds.includes(id),
+      )
+    } else {
+      conditions.providerId = { $in: userIds }
+    }
+  }
 
-   if (thisWeekend !== undefined) {
-       // Filter providers available on Saturday or Sunday
-       const { Availability } = require('../availability/availability.model');
-       const availableProviders = await Availability.find({
-           $or: [
-               { 'defaultSchedule.saturday.isActive': true },
-               { 'defaultSchedule.sunday.isActive': true }
-           ]
-       }).select('providerId').lean();
-       const userIds = availableProviders.map((a: any) => a.providerId);
-       if (conditions.providerId) {
-           conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
-       } else {
-           conditions.providerId = { $in: userIds };
-       }
-   }
+  if (thisWeekend !== undefined) {
+    // Filter providers available on Saturday or Sunday
+    const { Availability } = require('../availability/availability.model')
+    const availableProviders = await Availability.find({
+      $or: [
+        { 'defaultSchedule.saturday.isActive': true },
+        { 'defaultSchedule.sunday.isActive': true },
+      ],
+    })
+      .select('providerId')
+      .lean()
+    const userIds = availableProviders.map((a: any) => a.providerId)
+    if (conditions.providerId) {
+      conditions.providerId.$in = (conditions.providerId.$in || []).filter(
+        (id: any) => userIds.includes(id),
+      )
+    } else {
+      conditions.providerId = { $in: userIds }
+    }
+  }
 
-   if (lastMinute !== undefined) {
-       // Filter providers with low advance notice hours
-       const { Availability } = require('../availability/availability.model');
-       const lastMinuteProviders = await Availability.find({
-           advanceNoticeHours: { $lte: 4 } // 4 hours or less
-       }).select('providerId').lean();
-       const userIds = lastMinuteProviders.map((a: any) => a.providerId);
-       if (conditions.providerId) {
-           conditions.providerId.$in = (conditions.providerId.$in || []).filter((id: any) => userIds.includes(id));
-       } else {
-           conditions.providerId = { $in: userIds };
-       }
-   }
-   
-   // theme filtering logic already exists below...
+  if (lastMinute !== undefined) {
+    // Filter providers with low advance notice hours
+    const { Availability } = require('../availability/availability.model')
+    const lastMinuteProviders = await Availability.find({
+      advanceNoticeHours: { $lte: 4 }, // 4 hours or less
+    })
+      .select('providerId')
+      .lean()
+    const userIds = lastMinuteProviders.map((a: any) => a.providerId)
+    if (conditions.providerId) {
+      conditions.providerId.$in = (conditions.providerId.$in || []).filter(
+        (id: any) => userIds.includes(id),
+      )
+    } else {
+      conditions.providerId = { $in: userIds }
+    }
+  }
+
+  // theme filtering logic already exists below...
 
   // Exclude DELETED services by default unless explicitly filtering for them
   if (status !== undefined) {
@@ -140,19 +169,19 @@ const buildWhereConditions = async (filters: IServiceFilterables) => {
 
   // Handle theme filtering by finding all categories with that theme
   if (theme) {
-    const categories = await Category.find({ theme }).select('_id').lean();
+    const categories = await Category.find({ theme }).select('_id').lean()
     if (categories.length > 0) {
-      conditions.category = { $in: categories.map(c => c._id) };
+      conditions.category = { $in: categories.map(c => c._id) }
     } else {
       // If theme provided but no categories found, force empty result
-      conditions.category = new Types.ObjectId();
+      conditions.category = new Types.ObjectId()
     }
   }
 
   // Text search optimization or partial regex match
   if (searchTerm) {
     conditions.$or = serviceSearchableFields.map(field => ({
-      [field]: { $regex: searchTerm, $options: 'i' }
+      [field]: { $regex: searchTerm, $options: 'i' },
     }))
   }
 
@@ -191,7 +220,7 @@ const buildWhereConditions = async (filters: IServiceFilterables) => {
 
 const getAllServices = async (
   filters: IServiceFilterables,
-  paginationOptions: IPaginationOptions
+  paginationOptions: IPaginationOptions,
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
@@ -232,19 +261,25 @@ const getAllServices = async (
 
 const getSingleService = async (id: string) => {
   if (!Types.ObjectId.isValid(id)) {
-    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      SERVICE_CONSTANTS.MESSAGES.NOT_FOUND,
+    )
   }
   const result = await Service.findByIdAndUpdate(
     id,
     { $inc: { totalView: 1 } },
-    { new: true }
+    { new: true },
   )
     .populate('providerId', 'name fullName email profile isOnline')
     .populate('category', 'name image icon theme')
     .populate('subCategory', 'name theme')
 
   if (!result || result.status === SERVICE_STATUS.DELETED) {
-    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      SERVICE_CONSTANTS.MESSAGES.NOT_FOUND,
+    )
   }
 
   return result
@@ -253,23 +288,33 @@ const getSingleService = async (id: string) => {
 const updateService = async (
   id: string,
   payload: Partial<IService>,
-  userId?: string
+  userId?: string,
 ) => {
   if (!Types.ObjectId.isValid(id)) {
-    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      SERVICE_CONSTANTS.MESSAGES.NOT_FOUND,
+    )
   }
   const service = await Service.findById(id)
 
   if (!service) {
-    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      SERVICE_CONSTANTS.MESSAGES.NOT_FOUND,
+    )
   }
 
   // Check if user is authorized (providerId or admin)
   const user = userId ? await User.findById(userId) : null
-  const isAdmin = user && user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))
+  const isAdmin =
+    user && user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))
 
   if (userId && service.providerId.toString() !== userId && !isAdmin) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED)
+    throw new ApiError(
+      StatusCodes.UNAUTHORIZED,
+      SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED,
+    )
   }
 
   // Only Admin can set isOriginal
@@ -282,13 +327,13 @@ const updateService = async (
     const existingService = await Service.findOne({
       providerId: service.providerId,
       title: payload.title,
-      _id: { $ne: id }
+      _id: { $ne: id },
     })
 
     if (existingService) {
       throw new ApiError(
         StatusCodes.CONFLICT,
-        SERVICE_CONSTANTS.MESSAGES.ALREADY_EXISTS
+        SERVICE_CONSTANTS.MESSAGES.ALREADY_EXISTS,
       )
     }
   }
@@ -319,12 +364,18 @@ const updateService = async (
 
 const deleteService = async (id: string, userId?: string) => {
   if (!Types.ObjectId.isValid(id)) {
-    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      SERVICE_CONSTANTS.MESSAGES.NOT_FOUND,
+    )
   }
   const service = await Service.findById(id)
 
   if (!service) {
-    throw new ApiError(StatusCodes.NOT_FOUND, SERVICE_CONSTANTS.MESSAGES.NOT_FOUND)
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      SERVICE_CONSTANTS.MESSAGES.NOT_FOUND,
+    )
   }
 
   // Check if already deleted
@@ -335,8 +386,14 @@ const deleteService = async (id: string, userId?: string) => {
   // Check if user is authorized (providerId or admin)
   if (userId && service.providerId.toString() !== userId) {
     const user = await User.findById(userId)
-    if (!user || !user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
-      throw new ApiError(StatusCodes.UNAUTHORIZED, SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED)
+    if (
+      !user ||
+      !user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))
+    ) {
+      throw new ApiError(
+        StatusCodes.UNAUTHORIZED,
+        SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED,
+      )
     }
   }
 
@@ -344,7 +401,7 @@ const deleteService = async (id: string, userId?: string) => {
   const result = await Service.findByIdAndUpdate(
     id,
     { status: SERVICE_STATUS.DELETED },
-    { new: true }
+    { new: true },
   )
 
   return result
@@ -353,7 +410,7 @@ const deleteService = async (id: string, userId?: string) => {
 const getServicesByProvider = async (
   providerId: string,
   filters: IServiceFilterables,
-  paginationOptions: IPaginationOptions
+  paginationOptions: IPaginationOptions,
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
@@ -406,7 +463,7 @@ const toggleServiceStatus = async (id: string, status: SERVICE_STATUS) => {
   const result = await Service.findByIdAndUpdate(
     id,
     { status },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   )
 
   return result

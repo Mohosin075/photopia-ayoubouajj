@@ -115,10 +115,17 @@ const subscriptionSchema = new Schema<ISubscription, SubscriptionModel>(
       min: 0,
       max: 100,
     },
-    fraudFlags: [{
-      type: String,
-      enum: ['multiple_trials', 'suspicious_payment', 'chargeback_history', 'high_velocity'],
-    }],
+    fraudFlags: [
+      {
+        type: String,
+        enum: [
+          'multiple_trials',
+          'suspicious_payment',
+          'chargeback_history',
+          'high_velocity',
+        ],
+      },
+    ],
   },
   {
     timestamps: true,
@@ -137,14 +144,16 @@ subscriptionSchema.index({ trialEnd: 1 })
 subscriptionSchema.index({ userId: 1, status: 1 })
 
 // Static methods
-subscriptionSchema.statics.findActiveByUserId = function(userId: string) {
+subscriptionSchema.statics.findActiveByUserId = function (userId: string) {
   return this.findOne({
     userId,
     status: { $in: ['active', 'trialing'] },
   }).populate('planId')
 }
 
-subscriptionSchema.statics.findByStripeId = function(stripeSubscriptionId: string) {
+subscriptionSchema.statics.findByStripeId = function (
+  stripeSubscriptionId: string,
+) {
   return this.findOne({ stripeSubscriptionId }).populate(['userId', 'planId'])
 }
 

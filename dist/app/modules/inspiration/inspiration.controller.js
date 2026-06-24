@@ -54,5 +54,5 @@ exports.InspirationController = {
     createInspiration,
     getAllInspirations,
     updateInspiration,
-    deleteInspiration
+    deleteInspiration,
 };

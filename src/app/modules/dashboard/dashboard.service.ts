@@ -31,7 +31,10 @@ import {
   IUserManagementStats,
 } from './dashboard.interface'
 import { Notification } from '../notification/notification.model'
-import { CreateNotificationDto, NotificationType } from '../notification/notification.interface'
+import {
+  CreateNotificationDto,
+  NotificationType,
+} from '../notification/notification.interface'
 import { NotificationServices } from '../notification/notification.service'
 
 import ExcelJS from 'exceljs'
@@ -47,21 +50,23 @@ const getUserManagementStats = async (
   if (country) filter['address.country'] = country
   if (city) filter['address.city'] = city
 
-  const [totalUsers, providers, activeThisMonth, suspended] = await Promise.all([
-    User.countDocuments(filter),
-    User.countDocuments({
-      ...filter,
-      roles: USER_ROLES.PROFESSIONAL,
-    }),
-    User.countDocuments({
-      ...filter,
-      $or: [
-        { createdAt: { $gte: firstDayOfMonth } },
-        { 'authentication.latestRequestAt': { $gte: firstDayOfMonth } },
-      ],
-    }),
-    User.countDocuments({ ...filter, status: USER_STATUS.INACTIVE }),
-  ])
+  const [totalUsers, providers, activeThisMonth, suspended] = await Promise.all(
+    [
+      User.countDocuments(filter),
+      User.countDocuments({
+        ...filter,
+        roles: USER_ROLES.PROFESSIONAL,
+      }),
+      User.countDocuments({
+        ...filter,
+        $or: [
+          { createdAt: { $gte: firstDayOfMonth } },
+          { 'authentication.latestRequestAt': { $gte: firstDayOfMonth } },
+        ],
+      }),
+      User.countDocuments({ ...filter, status: USER_STATUS.INACTIVE }),
+    ],
+  )
 
   return {
     totalUsers,
@@ -71,7 +76,9 @@ const getUserManagementStats = async (
   }
 }
 
-const getUserDetailsStats = async (userId: string): Promise<IUserDetailsStats> => {
+const getUserDetailsStats = async (
+  userId: string,
+): Promise<IUserDetailsStats> => {
   if (!Types.ObjectId.isValid(userId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid user ID')
   }
@@ -145,7 +152,8 @@ const getUserDetailsStats = async (userId: string): Promise<IUserDetailsStats> =
       email: user.email || '',
       profile: user.profile || '',
       phone: user.phone || '',
-      address: `${user.address?.city || ''}, ${user.address?.country || ''}`.trim(),
+      address:
+        `${user.address?.city || ''}, ${user.address?.country || ''}`.trim(),
       status: user.status,
       joinedDate: user.createdAt,
     },
@@ -181,30 +189,38 @@ const warnUser = async (userId: string, message: string): Promise<string> => {
   return 'Warning sent to user successfully.'
 }
 
-const getContentModerationStats = async (): Promise<IContentModerationStats> => {
-  const now = new Date()
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+const getContentModerationStats =
+  async (): Promise<IContentModerationStats> => {
+    const now = new Date()
+    const startOfDay = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    )
 
-  const [pendingReports, underReview, resolvedToday, totalReports] = await Promise.all([
-    Support.countDocuments({ status: SUPPORT_STATUS.PENDING }),
-    Support.countDocuments({ status: SUPPORT_STATUS.UNDER_REVIEW }),
-    Support.countDocuments({
-      status: SUPPORT_STATUS.SOLVED,
-      updatedAt: { $gte: startOfDay },
-    }),
-    Support.countDocuments({ status: { $ne: SUPPORT_STATUS.DELETED } }),
-  ])
+    const [pendingReports, underReview, resolvedToday, totalReports] =
+      await Promise.all([
+        Support.countDocuments({ status: SUPPORT_STATUS.PENDING }),
+        Support.countDocuments({ status: SUPPORT_STATUS.UNDER_REVIEW }),
+        Support.countDocuments({
+          status: SUPPORT_STATUS.SOLVED,
+          updatedAt: { $gte: startOfDay },
+        }),
+        Support.countDocuments({ status: { $ne: SUPPORT_STATUS.DELETED } }),
+      ])
 
-  return {
-    pendingReports,
-    underReview,
-    resolvedToday,
-    totalReports,
+    return {
+      pendingReports,
+      underReview,
+      resolvedToday,
+      totalReports,
+    }
   }
-}
 
 const getModerationReports = async (): Promise<IModerationReport[]> => {
-  const reports = await Support.find({ status: { $ne: SUPPORT_STATUS.DELETED } })
+  const reports = await Support.find({
+    status: { $ne: SUPPORT_STATUS.DELETED },
+  })
     .populate('userId', 'name fullName')
     .populate('reportedUser', 'name fullName')
     .sort({ createdAt: -1 })
@@ -218,7 +234,10 @@ const getModerationReports = async (): Promise<IModerationReport[]> => {
     status: report.status,
     reportedUser: {
       id: report.reportedUser?._id?.toString() || '',
-      name: report.reportedUser?.fullName || report.reportedUser?.name || 'Unknown User',
+      name:
+        report.reportedUser?.fullName ||
+        report.reportedUser?.name ||
+        'Unknown User',
     },
     reportedBy: {
       id: report.userId?._id?.toString() || '',
@@ -289,14 +308,18 @@ const getModerationReportDetails = async (
       status: report.status,
       reportedUser: {
         id: reportedUserId?.toString() || '',
-        name: report.reportedUser?.fullName || report.reportedUser?.name || 'Unknown',
+        name:
+          report.reportedUser?.fullName ||
+          report.reportedUser?.name ||
+          'Unknown',
       },
       reportedBy: {
         id: report.userId?._id?.toString() || '',
         name: report.userId?.fullName || report.userId?.name || 'System',
       },
       date: report.createdAt,
-      reportedContent: 'Content preview would appear here. This could be text, images, or other media that was reported.',
+      reportedContent:
+        'Content preview would appear here. This could be text, images, or other media that was reported.',
     },
     userHistory: {
       totalReports,
@@ -337,7 +360,9 @@ const handleModerationAction = async (
       report.status = SUPPORT_STATUS.UNDER_REVIEW
       break
     case 'block':
-      await User.findByIdAndUpdate(reportedUserId, { status: USER_STATUS.INACTIVE })
+      await User.findByIdAndUpdate(reportedUserId, {
+        status: USER_STATUS.INACTIVE,
+      })
       report.status = SUPPORT_STATUS.UNDER_REVIEW
       break
     case 'close':
@@ -373,7 +398,9 @@ const toggleUserStatus = async (userId: string): Promise<string> => {
   }
 
   const newStatus =
-    user.status === USER_STATUS.ACTIVE ? USER_STATUS.INACTIVE : USER_STATUS.ACTIVE
+    user.status === USER_STATUS.ACTIVE
+      ? USER_STATUS.INACTIVE
+      : USER_STATUS.ACTIVE
 
   await User.findByIdAndUpdate(userId, { status: newStatus })
 
@@ -416,7 +443,9 @@ const exportUsers = async () => {
       city: user.address?.city || 'N/A',
       country: user.address?.country || 'N/A',
       subscription: user.subscriptionStatus || 'N/A',
-      joined: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
+      joined: user.createdAt
+        ? new Date(user.createdAt).toLocaleDateString()
+        : 'N/A',
     })
   })
 
@@ -454,7 +483,10 @@ const getPaymentAndCommissionStats = async (
   if (userIds.length > 0) {
     paymentFilter.userId = { $in: userIds }
     refundFilter.userId = { $in: userIds }
-    bookingFilter.$or = [{ userId: { $in: userIds } }, { providerId: { $in: userIds } }]
+    bookingFilter.$or = [
+      { userId: { $in: userIds } },
+      { providerId: { $in: userIds } },
+    ]
     subscriptionFilter.userId = { $in: userIds }
   } else if (country || city) {
     // If location filter was provided but no users found
@@ -491,18 +523,36 @@ const getPaymentAndCommissionStats = async (
     Category.find({ isActive: true }).lean(),
   ])
 
-  const currentMonthRevenue = currentMonthPayments.reduce((acc, p) => acc + p.amount, 0)
-  const lastMonthRevenue = lastMonthPayments.reduce((acc, p) => acc + p.amount, 0)
-  const percentageChange = lastMonthRevenue === 0 ? 100 : ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
+  const currentMonthRevenue = currentMonthPayments.reduce(
+    (acc, p) => acc + p.amount,
+    0,
+  )
+  const lastMonthRevenue = lastMonthPayments.reduce(
+    (acc, p) => acc + p.amount,
+    0,
+  )
+  const percentageChange =
+    lastMonthRevenue === 0
+      ? 100
+      : ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
 
-  const totalCommission = allCompletedBookings.reduce((acc, b) => acc + (b.pricingDetails?.platformCommissionClient || 0) + (b.pricingDetails?.platformCommissionProvider || 0), 0)
+  const totalCommission = allCompletedBookings.reduce(
+    (acc, b) =>
+      acc +
+      (b.pricingDetails?.platformCommissionClient || 0) +
+      (b.pricingDetails?.platformCommissionProvider || 0),
+    0,
+  )
   const averageRate = allCompletedBookings.length === 0 ? 0 : 5 // Mocking 5% as per UI if logic not present
 
   const subscriptionRevenue = currentMonthPayments
     .filter(p => p.metadata?.type === 'subscription')
     .reduce((acc, p) => acc + p.amount, 0)
 
-  const totalRefunds = refunds.reduce((acc, p) => acc + (p.refundAmount || 0), 0)
+  const totalRefunds = refunds.reduce(
+    (acc, p) => acc + (p.refundAmount || 0),
+    0,
+  )
 
   // 2. Trends (Last 6 Months)
   const trendsMonths: string[] = []
@@ -548,13 +598,15 @@ const getPaymentAndCommissionStats = async (
       totalTransactions: transactionsTrend,
       months: trendsMonths,
     },
-    categories: categoryStats.length ? categoryStats : [
-      { category: 'Portrait & People', amount: 12000 },
-      { category: 'Events', amount: 15000 },
-      { category: 'Fashion & Beauty', amount: 8000 },
-      { category: 'Real Estate & Architecture', amount: 22000 },
-      { category: 'Product & Packshot', amount: 9000 },
-    ],
+    categories: categoryStats.length
+      ? categoryStats
+      : [
+          { category: 'Portrait & People', amount: 12000 },
+          { category: 'Events', amount: 15000 },
+          { category: 'Fashion & Beauty', amount: 8000 },
+          { category: 'Real Estate & Architecture', amount: 22000 },
+          { category: 'Product & Packshot', amount: 9000 },
+        ],
   }
 }
 
@@ -576,11 +628,18 @@ const getRecentTransactions = async (): Promise<ITransaction[]> => {
     amount: p.amount,
     commission: Math.floor(p.amount * 0.05), // Assuming 5%
     date: p.createdAt,
-    status: p.status === 'succeeded' ? 'Completed' : p.status === 'pending' ? 'Pending' : 'Failed',
+    status:
+      p.status === 'succeeded'
+        ? 'Completed'
+        : p.status === 'pending'
+          ? 'Pending'
+          : 'Failed',
   }))
 }
 
-const getTransactionDetails = async (transactionId: string): Promise<ITransactionDetails> => {
+const getTransactionDetails = async (
+  transactionId: string,
+): Promise<ITransactionDetails> => {
   if (!Types.ObjectId.isValid(transactionId)) {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Transaction ID')
   }
@@ -589,7 +648,7 @@ const getTransactionDetails = async (transactionId: string): Promise<ITransactio
     .populate('userId', 'name fullName')
     .populate({
       path: 'bookingId',
-      populate: { path: 'serviceId' }
+      populate: { path: 'serviceId' },
     })
     .lean()) as any
 
@@ -606,24 +665,44 @@ const getTransactionDetails = async (transactionId: string): Promise<ITransactio
       transactionId: `TXN-${payment._id.toString().slice(-6).toUpperCase()}`,
       user: {
         id: payment.userId?._id?.toString() || '',
-        name: payment.userId?.fullName || payment.userId?.name || 'Unknown User',
+        name:
+          payment.userId?.fullName || payment.userId?.name || 'Unknown User',
       },
-      type: payment.metadata?.type === 'subscription' ? 'Subscription' : 'Payment',
+      type:
+        payment.metadata?.type === 'subscription' ? 'Subscription' : 'Payment',
       amount: payment.amount,
       commission,
       date: payment.createdAt,
-      status: payment.status === 'succeeded' ? 'Completed' : payment.status === 'pending' ? 'Pending' : 'Failed',
+      status:
+        payment.status === 'succeeded'
+          ? 'Completed'
+          : payment.status === 'pending'
+            ? 'Pending'
+            : 'Failed',
       paymentMethod: 'Credit Card ****4242', // Mocking card details as they're not in schema
       baseAmount: payment.amount,
       providerReceives,
-      cardholderName: payment.userId?.fullName || payment.userId?.name || 'Sarah Johnson',
+      cardholderName:
+        payment.userId?.fullName || payment.userId?.name || 'Sarah Johnson',
       expiryDate: '12/2026',
       invoiceNumber: `INV-TXN-${payment._id.toString().slice(-6).toUpperCase()}`,
     },
     paymentHistory: [
-      { status: 'Payment initiated', amount: payment.amount, timestamp: payment.createdAt },
-      { status: 'Payment processing', amount: payment.amount, timestamp: payment.createdAt },
-      { status: 'Payment completed', amount: payment.amount, timestamp: payment.createdAt },
+      {
+        status: 'Payment initiated',
+        amount: payment.amount,
+        timestamp: payment.createdAt,
+      },
+      {
+        status: 'Payment processing',
+        amount: payment.amount,
+        timestamp: payment.createdAt,
+      },
+      {
+        status: 'Payment completed',
+        amount: payment.amount,
+        timestamp: payment.createdAt,
+      },
     ],
     commissionSummary: {
       platformFee: commission,
@@ -644,93 +723,116 @@ const getTransactionDetails = async (transactionId: string): Promise<ITransactio
   return details
 }
 
-const getSubscriptionManagementStats = async (): Promise<ISubscriptionStats> => {
-  const now = new Date()
-  const firstDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+const getSubscriptionManagementStats =
+  async (): Promise<ISubscriptionStats> => {
+    const now = new Date()
+    const firstDayOfCurrentMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+    )
+    const firstDayOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    )
 
-  const [
-    totalProviders,
-    lastMonthProviders,
-    currentMonthPayments,
-    lastMonthPayments,
-    activeSubscriptions,
-    allSubscriptions,
-    premiumPlan,
-  ] = await Promise.all([
-    User.countDocuments({ roles: USER_ROLES.PROFESSIONAL, status: { $ne: USER_STATUS.DELETED } }),
-    User.countDocuments({
-      roles: USER_ROLES.PROFESSIONAL,
-      status: { $ne: USER_STATUS.DELETED },
-      createdAt: { $lt: firstDayOfCurrentMonth },
-    }),
-    Payment.find({
-      status: 'succeeded',
-      createdAt: { $gte: firstDayOfCurrentMonth },
-      metadata: { $exists: true, $ne: null },
-      'metadata.type': 'subscription',
-    }).lean(),
-    Payment.find({
-      status: 'succeeded',
-      createdAt: { $gte: firstDayOfLastMonth, $lt: firstDayOfCurrentMonth },
-      metadata: { $exists: true, $ne: null },
-      'metadata.type': 'subscription',
-    }).lean(),
-    Subscription.countDocuments({ status: 'active' }),
-    Subscription.find({ status: 'active' }).populate('planId').lean(),
-    SubscriptionPlan.findOne({ isActive: true }).sort({ priority: -1 }).lean(),
-  ])
+    const [
+      totalProviders,
+      lastMonthProviders,
+      currentMonthPayments,
+      lastMonthPayments,
+      activeSubscriptions,
+      allSubscriptions,
+      premiumPlan,
+    ] = await Promise.all([
+      User.countDocuments({
+        roles: USER_ROLES.PROFESSIONAL,
+        status: { $ne: USER_STATUS.DELETED },
+      }),
+      User.countDocuments({
+        roles: USER_ROLES.PROFESSIONAL,
+        status: { $ne: USER_STATUS.DELETED },
+        createdAt: { $lt: firstDayOfCurrentMonth },
+      }),
+      Payment.find({
+        status: 'succeeded',
+        createdAt: { $gte: firstDayOfCurrentMonth },
+        metadata: { $exists: true, $ne: null },
+        'metadata.type': 'subscription',
+      }).lean(),
+      Payment.find({
+        status: 'succeeded',
+        createdAt: { $gte: firstDayOfLastMonth, $lt: firstDayOfCurrentMonth },
+        metadata: { $exists: true, $ne: null },
+        'metadata.type': 'subscription',
+      }).lean(),
+      Subscription.countDocuments({ status: 'active' }),
+      Subscription.find({ status: 'active' }).populate('planId').lean(),
+      SubscriptionPlan.findOne({ isActive: true })
+        .sort({ priority: -1 })
+        .lean(),
+    ])
 
-  const currentRevenue = currentMonthPayments.reduce((acc, p) => acc + p.amount, 0)
-  const lastRevenue = lastMonthPayments.reduce((acc, p) => acc + p.amount, 0)
-  const revenueChange = lastRevenue === 0 ? 100 : ((currentRevenue - lastRevenue) / lastRevenue) * 100
-  const providerChange = lastMonthProviders === 0 ? 100 : ((totalProviders - lastMonthProviders) / lastMonthProviders) * 100
+    const currentRevenue = currentMonthPayments.reduce(
+      (acc, p) => acc + p.amount,
+      0,
+    )
+    const lastRevenue = lastMonthPayments.reduce((acc, p) => acc + p.amount, 0)
+    const revenueChange =
+      lastRevenue === 0
+        ? 100
+        : ((currentRevenue - lastRevenue) / lastRevenue) * 100
+    const providerChange =
+      lastMonthProviders === 0
+        ? 100
+        : ((totalProviders - lastMonthProviders) / lastMonthProviders) * 100
 
-  // Trends (Mocking for UI feel as database history might not be available)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-  const premiumGrowth = [900, 1050, 1150, 1200, 1250, 1284]
-  const noSubGrowth = [150, 160, 170, 180, 185, 187]
+    // Trends (Mocking for UI feel as database history might not be available)
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+    const premiumGrowth = [900, 1050, 1150, 1200, 1250, 1284]
+    const noSubGrowth = [150, 160, 170, 180, 185, 187]
 
-  return {
-    totalProvider: {
-      count: totalProviders,
-      percentageChange: Number(providerChange.toFixed(1)),
-    },
-    monthlyRevenue: {
-      amount: currentRevenue || 39057,
-      percentageChange: Number(revenueChange.toFixed(1)),
-    },
-    premiumSubscribers: {
-      count: activeSubscriptions,
-      pricePerMonth: premiumPlan?.price || 16,
-    },
-    noSubscribers: {
-      count: totalProviders - activeSubscriptions,
-    },
-    subscriberGrowth: {
-      months,
-      premium: premiumGrowth,
-      noSubscription: noSubGrowth,
-    },
-    revenueDistribution: {
-      premium: currentRevenue || 20544,
-      noSubscription: 18513, // Residual/other
-    },
-    activePlan: {
-      name: premiumPlan?.name || 'Photopya Premium',
-      price: premiumPlan?.price || 16,
-      features: premiumPlan?.features || [
-        'Priority in search results',
-        'Extended analytics',
-        'Remove platform branding',
-        'Advanced booking tools',
-        'Priority customer support',
-      ],
-      subscribers: activeSubscriptions,
-      monthlyRevenue: currentRevenue || 20544,
-    },
+    return {
+      totalProvider: {
+        count: totalProviders,
+        percentageChange: Number(providerChange.toFixed(1)),
+      },
+      monthlyRevenue: {
+        amount: currentRevenue || 39057,
+        percentageChange: Number(revenueChange.toFixed(1)),
+      },
+      premiumSubscribers: {
+        count: activeSubscriptions,
+        pricePerMonth: premiumPlan?.price || 16,
+      },
+      noSubscribers: {
+        count: totalProviders - activeSubscriptions,
+      },
+      subscriberGrowth: {
+        months,
+        premium: premiumGrowth,
+        noSubscription: noSubGrowth,
+      },
+      revenueDistribution: {
+        premium: currentRevenue || 20544,
+        noSubscription: 18513, // Residual/other
+      },
+      activePlan: {
+        name: premiumPlan?.name || 'Photopya Premium',
+        price: premiumPlan?.price || 16,
+        features: premiumPlan?.features || [
+          'Priority in search results',
+          'Extended analytics',
+          'Remove platform branding',
+          'Advanced booking tools',
+          'Priority customer support',
+        ],
+        subscribers: activeSubscriptions,
+        monthlyRevenue: currentRevenue || 20544,
+      },
+    }
   }
-}
 
 const getSubscriberList = async (): Promise<ISubscriber[]> => {
   const subscriptions = await Subscription.find({ status: 'active' })
@@ -749,7 +851,9 @@ const getSubscriberList = async (): Promise<ISubscriber[]> => {
   }).lean()
 
   return subscriptions.map((s: any) => {
-    const userPayments = payments.filter(p => p.userId.toString() === s.userId?._id?.toString())
+    const userPayments = payments.filter(
+      p => p.userId.toString() === s.userId?._id?.toString(),
+    )
     const totalRevenue = userPayments.reduce((acc, p) => acc + p.amount, 0)
 
     return {
@@ -766,241 +870,379 @@ const getSubscriberList = async (): Promise<ISubscriber[]> => {
   })
 }
 
-const getAdvancedAnalyticsStats = async (): Promise<IAdvancedAnalyticsStats> => {
-  const now = new Date()
-  const firstDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+const getAdvancedAnalyticsStats =
+  async (): Promise<IAdvancedAnalyticsStats> => {
+    const now = new Date()
+    const firstDayOfCurrentMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      1,
+    )
+    const firstDayOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    )
 
-  // 1. Summary Stats (Aggregation)
-  const [
-    currentMonthStats,
-    lastMonthStats,
-    allStats,
-    statusDistribution,
-    serviceBreakdown,
-    topProviders,
-  ] = await Promise.all([
-    Booking.aggregate([
-      { $match: { createdAt: { $gte: firstDayOfCurrentMonth } } },
-      {
-        $group: {
-          _id: null,
-          totalBookings: { $sum: 1 },
-          grossRevenue: { $sum: '$pricingDetails.clientTotal' },
-          netRevenue: { $sum: '$pricingDetails.providerEarnings' },
+    // 1. Summary Stats (Aggregation)
+    const [
+      currentMonthStats,
+      lastMonthStats,
+      allStats,
+      statusDistribution,
+      serviceBreakdown,
+      topProviders,
+    ] = await Promise.all([
+      Booking.aggregate([
+        { $match: { createdAt: { $gte: firstDayOfCurrentMonth } } },
+        {
+          $group: {
+            _id: null,
+            totalBookings: { $sum: 1 },
+            grossRevenue: { $sum: '$pricingDetails.clientTotal' },
+            netRevenue: { $sum: '$pricingDetails.providerEarnings' },
+          },
         },
-      },
-    ]),
-    Booking.aggregate([
-      { $match: { createdAt: { $gte: firstDayOfLastMonth, $lt: firstDayOfCurrentMonth } } },
-      {
-        $group: {
-          _id: null,
-          totalBookings: { $sum: 1 },
-          grossRevenue: { $sum: '$pricingDetails.clientTotal' },
-          netRevenue: { $sum: '$pricingDetails.providerEarnings' },
+      ]),
+      Booking.aggregate([
+        {
+          $match: {
+            createdAt: {
+              $gte: firstDayOfLastMonth,
+              $lt: firstDayOfCurrentMonth,
+            },
+          },
         },
-      },
-    ]),
-    Booking.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalBookings: { $sum: 1 },
-          grossRevenue: { $sum: '$pricingDetails.clientTotal' },
-          netRevenue: { $sum: '$pricingDetails.providerEarnings' },
+        {
+          $group: {
+            _id: null,
+            totalBookings: { $sum: 1 },
+            grossRevenue: { $sum: '$pricingDetails.clientTotal' },
+            netRevenue: { $sum: '$pricingDetails.providerEarnings' },
+          },
         },
-      },
-    ]),
-    Booking.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } },
-    ]),
-    Booking.aggregate([
-      {
-        $lookup: {
-          from: 'services',
-          localField: 'serviceId',
-          foreignField: '_id',
-          as: 'service',
+      ]),
+      Booking.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalBookings: { $sum: 1 },
+            grossRevenue: { $sum: '$pricingDetails.clientTotal' },
+            netRevenue: { $sum: '$pricingDetails.providerEarnings' },
+          },
         },
-      },
-      { $unwind: '$service' },
-      {
-        $lookup: {
-          from: 'categories',
-          localField: 'service.category',
-          foreignField: '_id',
-          as: 'category',
+      ]),
+      Booking.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
+      Booking.aggregate([
+        {
+          $lookup: {
+            from: 'services',
+            localField: 'serviceId',
+            foreignField: '_id',
+            as: 'service',
+          },
         },
-      },
-      { $unwind: '$category' },
-      {
-        $group: {
-          _id: '$category.name',
-          bookings: { $sum: 1 },
-          grossRevenue: { $sum: '$pricingDetails.clientTotal' },
-          netRevenue: { $sum: '$pricingDetails.providerEarnings' },
-          avgPrice: { $avg: '$pricingDetails.clientTotal' },
+        { $unwind: '$service' },
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'service.category',
+            foreignField: '_id',
+            as: 'category',
+          },
         },
-      },
-    ]),
-    Booking.aggregate([
-      { $match: { status: 'completed' } },
-      {
-        $group: {
-          _id: '$providerId',
-          bookings: { $sum: 1 },
-          revenue: { $sum: '$pricingDetails.providerEarnings' },
-          rating: { $avg: '$review.rating' },
+        { $unwind: '$category' },
+        {
+          $group: {
+            _id: '$category.name',
+            bookings: { $sum: 1 },
+            grossRevenue: { $sum: '$pricingDetails.clientTotal' },
+            netRevenue: { $sum: '$pricingDetails.providerEarnings' },
+            avgPrice: { $avg: '$pricingDetails.clientTotal' },
+          },
         },
-      },
-      { $sort: { revenue: -1 } },
-      { $limit: 10 },
-      {
-        $lookup: {
-          from: 'users',
-          localField: '_id',
-          foreignField: '_id',
-          as: 'user',
+      ]),
+      Booking.aggregate([
+        { $match: { status: 'completed' } },
+        {
+          $group: {
+            _id: '$providerId',
+            bookings: { $sum: 1 },
+            revenue: { $sum: '$pricingDetails.providerEarnings' },
+            rating: { $avg: '$review.rating' },
+          },
         },
-      },
-      { $unwind: '$user' },
-    ]),
-  ])
+        { $sort: { revenue: -1 } },
+        { $limit: 10 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'user',
+          },
+        },
+        { $unwind: '$user' },
+      ]),
+    ])
 
-  const cur = currentMonthStats[0] || { totalBookings: 0, grossRevenue: 0, netRevenue: 0 }
-  const prev = lastMonthStats[0] || { totalBookings: 0, grossRevenue: 0, netRevenue: 0 }
+    const cur = currentMonthStats[0] || {
+      totalBookings: 0,
+      grossRevenue: 0,
+      netRevenue: 0,
+    }
+    const prev = lastMonthStats[0] || {
+      totalBookings: 0,
+      grossRevenue: 0,
+      netRevenue: 0,
+    }
 
-  const calculateChange = (current: number, previous: number) => {
-    if (previous === 0) return current > 0 ? 100 : 0
-    return Number(((current - previous) / previous * 100).toFixed(1))
+    const calculateChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? 100 : 0
+      return Number((((current - previous) / previous) * 100).toFixed(1))
+    }
+
+    const totalBookings = allStats[0]?.totalBookings || 0
+    const completedBookings =
+      statusDistribution.find(s => s._id === 'completed')?.count || 0
+    const conversionRate =
+      totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0
+
+    // 2. Revenue Trends (Last 6 Months)
+    const trendMonths: string[] = []
+    const trendData: Record<string, number[]> = {}
+    const activeCategories = await Category.find({
+      type: 'category',
+      isActive: true,
+    })
+      .limit(4)
+      .lean()
+    const catNames = activeCategories.length
+      ? activeCategories.map(c => c.name)
+      : [
+          'Real Estate & Architecture',
+          'Events',
+          'Portrait & People',
+          'Fashion & Beauty',
+        ]
+
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      trendMonths.push(d.toLocaleString('default', { month: 'short' }))
+    }
+
+    // Mocking trend data for visual parity with UI requirement
+    catNames.forEach(name => {
+      trendData[name] = trendMonths.map(
+        () => Math.floor(Math.random() * 50000) + 20000,
+      )
+    })
+
+    // 3. Conversion Trend Data (Mocked based on UI requirements)
+    const conversionBookings = [4500, 5200, 5800, 6100, 6800, 7200]
+    const conversionRates = [10.5, 11.2, 11.8, 12.4, 12.8, 13.0]
+    const profileViews = [12000, 13500, 14200, 16000, 18200, 18500]
+
+    return {
+      summary: {
+        totalBookings: {
+          count: cur.totalBookings || 1623,
+          percentageChange:
+            calculateChange(cur.totalBookings, prev.totalBookings) || 18.2,
+        },
+        grossRevenue: {
+          amount: cur.grossRevenue || 343140,
+          percentageChange:
+            calculateChange(cur.grossRevenue, prev.grossRevenue) || 12.5,
+        },
+        netRevenue: {
+          amount: cur.netRevenue || 328283,
+          percentageChange:
+            calculateChange(cur.grossRevenue, prev.grossRevenue) || 14.8, // Using gross as proxy if net is 0
+          commission: cur.grossRevenue - cur.netRevenue || 14857,
+        },
+        conversionRate: {
+          rate: Number(conversionRate.toFixed(1)) || 13.0,
+          percentageChange: 2.3,
+        },
+      },
+      breakdownByService: serviceBreakdown.length
+        ? serviceBreakdown.map(item => ({
+            category: item._id,
+            bookings: item.bookings,
+            avgPrice: Math.round(item.avgPrice),
+            grossRevenue: item.grossRevenue,
+            commission: item.grossRevenue - item.netRevenue,
+            netRevenue: item.netRevenue,
+          }))
+        : [
+            {
+              category: 'Events',
+              bookings: 234,
+              avgPrice: 250,
+              grossRevenue: 58500,
+              commission: 2925,
+              netRevenue: 55575,
+            },
+            {
+              category: 'Portrait & People',
+              bookings: 456,
+              avgPrice: 100,
+              grossRevenue: 45600,
+              commission: 2280,
+              netRevenue: 43320,
+            },
+            {
+              category: 'Fashion & Beauty',
+              bookings: 189,
+              avgPrice: 380,
+              grossRevenue: 71820,
+              commission: 3591,
+              netRevenue: 68229,
+            },
+            {
+              category: 'Real Estate & Architecture',
+              bookings: 145,
+              avgPrice: 600,
+              grossRevenue: 87000,
+              commission: 2610,
+              netRevenue: 84390,
+            },
+            {
+              category: 'Product & Packshot',
+              bookings: 321,
+              avgPrice: 120,
+              grossRevenue: 38520,
+              commission: 1666,
+              netRevenue: 36854,
+            },
+            {
+              category: 'Drone & Aerial',
+              bookings: 278,
+              avgPrice: 150,
+              grossRevenue: 41700,
+              commission: 1785,
+              netRevenue: 39915,
+            },
+          ],
+      revenueTrends: {
+        months: trendMonths,
+        categories: catNames.map(name => ({
+          name,
+          data: trendData[name],
+        })),
+      },
+      bookingStatusDistribution: statusDistribution.length
+        ? statusDistribution.map(s => ({
+            status: s._id.charAt(0).toUpperCase() + s._id.slice(1),
+            count: s.count,
+            percentage: Math.round((s.count / (totalBookings || 1)) * 100),
+          }))
+        : [
+            { status: 'Pending', count: 245, percentage: 4 },
+            { status: 'Confirmed', count: 1623, percentage: 29 },
+            { status: 'Cancelled', count: 187, percentage: 3 },
+            { status: 'Completed', count: 3456, percentage: 63 },
+          ],
+      profileToBookingConversion: {
+        months: trendMonths,
+        bookings: conversionBookings,
+        conversionRate: conversionRates,
+        profileViews: profileViews,
+        totalProfileViews: 18500,
+        totalBookings: 2405,
+        averageConversionRate: 13,
+      },
+      topPerformingProviders: topProviders.length
+        ? topProviders.map((p, index) => ({
+            rank: index + 1,
+            name: p.user.fullName || p.user.name || 'Unknown Provider',
+            bookings: p.bookings,
+            rating: Number(p.rating?.toFixed(1)) || 4.8,
+            revenue: p.revenue,
+            country: p.user.address?.country || 'Germany',
+          }))
+        : [
+            {
+              rank: 1,
+              name: 'Sarah Johnson',
+              bookings: 47,
+              rating: 4.9,
+              revenue: 12450,
+              country: 'Germany',
+            },
+            {
+              rank: 2,
+              name: 'Michael Chen',
+              bookings: 42,
+              rating: 4.8,
+              revenue: 11800,
+              country: 'France',
+            },
+            {
+              rank: 3,
+              name: 'Emma Wilson',
+              bookings: 38,
+              rating: 4.9,
+              revenue: 10540,
+              country: 'UK',
+            },
+            {
+              rank: 4,
+              name: 'James Rodriguez',
+              bookings: 35,
+              rating: 4.7,
+              revenue: 9870,
+              country: 'Spain',
+            },
+            {
+              rank: 5,
+              name: 'Lisa Anderson',
+              bookings: 32,
+              rating: 4.8,
+              revenue: 8920,
+              country: 'Italy',
+            },
+          ],
+      highestGrowthServices: serviceBreakdown.length
+        ? serviceBreakdown.slice(0, 5).map(item => ({
+            name: item._id,
+            bookings: item.bookings,
+            growthPercentage: Math.floor(Math.random() * 20) + 10,
+          }))
+        : [
+            {
+              name: 'Real Estate & Architecture',
+              bookings: 145,
+              growthPercentage: 28.5,
+            },
+            { name: 'Events', bookings: 189, growthPercentage: 22.3 },
+            {
+              name: 'Portrait & People',
+              bookings: 234,
+              growthPercentage: 18.7,
+            },
+            { name: 'Fashion & Beauty', bookings: 456, growthPercentage: 15.2 },
+            {
+              name: 'Product & Packshot',
+              bookings: 321,
+              growthPercentage: 12.8,
+            },
+          ],
+      acquisitionByChannel: [
+        { channel: 'Social Media', users: 456, cac: 12.5 },
+        { channel: 'SEO/Organic', users: 892, cac: 4.2 },
+        { channel: 'Partnerships', users: 234, cac: 18.3 },
+        { channel: 'Paid Ads', users: 378, cac: 22.8 },
+        { channel: 'Referrals', users: 567, cac: 6.7 },
+      ],
+      retentionEngagement: {
+        intervals: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'D+30', 'D+90'],
+        retentionRate: [92, 80, 75, 70, 65, 58],
+        usageFrequency: [8, 6, 4, 3, 2, 1],
+      },
+    }
   }
-
-  const totalBookings = allStats[0]?.totalBookings || 0
-  const completedBookings = statusDistribution.find(s => s._id === 'completed')?.count || 0
-  const conversionRate = totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0
-
-  // 2. Revenue Trends (Last 6 Months)
-  const trendMonths: string[] = []
-  const trendData: Record<string, number[]> = {}
-  const activeCategories = await Category.find({ type: 'category', isActive: true }).limit(4).lean()
-  const catNames = activeCategories.length ? activeCategories.map(c => c.name) : ['Real Estate & Architecture', 'Events', 'Portrait & People', 'Fashion & Beauty']
-
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    trendMonths.push(d.toLocaleString('default', { month: 'short' }))
-  }
-
-  // Mocking trend data for visual parity with UI requirement
-  catNames.forEach(name => {
-    trendData[name] = trendMonths.map(() => Math.floor(Math.random() * 50000) + 20000)
-  })
-
-  // 3. Conversion Trend Data (Mocked based on UI requirements)
-  const conversionBookings = [4500, 5200, 5800, 6100, 6800, 7200]
-  const conversionRates = [10.5, 11.2, 11.8, 12.4, 12.8, 13.0]
-  const profileViews = [12000, 13500, 14200, 16000, 18200, 18500]
-
-  return {
-    summary: {
-      totalBookings: {
-        count: cur.totalBookings || 1623,
-        percentageChange: calculateChange(cur.totalBookings, prev.totalBookings) || 18.2,
-      },
-      grossRevenue: {
-        amount: cur.grossRevenue || 343140,
-        percentageChange: calculateChange(cur.grossRevenue, prev.grossRevenue) || 12.5,
-      },
-      netRevenue: {
-        amount: cur.netRevenue || 328283,
-        percentageChange: calculateChange(cur.grossRevenue, prev.grossRevenue) || 14.8, // Using gross as proxy if net is 0
-        commission: (cur.grossRevenue - cur.netRevenue) || 14857,
-      },
-      conversionRate: {
-        rate: Number(conversionRate.toFixed(1)) || 13.0,
-        percentageChange: 2.3,
-      },
-    },
-    breakdownByService: serviceBreakdown.length ? serviceBreakdown.map(item => ({
-      category: item._id,
-      bookings: item.bookings,
-      avgPrice: Math.round(item.avgPrice),
-      grossRevenue: item.grossRevenue,
-      commission: item.grossRevenue - item.netRevenue,
-      netRevenue: item.netRevenue,
-    })) : [
-      { category: 'Events', bookings: 234, avgPrice: 250, grossRevenue: 58500, commission: 2925, netRevenue: 55575 },
-      { category: 'Portrait & People', bookings: 456, avgPrice: 100, grossRevenue: 45600, commission: 2280, netRevenue: 43320 },
-      { category: 'Fashion & Beauty', bookings: 189, avgPrice: 380, grossRevenue: 71820, commission: 3591, netRevenue: 68229 },
-      { category: 'Real Estate & Architecture', bookings: 145, avgPrice: 600, grossRevenue: 87000, commission: 2610, netRevenue: 84390 },
-      { category: 'Product & Packshot', bookings: 321, avgPrice: 120, grossRevenue: 38520, commission: 1666, netRevenue: 36854 },
-      { category: 'Drone & Aerial', bookings: 278, avgPrice: 150, grossRevenue: 41700, commission: 1785, netRevenue: 39915 },
-    ],
-    revenueTrends: {
-      months: trendMonths,
-      categories: catNames.map(name => ({
-        name,
-        data: trendData[name],
-      })),
-    },
-    bookingStatusDistribution: statusDistribution.length ? statusDistribution.map(s => ({
-      status: s._id.charAt(0).toUpperCase() + s._id.slice(1),
-      count: s.count,
-      percentage: Math.round((s.count / (totalBookings || 1)) * 100),
-    })) : [
-      { status: 'Pending', count: 245, percentage: 4 },
-      { status: 'Confirmed', count: 1623, percentage: 29 },
-      { status: 'Cancelled', count: 187, percentage: 3 },
-      { status: 'Completed', count: 3456, percentage: 63 },
-    ],
-    profileToBookingConversion: {
-      months: trendMonths,
-      bookings: conversionBookings,
-      conversionRate: conversionRates,
-      profileViews: profileViews,
-      totalProfileViews: 18500,
-      totalBookings: 2405,
-      averageConversionRate: 13,
-    },
-    topPerformingProviders: topProviders.length ? topProviders.map((p, index) => ({
-      rank: index + 1,
-      name: p.user.fullName || p.user.name || 'Unknown Provider',
-      bookings: p.bookings,
-      rating: Number(p.rating?.toFixed(1)) || 4.8,
-      revenue: p.revenue,
-      country: p.user.address?.country || 'Germany',
-    })) : [
-      { rank: 1, name: 'Sarah Johnson', bookings: 47, rating: 4.9, revenue: 12450, country: 'Germany' },
-      { rank: 2, name: 'Michael Chen', bookings: 42, rating: 4.8, revenue: 11800, country: 'France' },
-      { rank: 3, name: 'Emma Wilson', bookings: 38, rating: 4.9, revenue: 10540, country: 'UK' },
-      { rank: 4, name: 'James Rodriguez', bookings: 35, rating: 4.7, revenue: 9870, country: 'Spain' },
-      { rank: 5, name: 'Lisa Anderson', bookings: 32, rating: 4.8, revenue: 8920, country: 'Italy' },
-    ],
-    highestGrowthServices: serviceBreakdown.length ? serviceBreakdown.slice(0, 5).map(item => ({
-      name: item._id,
-      bookings: item.bookings,
-      growthPercentage: Math.floor(Math.random() * 20) + 10,
-    })) : [
-      { name: 'Real Estate & Architecture', bookings: 145, growthPercentage: 28.5 },
-      { name: 'Events', bookings: 189, growthPercentage: 22.3 },
-      { name: 'Portrait & People', bookings: 234, growthPercentage: 18.7 },
-      { name: 'Fashion & Beauty', bookings: 456, growthPercentage: 15.2 },
-      { name: 'Product & Packshot', bookings: 321, growthPercentage: 12.8 },
-    ],
-    acquisitionByChannel: [
-      { channel: 'Social Media', users: 456, cac: 12.5 },
-      { channel: 'SEO/Organic', users: 892, cac: 4.2 },
-      { channel: 'Partnerships', users: 234, cac: 18.3 },
-      { channel: 'Paid Ads', users: 378, cac: 22.8 },
-      { channel: 'Referrals', users: 567, cac: 6.7 },
-    ],
-    retentionEngagement: {
-      intervals: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'D+30', 'D+90'],
-      retentionRate: [92, 80, 75, 70, 65, 58],
-      usageFrequency: [8, 6, 4, 3, 2, 1],
-    },
-  }
-}
 
 const exportPayments = async () => {
   const payments = await Payment.find({})
@@ -1033,7 +1275,9 @@ const exportPayments = async () => {
       method: payment.paymentMethod || 'Stripe',
       transactionId: payment.paymentIntentId || 'N/A',
       status: payment.status,
-      date: payment.createdAt ? new Date(payment.createdAt).toLocaleString() : 'N/A',
+      date: payment.createdAt
+        ? new Date(payment.createdAt).toLocaleString()
+        : 'N/A',
     })
   })
 
@@ -1049,7 +1293,9 @@ const getLocationList = async () => {
     .select('address.country address.city')
     .lean()
 
-  const countries = [...new Set(users.map(u => u.address?.country).filter(Boolean))]
+  const countries = [
+    ...new Set(users.map(u => u.address?.country).filter(Boolean)),
+  ]
   const cities = [...new Set(users.map(u => u.address?.city).filter(Boolean))]
 
   return { countries, cities }
@@ -1129,7 +1375,7 @@ const getDetailedStats = async (
   // Calculate percentage changes
   const calculateChange = (current: number, prev: number) => {
     if (prev === 0) return current > 0 ? 100 : 0
-    return Number(((current - prev) / prev * 100).toFixed(1))
+    return Number((((current - prev) / prev) * 100).toFixed(1))
   }
 
   // 3. GMV Trending (Last 6 Months)
@@ -1144,7 +1390,20 @@ const getDetailedStats = async (
     { $sort: { '_id.year': 1, '_id.month': 1 } },
   ])
 
-  const monthsMap = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const monthsMap = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ]
   const gmvTrending = gmvTrendingAgg.map(item => ({
     month: monthsMap[item._id.month - 1],
     amount: item.amount,
@@ -1156,7 +1415,9 @@ const getDetailedStats = async (
     {
       $group: {
         _id: { month: { $month: '$createdAt' }, year: { $year: '$createdAt' } },
-        providerCommission: { $sum: '$pricingDetails.platformCommissionProvider' },
+        providerCommission: {
+          $sum: '$pricingDetails.platformCommissionProvider',
+        },
         userCommission: { $sum: '$pricingDetails.platformCommissionClient' },
       },
     },
@@ -1214,41 +1475,68 @@ const getDetailedStats = async (
   // 7. Marketplace Health
   const [allBookingsCount, confirmedBookingsCount] = await Promise.all([
     Booking.countDocuments(bookingFilter),
-    Booking.countDocuments({ ...bookingFilter, status: { $in: ['confirmed', 'completed'] } }),
+    Booking.countDocuments({
+      ...bookingFilter,
+      status: { $in: ['confirmed', 'completed'] },
+    }),
   ])
 
-  const matchRate = allBookingsCount > 0 ? (confirmedBookingsCount / allBookingsCount * 100) : 0
-  const completionRate = allBookingsCount > 0 ? (totalBookingsCount / allBookingsCount * 100) : 0
-  const avgProjectValue = totalBookingsCount > 0 ? (totalGMV / totalBookingsCount) : 0
+  const matchRate =
+    allBookingsCount > 0 ? (confirmedBookingsCount / allBookingsCount) * 100 : 0
+  const completionRate =
+    allBookingsCount > 0 ? (totalBookingsCount / allBookingsCount) * 100 : 0
+  const avgProjectValue =
+    totalBookingsCount > 0 ? totalGMV / totalBookingsCount : 0
 
   return {
     mainMetrics: {
-      gmv: { amount: totalGMV, change: calculateChange(totalGMV, prevMonthGMV) },
-      newBookings: { count: totalBookingsCount, change: calculateChange(totalBookingsCount, prevMonthBookingsCount) },
-      netRevenue: { 
-        amount: netRevenueTrending.reduce((acc, r) => acc + r.providerCommission + r.userCommission, 0), 
-        change: 18.2 
+      gmv: {
+        amount: totalGMV,
+        change: calculateChange(totalGMV, prevMonthGMV),
+      },
+      newBookings: {
+        count: totalBookingsCount,
+        change: calculateChange(totalBookingsCount, prevMonthBookingsCount),
+      },
+      netRevenue: {
+        amount: netRevenueTrending.reduce(
+          (acc, r) => acc + r.providerCommission + r.userCommission,
+          0,
+        ),
+        change: 18.2,
       },
       conversionRate: { rate: Number(matchRate.toFixed(1)), change: 0.4 },
       activeCreators: { count: totalCreators, change: 23.1 },
       activeCustomers: { count: totalCustomers, change: 19.5 },
-      supportTickets: { count: supportTickets, change: calculateChange(supportTickets, prevSupportTickets) },
+      supportTickets: {
+        count: supportTickets,
+        change: calculateChange(supportTickets, prevSupportTickets),
+      },
       avgResponseTime: { hours: 2.3, change: -15.2 },
     },
     gmvTrending,
     netRevenueTrending,
-    geographicPerformance: geoPerformance.length ? geoPerformance : [
-      { city: 'Paris', bookings: 0, revenue: 0, growth: 0 }
-    ],
+    geographicPerformance: geoPerformance.length
+      ? geoPerformance
+      : [{ city: 'Paris', bookings: 0, revenue: 0, growth: 0 }],
     marketplaceHealth: {
       creatorCustomerRatio: `1:${(totalCustomers / (totalCreators || 1)).toFixed(1)}`,
       matchRate: Number(matchRate.toFixed(1)),
       avgProjectValue: Math.round(avgProjectValue),
       completionRate: Number(completionRate.toFixed(1)),
     },
-    countryRanking: countryRanking.length ? countryRanking : [
-      { country: 'N/A', revenue: 0, growth: 0, rankCurrent: 1, rankPrev1: 1, rankPrev2: 1 }
-    ],
+    countryRanking: countryRanking.length
+      ? countryRanking
+      : [
+          {
+            country: 'N/A',
+            revenue: 0,
+            growth: 0,
+            rankCurrent: 1,
+            rankPrev1: 1,
+            rankPrev2: 1,
+          },
+        ],
     acquisitionByChannel: [
       { channel: 'Social Media', users: 456, cac: 12.5 },
       { channel: 'SEO/Organic', users: 892, cac: 4.2 },
@@ -1265,7 +1553,12 @@ const getDetailedStats = async (
 }
 
 const getCategoryStats = async (): Promise<ICategoryStats> => {
-  const [totalCategories, totalSubCategories, themeAggregation, popularCategoriesData] = await Promise.all([
+  const [
+    totalCategories,
+    totalSubCategories,
+    themeAggregation,
+    popularCategoriesData,
+  ] = await Promise.all([
     Category.countDocuments({ type: 'category' }),
     Category.countDocuments({ type: 'subcategory' }),
     Category.aggregate([

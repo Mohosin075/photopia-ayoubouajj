@@ -10,7 +10,6 @@ import { SUPPORT_STATUS } from '../../../enum/support'
 import { User } from '../user/user.model'
 import { USER_ROLES, USER_STATUS } from '../../../enum/user'
 
-
 const createSupport = async (
   user: JwtPayload,
   payload: ISupport,
@@ -36,7 +35,6 @@ const createSupport = async (
       role: USER_ROLES.SUPER_ADMIN,
       status: USER_STATUS.ACTIVE,
     }).select('_id email')
-
 
     return result
   } catch (error: any) {

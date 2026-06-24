@@ -10,7 +10,7 @@ import { JwtPayload } from 'jsonwebtoken'
 // Get available subscription plans
 const getAvailablePlans = catchAsync(async (req: Request, res: Response) => {
   const { userType } = req.query
-  
+
   const plans = await subscriptionService.getAvailablePlans(userType as string)
 
   sendResponse(res, {
@@ -24,7 +24,7 @@ const getAvailablePlans = catchAsync(async (req: Request, res: Response) => {
 // Get specific plan by ID
 const getPlanById = catchAsync(async (req: Request, res: Response) => {
   const { planId } = req.params
-  
+
   const plan = await subscriptionService.getPlanById(planId)
 
   sendResponse(res, {
@@ -36,25 +36,27 @@ const getPlanById = catchAsync(async (req: Request, res: Response) => {
 })
 
 // Check trial eligibility
-const checkTrialEligibility = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as JwtPayload
-  const userId = req.params.userId || user.authId?.toString()
-  
-  const trialInfo = await subscriptionService.checkTrialEligibility(userId!)
+const checkTrialEligibility = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as JwtPayload
+    const userId = req.params.userId || user.authId?.toString()
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Trial eligibility checked successfully',
-    data: trialInfo,
-  })
-})
+    const trialInfo = await subscriptionService.checkTrialEligibility(userId!)
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Trial eligibility checked successfully',
+      data: trialInfo,
+    })
+  },
+)
 
 // Create subscription
 const createSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
-  
+
   const result = await subscriptionService.createSubscription(userId, req.body)
 
   sendResponse(res, {
@@ -69,13 +71,15 @@ const createSubscription = catchAsync(async (req: Request, res: Response) => {
 const getUserSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
-  
+
   const subscription = await subscriptionService.getUserSubscription(userId)
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: subscription ? 'Subscription retrieved successfully' : 'No active subscription found',
+    message: subscription
+      ? 'Subscription retrieved successfully'
+      : 'No active subscription found',
     data: subscription || {},
   })
 })
@@ -85,8 +89,12 @@ const updateSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
   const { subscriptionId } = req.params
-  
-  const subscription = await subscriptionService.updateSubscription(userId, subscriptionId, req.body)
+
+  const subscription = await subscriptionService.updateSubscription(
+    userId,
+    subscriptionId,
+    req.body,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -102,8 +110,12 @@ const cancelSubscription = catchAsync(async (req: Request, res: Response) => {
   const userId = user.authId!.toString()
   const { subscriptionId } = req.params
   const { cancelAtPeriodEnd = true } = req.body
-  
-  const subscription = await subscriptionService.cancelSubscription(userId, subscriptionId, cancelAtPeriodEnd)
+
+  const subscription = await subscriptionService.cancelSubscription(
+    userId,
+    subscriptionId,
+    cancelAtPeriodEnd,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -114,42 +126,51 @@ const cancelSubscription = catchAsync(async (req: Request, res: Response) => {
 })
 
 // Get subscription status
-const getSubscriptionStatus = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as JwtPayload
-  const userId = user.authId!.toString()
-  
-  const status = await subscriptionService.getSubscriptionStatus(userId)
+const getSubscriptionStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as JwtPayload
+    const userId = user.authId!.toString()
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Subscription status retrieved successfully',
-    data: status,
-  })
-})
+    const status = await subscriptionService.getSubscriptionStatus(userId)
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Subscription status retrieved successfully',
+      data: status,
+    })
+  },
+)
 
 // Create checkout session
-const createCheckoutSession = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as JwtPayload
-  const userId = user.authId!.toString()
-  const { planId, successUrl, cancelUrl } = req.body
-  
-  const session = await subscriptionService.createCheckoutSession(userId, planId, successUrl, cancelUrl)
+const createCheckoutSession = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as JwtPayload
+    const userId = user.authId!.toString()
+    const { planId, successUrl, cancelUrl } = req.body
 
-  sendResponse(res, {
-    statusCode: StatusCodes.CREATED,
-    success: true,
-    message: 'Checkout session created successfully',
-    data: session,
-  })
-})
+    const session = await subscriptionService.createCheckoutSession(
+      userId,
+      planId,
+      successUrl,
+      cancelUrl,
+    )
+
+    sendResponse(res, {
+      statusCode: StatusCodes.CREATED,
+      success: true,
+      message: 'Checkout session created successfully',
+      data: session,
+    })
+  },
+)
 
 // Handle Stripe webhooks
 const handleWebhook = catchAsync(async (req: Request, res: Response) => {
   const signature = req.headers['stripe-signature'] as string
   const payload = req.body
 
-  console.log({payload})
+  console.log({ payload })
 
   // Verify webhook signature and construct event
   const event = webhookService.verifyWebhookSignature(payload, signature)
@@ -162,35 +183,42 @@ const handleWebhook = catchAsync(async (req: Request, res: Response) => {
 })
 
 // Admin: Create subscription plan
-const createSubscriptionPlan = catchAsync(async (req: Request, res: Response) => {
-  const plan = await subscriptionService.createSubscriptionPlan(req.body)
+const createSubscriptionPlan = catchAsync(
+  async (req: Request, res: Response) => {
+    const plan = await subscriptionService.createSubscriptionPlan(req.body)
 
-  sendResponse(res, {
-    statusCode: StatusCodes.CREATED,
-    success: true,
-    message: 'Subscription plan created successfully',
-    data: plan,
-  })
-})
+    sendResponse(res, {
+      statusCode: StatusCodes.CREATED,
+      success: true,
+      message: 'Subscription plan created successfully',
+      data: plan,
+    })
+  },
+)
 
 // Admin: Update subscription plan
-const updateSubscriptionPlan = catchAsync(async (req: Request, res: Response) => {
-  const { planId } = req.params
-  
-  const plan = await subscriptionService.updateSubscriptionPlan(planId, req.body)
+const updateSubscriptionPlan = catchAsync(
+  async (req: Request, res: Response) => {
+    const { planId } = req.params
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Subscription plan updated successfully',
-    data: plan,
-  })
-})
+    const plan = await subscriptionService.updateSubscriptionPlan(
+      planId,
+      req.body,
+    )
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Subscription plan updated successfully',
+      data: plan,
+    })
+  },
+)
 
 // Admin: Get all plans (including inactive)
 const getAllPlans = catchAsync(async (req: Request, res: Response) => {
   const { userType } = req.query
-  
+
   // For admin, get all plans including inactive ones
   const plans = await subscriptionService.getAvailablePlans(userType as string)
 
@@ -216,45 +244,53 @@ const getAllSubscriptions = catchAsync(async (req: Request, res: Response) => {
 })
 
 // Admin: Get subscription analytics
-const getSubscriptionAnalytics = catchAsync(async (req: Request, res: Response) => {
-  const { startDate, endDate, planId, status } = req.query
-  
-  const filters: any = {}
-  if (startDate) filters.startDate = new Date(startDate as string)
-  if (endDate) filters.endDate = new Date(endDate as string)
-  if (planId) filters.planId = planId as string
-  if (status) filters.status = status as string
-  
-  const analytics = await subscriptionService.getSubscriptionAnalytics(filters)
+const getSubscriptionAnalytics = catchAsync(
+  async (req: Request, res: Response) => {
+    const { startDate, endDate, planId, status } = req.query
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Subscription analytics retrieved successfully',
-    data: analytics,
-  })
-})
+    const filters: any = {}
+    if (startDate) filters.startDate = new Date(startDate as string)
+    if (endDate) filters.endDate = new Date(endDate as string)
+    if (planId) filters.planId = planId as string
+    if (status) filters.status = status as string
+
+    const analytics =
+      await subscriptionService.getSubscriptionAnalytics(filters)
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Subscription analytics retrieved successfully',
+      data: analytics,
+    })
+  },
+)
 
 // Reactivate canceled subscription
-const reactivateSubscription = catchAsync(async (req: Request, res: Response) => {
-  const user = req.user as JwtPayload
-  const userId = user.authId!.toString()
-  const { subscriptionId } = req.params
-  
-  const subscription = await subscriptionService.reactivateSubscription(userId, subscriptionId)
-  
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Subscription reactivated successfully',
-    data: subscription,
-  })
-})
+const reactivateSubscription = catchAsync(
+  async (req: Request, res: Response) => {
+    const user = req.user as JwtPayload
+    const userId = user.authId!.toString()
+    const { subscriptionId } = req.params
+
+    const subscription = await subscriptionService.reactivateSubscription(
+      userId,
+      subscriptionId,
+    )
+
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Subscription reactivated successfully',
+      data: subscription,
+    })
+  },
+)
 
 // Retry failed payment
 const retryFailedPayment = catchAsync(async (req: Request, res: Response) => {
   const { subscriptionId } = req.params
-  
+
   await subscriptionService.retryFailedPayment(subscriptionId)
 
   sendResponse(res, {
@@ -270,8 +306,11 @@ const pauseSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
   const { subscriptionId } = req.params
-  
-  const subscription = await subscriptionService.pauseSubscription(userId, subscriptionId)
+
+  const subscription = await subscriptionService.pauseSubscription(
+    userId,
+    subscriptionId,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -286,8 +325,11 @@ const resumeSubscription = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
   const { subscriptionId } = req.params
-  
-  const subscription = await subscriptionService.resumeSubscription(userId, subscriptionId)
+
+  const subscription = await subscriptionService.resumeSubscription(
+    userId,
+    subscriptionId,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -301,7 +343,7 @@ const resumeSubscription = catchAsync(async (req: Request, res: Response) => {
 const getUsageData = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
-  
+
   const { usageTrackingService } = await import('./usage-tracking.service')
   const usageData = await usageTrackingService.getUsageWithLimits(userId)
 
@@ -317,7 +359,7 @@ const getUsageData = catchAsync(async (req: Request, res: Response) => {
 const getUsageWarnings = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
-  
+
   const { usageTrackingService } = await import('./usage-tracking.service')
   const warnings = await usageTrackingService.checkApproachingLimits(userId)
 
@@ -334,8 +376,11 @@ const createBillingPortal = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   const userId = user.authId!.toString()
   const { returnUrl } = req.body
-  
-  const portalSession = await subscriptionService.createBillingPortalSession(userId, returnUrl)
+
+  const portalSession = await subscriptionService.createBillingPortalSession(
+    userId,
+    returnUrl,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -349,7 +394,7 @@ export const SubscriptionController = {
   // Public endpoints
   getAvailablePlans,
   getPlanById,
-  
+
   // User endpoints (require authentication)
   checkTrialEligibility,
   createSubscription,
@@ -364,10 +409,10 @@ export const SubscriptionController = {
   getUsageData,
   getUsageWarnings,
   createBillingPortal,
-  
+
   // Webhook endpoint
   handleWebhook,
-  
+
   // Admin endpoints (require admin role)
   createSubscriptionPlan,
   updateSubscriptionPlan,

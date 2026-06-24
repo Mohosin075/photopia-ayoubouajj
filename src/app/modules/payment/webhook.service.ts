@@ -19,7 +19,10 @@ const handleCheckoutSessionCompleted = async (
         expand: ['payment_intent', 'line_items'],
       },
     )
-    console.log('✅ Session Details Retrieved. Payment Intent:', sessionWithDetails.payment_intent)
+    console.log(
+      '✅ Session Details Retrieved. Payment Intent:',
+      sessionWithDetails.payment_intent,
+    )
     let lookupId: string
 
     if (typeof sessionWithDetails.payment_intent === 'string') {
@@ -60,11 +63,17 @@ const handleCheckoutSessionCompleted = async (
       await payment.save({ session: mongoSession })
 
       // Update Booking Status if bookingId exists in metadata or payment
-      const bookingId = payment.bookingId || sessionWithDetails.metadata?.bookingId
-      const paymentType = sessionWithDetails.metadata?.paymentType || payment.metadata?.paymentType || 'deposit'
-      
-      console.log(`Webhook: Processing booking update for ID: ${bookingId}, paymentType: ${paymentType}`)
-      
+      const bookingId =
+        payment.bookingId || sessionWithDetails.metadata?.bookingId
+      const paymentType =
+        sessionWithDetails.metadata?.paymentType ||
+        payment.metadata?.paymentType ||
+        'deposit'
+
+      console.log(
+        `Webhook: Processing booking update for ID: ${bookingId}, paymentType: ${paymentType}`,
+      )
+
       if (bookingId) {
         const updateData: any = {
           stripePaymentId: sessionWithDetails.id,
@@ -81,17 +90,19 @@ const handleCheckoutSessionCompleted = async (
         const updatedBooking = await Booking.findByIdAndUpdate(
           bookingId,
           updateData,
-          { session: mongoSession, new: true }
+          { session: mongoSession, new: true },
         )
-        
+
         if (updatedBooking) {
-          console.log(`Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentStatus: ${updatedBooking.paymentStatus}`)
+          console.log(
+            `Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentStatus: ${updatedBooking.paymentStatus}`,
+          )
           // Add to pending balance for the provider (only on deposit)
           if (paymentType !== 'balance') {
             await WalletService.addPendingEarnings(
               updatedBooking.providerId,
               updatedBooking.pricingDetails.providerEarnings,
-              mongoSession
+              mongoSession,
             )
           }
         }
@@ -106,7 +117,7 @@ const handleCheckoutSessionCompleted = async (
       await emailHelper.sendEmail({
         to: payment.userEmail,
         subject: 'Payment Successful',
-        html: `<p>Your payment was successful.</p>`
+        html: `<p>Your payment was successful.</p>`,
       })
     } catch (error) {
       await mongoSession.abortTransaction()
@@ -138,8 +149,6 @@ const handleCheckoutSessionExpired = async (session: any): Promise<void> => {
       payment.status = 'failed'
       payment.metadata = { ...payment.metadata, ...session, expired: true }
       await payment.save({ session: mongoSession })
-
-
     }
 
     await mongoSession.commitTransaction()
@@ -155,8 +164,6 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
   const mongoSession = await Payment.startSession()
   mongoSession.startTransaction()
 
-
-
   try {
     // STRICT LOOKUP: First try paymentIntentId
     let payment = await Payment.findOne({
@@ -167,23 +174,26 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
     if (!payment) {
       const metadata = paymentIntent.metadata || {}
       const bookingId = metadata.bookingId
-      
-      
+
       if (bookingId) {
         payment = await Payment.findOne({
           bookingId,
           status: 'pending',
         })
-        .sort({ createdAt: -1 }) 
-        .session(mongoSession)
-   
+          .sort({ createdAt: -1 })
+          .session(mongoSession)
+
         if (payment) {
           payment.paymentIntentId = paymentIntent.id
         } else {
-          console.log(`⚠️ No record found for bookingId: ${bookingId} with status: pending`)
+          console.log(
+            `⚠️ No record found for bookingId: ${bookingId} with status: pending`,
+          )
         }
       } else {
-        console.log('❌ No bookingId found in metadata. Cannot perform fallback lookup.')
+        console.log(
+          '❌ No bookingId found in metadata. Cannot perform fallback lookup.',
+        )
       }
     }
 
@@ -206,8 +216,11 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
 
     // Update Booking Status if bookingId exists
     const bookingId = payment.bookingId || paymentIntent.metadata?.bookingId
-    const paymentType = paymentIntent.metadata?.paymentType || payment.metadata?.paymentType || 'deposit'
-    
+    const paymentType =
+      paymentIntent.metadata?.paymentType ||
+      payment.metadata?.paymentType ||
+      'deposit'
+
     if (bookingId) {
       const updateData: any = {
         stripePaymentId: paymentIntent.id,
@@ -226,17 +239,19 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
       const updatedBooking = await Booking.findByIdAndUpdate(
         bookingId,
         updateData,
-        { session: mongoSession, new: true }
+        { session: mongoSession, new: true },
       )
-      
+
       if (updatedBooking) {
-        console.log(`Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentType: ${paymentType}, paymentStatus: ${updatedBooking.paymentStatus}`)
+        console.log(
+          `Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentType: ${paymentType}, paymentStatus: ${updatedBooking.paymentStatus}`,
+        )
         // Add to pending balance for the provider (only on deposit, not balance)
         if (paymentType !== 'balance') {
           await WalletService.addPendingEarnings(
             updatedBooking.providerId,
             updatedBooking.pricingDetails.providerEarnings,
-            mongoSession
+            mongoSession,
           )
         }
       }
@@ -249,7 +264,7 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
       await emailHelper.sendEmail({
         to: payment.userEmail,
         subject: 'Payment Successful',
-        html: `<p>Your payment was successful.</p>`
+        html: `<p>Your payment was successful.</p>`,
       })
     }
   } catch (error) {
@@ -270,10 +285,14 @@ const handlePaymentFailure = async (paymentIntent: any): Promise<void> => {
     }).session(mongoSession)
 
     // Fallback for failure too
-    if (!payment && paymentIntent.metadata && paymentIntent.metadata.bookingId) {
-       payment = await Payment.findOne({
-         bookingId: paymentIntent.metadata.bookingId
-       }).session(mongoSession)
+    if (
+      !payment &&
+      paymentIntent.metadata &&
+      paymentIntent.metadata.bookingId
+    ) {
+      payment = await Payment.findOne({
+        bookingId: paymentIntent.metadata.bookingId,
+      }).session(mongoSession)
     }
 
     if (payment) {

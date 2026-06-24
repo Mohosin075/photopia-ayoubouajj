@@ -11,26 +11,26 @@ router.post(
   '/',
   auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(WithdrawalValidation.createWithdrawalZodSchema),
-  WithdrawalController.createWithdrawal
+  WithdrawalController.createWithdrawal,
 )
 
 router.get(
   '/my-withdrawals',
   auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  WithdrawalController.getMyWithdrawals
+  WithdrawalController.getMyWithdrawals,
 )
 
 router.get(
   '/all-withdrawals',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  WithdrawalController.getAllWithdrawals
+  WithdrawalController.getAllWithdrawals,
 )
 
 router.patch(
   '/:id/status',
   auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(WithdrawalValidation.updateWithdrawalStatusZodSchema),
-  WithdrawalController.updateWithdrawalStatus
+  WithdrawalController.updateWithdrawalStatus,
 )
 
 export const WithdrawalRoutes = router

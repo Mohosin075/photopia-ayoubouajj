@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod'
 
 export const createReviewSchema = z.object({
   body: z.object({
@@ -7,7 +7,7 @@ export const createReviewSchema = z.object({
     rating: z.number(),
     review: z.string(),
   }),
-});
+})
 
 export const updateReviewSchema = z.object({
   body: z.object({
@@ -15,4 +15,4 @@ export const updateReviewSchema = z.object({
     rating: z.number().optional(),
     review: z.string().optional(),
   }),
-});
+})

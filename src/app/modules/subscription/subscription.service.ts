@@ -17,8 +17,6 @@ import {
 import { emailNotificationService } from './email-notification.service'
 import QueryBuilder from '../../builder/QueryBuilder'
 
-
-
 class SubscriptionService {
   // Get all available subscription plans
   async getAvailablePlans(userType?: string): Promise<ISubscriptionPlan[]> {
@@ -29,11 +27,17 @@ class SubscriptionService {
         query.userTypes = { $in: [userType] }
       }
 
-      const plans = await SubscriptionPlan.find(query).sort({ priority: 1, price: 1 })
+      const plans = await SubscriptionPlan.find(query).sort({
+        priority: 1,
+        price: 1,
+      })
       return plans
     } catch (error) {
       console.error('Error fetching subscription plans:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription plans')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to fetch subscription plans',
+      )
     }
   }
 
@@ -48,7 +52,10 @@ class SubscriptionService {
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error fetching subscription plan:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription plan')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to fetch subscription plan',
+      )
     }
   }
 
@@ -66,11 +73,16 @@ class SubscriptionService {
         isEligible,
         hasUsedTrial: !!existingSubscription,
         trialDays: 10, // Default trial period
-        reason: isEligible ? undefined : 'User has already used their free trial',
+        reason: isEligible
+          ? undefined
+          : 'User has already used their free trial',
       }
     } catch (error) {
       console.error('Error checking trial eligibility:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to check trial eligibility')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to check trial eligibility',
+      )
     }
   }
 
@@ -92,7 +104,10 @@ class SubscriptionService {
       // Check if user already has an active subscription
       const existingSubscription = await Subscription.findActiveByUserId(userId)
       if (existingSubscription) {
-        throw new ApiError(StatusCodes.CONFLICT, 'User already has an active subscription')
+        throw new ApiError(
+          StatusCodes.CONFLICT,
+          'User already has an active subscription',
+        )
       }
 
       // Check trial eligibility
@@ -100,7 +115,9 @@ class SubscriptionService {
 
       // Create or get Stripe customer
       let stripeCustomerId: string
-      const existingCustomer = await Subscription.findOne({ userId }).select('stripeCustomerId')
+      const existingCustomer = await Subscription.findOne({ userId }).select(
+        'stripeCustomerId',
+      )
 
       if (existingCustomer?.stripeCustomerId) {
         stripeCustomerId = existingCustomer.stripeCustomerId
@@ -115,15 +132,23 @@ class SubscriptionService {
 
       // Attach payment method if provided
       if (request.paymentMethodId) {
-        await stripeService.attachPaymentMethod(request.paymentMethodId, stripeCustomerId)
-        await stripeService.setDefaultPaymentMethod(stripeCustomerId, request.paymentMethodId)
+        await stripeService.attachPaymentMethod(
+          request.paymentMethodId,
+          stripeCustomerId,
+        )
+        await stripeService.setDefaultPaymentMethod(
+          stripeCustomerId,
+          request.paymentMethodId,
+        )
       }
-      console.log("Metadata", userId, request.planId)
+      console.log('Metadata', userId, request.planId)
       // Create Stripe subscription
       const stripeSubscription = await stripeService.createSubscription({
         customerId: stripeCustomerId,
         priceId: plan.stripePriceId,
-        trialPeriodDays: trialInfo.isEligible ? plan.trialPeriodDays : undefined,
+        trialPeriodDays: trialInfo.isEligible
+          ? plan.trialPeriodDays
+          : undefined,
         paymentMethodId: request.paymentMethodId,
         metadata: {
           userId: userId.toString(),
@@ -133,9 +158,13 @@ class SubscriptionService {
 
       // Create local subscription record
       // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
-      const subscriptionItem = stripeSubscription.items.data[0];
-      const currentPeriodStart = (stripeSubscription as any).current_period_start || (subscriptionItem as any).current_period_start;
-      const currentPeriodEnd = (stripeSubscription as any).current_period_end || (subscriptionItem as any).current_period_end;
+      const subscriptionItem = stripeSubscription.items.data[0]
+      const currentPeriodStart =
+        (stripeSubscription as any).current_period_start ||
+        (subscriptionItem as any).current_period_start
+      const currentPeriodEnd =
+        (stripeSubscription as any).current_period_end ||
+        (subscriptionItem as any).current_period_end
 
       const subscription = new Subscription({
         userId: new Types.ObjectId(userId),
@@ -144,8 +173,12 @@ class SubscriptionService {
         stripeSubscriptionId: stripeSubscription.id,
         stripePriceId: plan.stripePriceId,
         status: stripeSubscription.status,
-        currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : new Date(),
-        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        currentPeriodStart: currentPeriodStart
+          ? new Date(currentPeriodStart * 1000)
+          : new Date(),
+        currentPeriodEnd: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         trialStart: stripeSubscription.trial_start
           ? new Date(stripeSubscription.trial_start * 1000)
           : null,
@@ -164,48 +197,70 @@ class SubscriptionService {
         subscriptionStatus: stripeSubscription.status,
         subscriptionTier: this.getSubscriptionTier(plan.name),
         trialUsed: trialInfo.isEligible,
-        subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        subscriptionExpiresAt: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       })
 
       // Send welcome email
       await emailNotificationService.sendSubscriptionWelcomeEmail(
         subscription,
         plan,
-        !!stripeSubscription.trial_start
+        !!stripeSubscription.trial_start,
       )
 
       // Get client secret for payment confirmation if needed
       let clientSecret: string | undefined
-      
-      console.log('--- Debugging Subscription ---');
-      console.log('Subscription Status:', stripeSubscription.status);
+
+      console.log('--- Debugging Subscription ---')
+      console.log('Subscription Status:', stripeSubscription.status)
 
       // Try getting from latest invoice's payment intent
-      if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object') {
+      if (
+        stripeSubscription.latest_invoice &&
+        typeof stripeSubscription.latest_invoice === 'object'
+      ) {
         const invoice = stripeSubscription.latest_invoice as any
-        if (invoice.payment_intent && typeof invoice.payment_intent === 'object') {
-          clientSecret = (invoice.payment_intent as any).client_secret || undefined
-          console.log('Client Secret found in latest_invoice.payment_intent');
-        } else if (invoice.payment_intent && typeof invoice.payment_intent === 'string') {
+        if (
+          invoice.payment_intent &&
+          typeof invoice.payment_intent === 'object'
+        ) {
+          clientSecret =
+            (invoice.payment_intent as any).client_secret || undefined
+          console.log('Client Secret found in latest_invoice.payment_intent')
+        } else if (
+          invoice.payment_intent &&
+          typeof invoice.payment_intent === 'string'
+        ) {
           // If it's a string, it means it wasn't expanded properly
-          console.log('Payment Intent found as string, but not expanded:', invoice.payment_intent);
+          console.log(
+            'Payment Intent found as string, but not expanded:',
+            invoice.payment_intent,
+          )
         }
       }
-      
+
       // If still undefined, try setup_intent (common for free trials or setup flow)
       if (!clientSecret && stripeSubscription.pending_setup_intent) {
         if (typeof stripeSubscription.pending_setup_intent === 'object') {
-          clientSecret = (stripeSubscription.pending_setup_intent as any).client_secret || undefined
-          console.log('Client Secret found in pending_setup_intent');
+          clientSecret =
+            (stripeSubscription.pending_setup_intent as any).client_secret ||
+            undefined
+          console.log('Client Secret found in pending_setup_intent')
         } else {
-          console.log('Pending Setup Intent found as string, but not expanded:', stripeSubscription.pending_setup_intent);
+          console.log(
+            'Pending Setup Intent found as string, but not expanded:',
+            stripeSubscription.pending_setup_intent,
+          )
         }
       }
 
-      console.log('Final clientSecret:', clientSecret);
-      console.log('------------------------------');
+      console.log('Final clientSecret:', clientSecret)
+      console.log('------------------------------')
 
-      console.log(`Subscription created for user ${userId}: ${subscription._id}`)
+      console.log(
+        `Subscription created for user ${userId}: ${subscription._id}`,
+      )
 
       return {
         subscription: await subscription.populate(['planId']),
@@ -214,7 +269,10 @@ class SubscriptionService {
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error creating subscription:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create subscription')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to create subscription',
+      )
     }
   }
 
@@ -225,7 +283,10 @@ class SubscriptionService {
       return subscription
     } catch (error) {
       console.error('Error fetching user subscription:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch subscription')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to fetch subscription',
+      )
     }
   }
 
@@ -234,7 +295,7 @@ class SubscriptionService {
     try {
       const subscriptionQuery = new QueryBuilder(
         Subscription.find().populate(['userId', 'planId']),
-        query
+        query,
       )
         .filter()
         .sort()
@@ -251,43 +312,43 @@ class SubscriptionService {
             _id: 'demo_1',
             userId: {
               name: 'Jane Smith',
-              email: 'jane@example.com'
+              email: 'jane@example.com',
             },
             planId: {
               name: 'Monthly',
               price: 14.99,
-              interval: 'month'
+              interval: 'month',
             },
             status: 'active',
             currentPeriodStart: new Date('2025-12-15'),
             currentPeriodEnd: new Date('2026-02-15'),
             cancelAtPeriodEnd: false,
-            paymentMethod: 'Visa **** 4242'
+            paymentMethod: 'Visa **** 4242',
           },
           {
             _id: 'demo_2',
             userId: {
               name: 'Mike Ross',
-              email: 'mike@example.com'
+              email: 'mike@example.com',
             },
             planId: {
               name: 'Yearly',
               price: 199.98,
-              interval: 'year'
+              interval: 'year',
             },
             status: 'active',
             currentPeriodStart: new Date('2025-01-01'),
             currentPeriodEnd: new Date('2026-01-01'),
             cancelAtPeriodEnd: false,
-            paymentMethod: 'Mastercard **** 8888'
-          }
-        ];
+            paymentMethod: 'Mastercard **** 8888',
+          },
+        ]
         return {
           meta: {
             page: 1,
             limit: 10,
             total: 2,
-            totalPage: 1
+            totalPage: 1,
           },
           result: demoData,
         }
@@ -299,7 +360,10 @@ class SubscriptionService {
       }
     } catch (error) {
       console.error('Error fetching all subscriptions:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to fetch all subscriptions')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to fetch all subscriptions',
+      )
     }
   }
 
@@ -327,19 +391,24 @@ class SubscriptionService {
         const newPlan = await this.getPlanById(request.planId)
 
         // Get current Stripe subscription to find subscription item ID
-        const stripeSubscription = await stripeService.getSubscription(subscription.stripeSubscriptionId)
+        const stripeSubscription = await stripeService.getSubscription(
+          subscription.stripeSubscriptionId,
+        )
         const subscriptionItemId = stripeSubscription.items.data[0].id
 
         // Update Stripe subscription with correct item ID
-        await stripeService.updateSubscription(subscription.stripeSubscriptionId, {
-          items: [
-            {
-              id: subscriptionItemId, // Use subscription item ID, not subscription ID
-              price: newPlan.stripePriceId,
-            },
-          ],
-          proration_behavior: 'create_prorations', // This handles automatic proration
-        })
+        await stripeService.updateSubscription(
+          subscription.stripeSubscriptionId,
+          {
+            items: [
+              {
+                id: subscriptionItemId, // Use subscription item ID, not subscription ID
+                price: newPlan.stripePriceId,
+              },
+            ],
+            proration_behavior: 'create_prorations', // This handles automatic proration
+          },
+        )
 
         updateParams.planId = new Types.ObjectId(request.planId)
         updateParams.stripePriceId = newPlan.stripePriceId
@@ -350,19 +419,24 @@ class SubscriptionService {
         })
 
         // Send plan change notification email
-        const { emailNotificationService } = await import('./email-notification.service')
+        const { emailNotificationService } = await import(
+          './email-notification.service'
+        )
         await emailNotificationService.sendPlanChangeEmail(
           subscription,
           newPlan,
-          stripeSubscription.items.data[0].price
+          stripeSubscription.items.data[0].price,
         )
       }
 
       // Handle cancellation
       if (request.cancelAtPeriodEnd !== undefined) {
-        await stripeService.updateSubscription(subscription.stripeSubscriptionId, {
-          cancel_at_period_end: request.cancelAtPeriodEnd,
-        })
+        await stripeService.updateSubscription(
+          subscription.stripeSubscriptionId,
+          {
+            cancel_at_period_end: request.cancelAtPeriodEnd,
+          },
+        )
 
         updateParams.cancelAtPeriodEnd = request.cancelAtPeriodEnd
         if (request.cancelAtPeriodEnd) {
@@ -376,13 +450,16 @@ class SubscriptionService {
         updateParams,
         { new: true },
       ).populate(['planId'])
-      
+
       console.log(`Subscription updated: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error updating subscription:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to update subscription')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to update subscription',
+      )
     }
   }
 
@@ -403,7 +480,10 @@ class SubscriptionService {
       }
 
       // Cancel in Stripe
-      await stripeService.cancelSubscription(subscription.stripeSubscriptionId, cancelAtPeriodEnd)
+      await stripeService.cancelSubscription(
+        subscription.stripeSubscriptionId,
+        cancelAtPeriodEnd,
+      )
 
       // Update local subscription
       const updateData: any = {
@@ -421,18 +501,24 @@ class SubscriptionService {
         updateData,
         { new: true },
       ).populate(['planId'])
-      
+
       console.log(`Subscription canceled: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error canceling subscription:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to cancel subscription')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to cancel subscription',
+      )
     }
   }
 
   // Reactivate subscription
-  async reactivateSubscription(userId: string, subscriptionId: string): Promise<ISubscription> {
+  async reactivateSubscription(
+    userId: string,
+    subscriptionId: string,
+  ): Promise<ISubscription> {
     try {
       const subscription = await Subscription.findOne({
         _id: subscriptionId,
@@ -444,15 +530,23 @@ class SubscriptionService {
       }
 
       if (subscription.status === 'canceled' && subscription.endedAt) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Subscription has already ended and cannot be reactivated. Please start a new subscription.')
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Subscription has already ended and cannot be reactivated. Please start a new subscription.',
+        )
       }
 
       if (!subscription.cancelAtPeriodEnd) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'Subscription is not set to cancel and is already active.')
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'Subscription is not set to cancel and is already active.',
+        )
       }
 
       // Reactivate in Stripe
-      await stripeService.reactivateSubscription(subscription.stripeSubscriptionId)
+      await stripeService.reactivateSubscription(
+        subscription.stripeSubscriptionId,
+      )
 
       // Update local subscription
       const updatedSubscription = await Subscription.findByIdAndUpdate(
@@ -468,7 +562,11 @@ class SubscriptionService {
       // Send reactivation email
       const plan = updatedSubscription?.planId as unknown as ISubscriptionPlan
       if (plan) {
-        await emailNotificationService.sendSubscriptionWelcomeEmail(updatedSubscription!, plan, updatedSubscription!.status === 'trialing')
+        await emailNotificationService.sendSubscriptionWelcomeEmail(
+          updatedSubscription!,
+          plan,
+          updatedSubscription!.status === 'trialing',
+        )
       }
 
       console.log(`Subscription reactivated: ${subscriptionId}`)
@@ -476,7 +574,10 @@ class SubscriptionService {
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error reactivating subscription:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to reactivate subscription')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to reactivate subscription',
+      )
     }
   }
 
@@ -500,7 +601,9 @@ class SubscriptionService {
 
       const now = new Date()
       const endDate = subscription.currentPeriodEnd
-      const daysUntilExpiry = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      const daysUntilExpiry = Math.ceil(
+        (endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+      )
 
       // Ensure planId is populated, if not fetch it separately
       let currentPlan: ISubscriptionPlan | undefined
@@ -528,7 +631,10 @@ class SubscriptionService {
       }
     } catch (error) {
       console.error('Error getting subscription status:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to get subscription status')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to get subscription status',
+      )
     }
   }
 
@@ -550,7 +656,9 @@ class SubscriptionService {
 
       // Create or get Stripe customer
       let stripeCustomerId: string
-      const existingCustomer = await Subscription.findOne({ userId }).select('stripeCustomerId')
+      const existingCustomer = await Subscription.findOne({ userId }).select(
+        'stripeCustomerId',
+      )
 
       if (existingCustomer?.stripeCustomerId) {
         stripeCustomerId = existingCustomer.stripeCustomerId
@@ -568,7 +676,9 @@ class SubscriptionService {
         priceId: plan.stripePriceId,
         successUrl,
         cancelUrl,
-        trialPeriodDays: trialInfo.isEligible ? plan.trialPeriodDays : undefined,
+        trialPeriodDays: trialInfo.isEligible
+          ? plan.trialPeriodDays
+          : undefined,
         metadata: {
           userId: userId.toString(),
           planId,
@@ -582,12 +692,17 @@ class SubscriptionService {
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error creating checkout session:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create checkout session')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to create checkout session',
+      )
     }
   }
 
   // Admin: Create subscription plan
-  async createSubscriptionPlan(planData: Omit<ISubscriptionPlan, '_id' | 'createdAt' | 'updatedAt'>): Promise<ISubscriptionPlan> {
+  async createSubscriptionPlan(
+    planData: Omit<ISubscriptionPlan, '_id' | 'createdAt' | 'updatedAt'>,
+  ): Promise<ISubscriptionPlan> {
     try {
       // Create Stripe product
       const stripeProduct = await stripeService.createProduct({
@@ -620,12 +735,15 @@ class SubscriptionService {
       })
 
       await plan.save()
-      
+
       console.log(`Subscription plan created: ${plan._id}`)
       return plan
     } catch (error) {
       console.error('Error creating subscription plan:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create subscription plan')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to create subscription plan',
+      )
     }
   }
 
@@ -664,14 +782,21 @@ class SubscriptionService {
         updateData.stripePriceId = newStripePrice.id
       }
 
-      const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(planId, updateData, { new: true })
-      
+      const updatedPlan = await SubscriptionPlan.findByIdAndUpdate(
+        planId,
+        updateData,
+        { new: true },
+      )
+
       console.log(`Subscription plan updated: ${planId}`)
       return updatedPlan!
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error updating subscription plan:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to update subscription plan')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to update subscription plan',
+      )
     }
   }
 
@@ -706,19 +831,21 @@ class SubscriptionService {
             _id: null,
             totalSubscriptions: { $sum: 1 },
             activeSubscriptions: {
-              $sum: { $cond: [{ $in: ['$status', ['active', 'trialing']] }, 1, 0] }
+              $sum: {
+                $cond: [{ $in: ['$status', ['active', 'trialing']] }, 1, 0],
+              },
             },
             trialingSubscriptions: {
-              $sum: { $cond: [{ $eq: ['$status', 'trialing'] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ['$status', 'trialing'] }, 1, 0] },
             },
             canceledSubscriptions: {
-              $sum: { $cond: [{ $eq: ['$status', 'canceled'] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ['$status', 'canceled'] }, 1, 0] },
             },
             pastDueSubscriptions: {
-              $sum: { $cond: [{ $eq: ['$status', 'past_due'] }, 1, 0] }
+              $sum: { $cond: [{ $eq: ['$status', 'past_due'] }, 1, 0] },
             },
-          }
-        }
+          },
+        },
       ])
 
       // Calculate MRR (Monthly Recurring Revenue)
@@ -726,16 +853,16 @@ class SubscriptionService {
         {
           $match: {
             status: { $in: ['active', 'trialing'] },
-            ...matchStage
-          }
+            ...matchStage,
+          },
         },
         {
           $lookup: {
             from: 'subscriptionplans',
             localField: 'planId',
             foreignField: '_id',
-            as: 'plan'
-          }
+            as: 'plan',
+          },
         },
         { $unwind: '$plan' },
         {
@@ -746,12 +873,12 @@ class SubscriptionService {
                 $cond: [
                   { $eq: ['$plan.interval', 'month'] },
                   '$plan.price',
-                  { $divide: ['$plan.price', 12] } // Convert yearly to monthly
-                ]
-              }
-            }
-          }
-        }
+                  { $divide: ['$plan.price', 12] }, // Convert yearly to monthly
+                ],
+              },
+            },
+          },
+        },
       ])
 
       const result = analytics[0] || {
@@ -763,14 +890,21 @@ class SubscriptionService {
       }
 
       result.monthlyRevenue = mrrData[0]?.monthlyRevenue || 0
-      result.churnRate = result.totalSubscriptions > 0
-        ? (result.canceledSubscriptions / result.totalSubscriptions * 100).toFixed(2)
-        : 0
-      
+      result.churnRate =
+        result.totalSubscriptions > 0
+          ? (
+              (result.canceledSubscriptions / result.totalSubscriptions) *
+              100
+            ).toFixed(2)
+          : 0
+
       return result
     } catch (error) {
       console.error('Error getting subscription analytics:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to get subscription analytics')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to get subscription analytics',
+      )
     }
   }
 
@@ -783,23 +917,36 @@ class SubscriptionService {
       }
 
       // Get latest invoice from Stripe
-      const stripeSubscription = await stripeService.getSubscriptionExpanded(subscription.stripeSubscriptionId)
+      const stripeSubscription = await stripeService.getSubscriptionExpanded(
+        subscription.stripeSubscriptionId,
+      )
 
-      if (stripeSubscription.latest_invoice && typeof stripeSubscription.latest_invoice === 'object') {
+      if (
+        stripeSubscription.latest_invoice &&
+        typeof stripeSubscription.latest_invoice === 'object'
+      ) {
         const invoice = stripeSubscription.latest_invoice as any
         // Retry payment on the invoice
         await stripeService.retryInvoicePayment(invoice.id)
-        
-        console.log(`Payment retry initiated for subscription: ${subscriptionId}`)
+
+        console.log(
+          `Payment retry initiated for subscription: ${subscriptionId}`,
+        )
       }
     } catch (error) {
       console.error('Error retrying failed payment:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to retry payment')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to retry payment',
+      )
     }
   }
 
   // Pause subscription (for temporary suspension)
-  async pauseSubscription(userId: string, subscriptionId: string): Promise<ISubscription> {
+  async pauseSubscription(
+    userId: string,
+    subscriptionId: string,
+  ): Promise<ISubscription> {
     try {
       const subscription = await Subscription.findOne({
         _id: subscriptionId,
@@ -817,20 +964,26 @@ class SubscriptionService {
       const updatedSubscription = await Subscription.findByIdAndUpdate(
         subscriptionId,
         { status: 'paused' },
-        { new: true }
+        { new: true },
       ).populate(['planId'])
-      
+
       console.log(`Subscription paused: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error pausing subscription:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to pause subscription')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to pause subscription',
+      )
     }
   }
 
   // Resume paused subscription
-  async resumeSubscription(userId: string, subscriptionId: string): Promise<ISubscription> {
+  async resumeSubscription(
+    userId: string,
+    subscriptionId: string,
+  ): Promise<ISubscription> {
     try {
       const subscription = await Subscription.findOne({
         _id: subscriptionId,
@@ -848,20 +1001,26 @@ class SubscriptionService {
       const updatedSubscription = await Subscription.findByIdAndUpdate(
         subscriptionId,
         { status: 'active' },
-        { new: true }
+        { new: true },
       ).populate(['planId'])
-      
+
       console.log(`Subscription resumed: ${subscriptionId}`)
       return updatedSubscription!
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error resuming subscription:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to resume subscription')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to resume subscription',
+      )
     }
   }
 
   // Create billing portal session for payment method management
-  async createBillingPortalSession(userId: string, returnUrl: string): Promise<{ url: string }> {
+  async createBillingPortalSession(
+    userId: string,
+    returnUrl: string,
+  ): Promise<{ url: string }> {
     try {
       // Get user to find their Stripe customer ID
       const user = await User.findById(userId)
@@ -872,18 +1031,27 @@ class SubscriptionService {
       const userWithStripe = user as any
 
       if (!userWithStripe.stripeCustomerId) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, 'User does not have a Stripe customer account')
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          'User does not have a Stripe customer account',
+        )
       }
 
       // Create billing portal session
-      const session = await stripeService.createPortalSession(userWithStripe.stripeCustomerId, returnUrl)
-      
+      const session = await stripeService.createPortalSession(
+        userWithStripe.stripeCustomerId,
+        returnUrl,
+      )
+
       console.log(`Billing portal session created for user: ${userId}`)
       return { url: session.url }
     } catch (error) {
       if (error instanceof ApiError) throw error
       console.error('Error creating billing portal session:', error)
-      throw new ApiError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create billing portal session')
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        'Failed to create billing portal session',
+      )
     }
   }
 

@@ -11,7 +11,16 @@ const trackVisitZodSchema = zod_1.z.object({
         type: zod_1.z.enum(['view', 'interaction'], {
             required_error: 'Type is required',
         }),
-        interactionType: zod_1.z.enum(['booking_start', 'contact_click', 'share', 'invoice_download', 'profile_view', 'service_view']).optional(),
+        interactionType: zod_1.z
+            .enum([
+            'booking_start',
+            'contact_click',
+            'share',
+            'invoice_download',
+            'profile_view',
+            'service_view',
+        ])
+            .optional(),
     }),
 });
 exports.AnalyticsValidation = {

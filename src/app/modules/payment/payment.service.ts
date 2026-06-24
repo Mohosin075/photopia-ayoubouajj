@@ -48,7 +48,7 @@ const createCheckoutSession = async (
       metadata: {
         userId: user.userId.toString(),
         bookingId: payload.bookingId.toString(),
-        ...payload.metadata
+        ...payload.metadata,
       },
     })
 
@@ -64,7 +64,7 @@ const createCheckoutSession = async (
       metadata: {
         checkoutSessionId: session.id,
         bookingId: payload.bookingId.toString(),
-        ...payload.metadata
+        ...payload.metadata,
       },
     })
 
@@ -96,10 +96,9 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
       $or: [
         { paymentIntentId: sessionId },
         { 'metadata.checkoutSessionId': sessionId },
-        { paymentIntentId: session.payment_intent as string }
-      ]
-    })
-      .populate('userId', 'name email')
+        { paymentIntentId: session.payment_intent as string },
+      ],
+    }).populate('userId', 'name email')
 
     if (!payment) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Payment not found')
@@ -117,7 +116,10 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
         await payment.save({ session: dbSession })
 
         const bookingId = payment.bookingId || session.metadata?.bookingId
-        const paymentType = session.metadata?.paymentType || payment.metadata?.paymentType || 'deposit'
+        const paymentType =
+          session.metadata?.paymentType ||
+          payment.metadata?.paymentType ||
+          'deposit'
 
         if (bookingId) {
           const updateData: any = {
@@ -155,7 +157,7 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
           await emailHelper.sendEmail({
             to: userData.email,
             subject: 'Payment Successful',
-            html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`
+            html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`,
           })
         }
 
@@ -198,70 +200,96 @@ const verifyCheckoutSession = async (sessionId: string): Promise<IPayment> => {
 const createPaymentIntent = async (
   user: any,
   payload: any,
-): Promise<{ clientSecret: string; paymentIntentId: string; amount: number; status: string }> => {
+): Promise<{
+  clientSecret: string
+  paymentIntentId: string
+  amount: number
+  status: string
+}> => {
   try {
     // ---- Booking Validation ----
     if (!payload.bookingId) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Booking ID is required');
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Booking ID is required')
     }
 
     if (!Types.ObjectId.isValid(payload.bookingId)) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID');
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Booking ID')
     }
 
-    const booking = await Booking.findById(payload.bookingId);
+    const booking = await Booking.findById(payload.bookingId)
     if (!booking) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'Booking not found with the provided booking ID');
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        'Booking not found with the provided booking ID',
+      )
     }
 
     // Ensure only booking owner can initiate payment intents for this booking
     if (booking.clientId.toString() !== user.userId.toString()) {
-      throw new ApiError(StatusCodes.FORBIDDEN, 'You are not authorized to pay for this booking');
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        'You are not authorized to pay for this booking',
+      )
     }
 
     // Determine payable amount from booking state (server-side source of truth)
-    const expectedDepositAmount = Number((booking.depositAmount || 0).toFixed(2));
-    const expectedBalanceAmount = Number((booking.balanceAmount || 0).toFixed(2));
+    const expectedDepositAmount = Number(
+      (booking.depositAmount || 0).toFixed(2),
+    )
+    const expectedBalanceAmount = Number(
+      (booking.balanceAmount || 0).toFixed(2),
+    )
     const providedAmount =
-      typeof payload.amount === 'number' ? Number(payload.amount.toFixed(2)) : undefined;
+      typeof payload.amount === 'number'
+        ? Number(payload.amount.toFixed(2))
+        : undefined
 
-    let payableAmount = 0;
+    let payableAmount = 0
     if (booking.paymentStatus === 'pending') {
-      payableAmount = expectedDepositAmount;
-    } else if (booking.paymentStatus === 'deposit_paid' && expectedBalanceAmount > 0) {
-      payableAmount = expectedBalanceAmount;
+      payableAmount = expectedDepositAmount
+    } else if (
+      booking.paymentStatus === 'deposit_paid' &&
+      expectedBalanceAmount > 0
+    ) {
+      payableAmount = expectedBalanceAmount
     } else {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         `Cannot create payment intent for booking payment status: ${booking.paymentStatus}`,
-      );
+      )
     }
 
     if (payableAmount <= 0) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'No payable amount found for this booking');
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'No payable amount found for this booking',
+      )
     }
 
     // Optional client amount is allowed, but must match server-computed payable amount
     if (providedAmount !== undefined && providedAmount !== payableAmount) {
-      throw new ApiError(StatusCodes.BAD_REQUEST, 'Provided amount does not match booking payable amount');
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        'Provided amount does not match booking payable amount',
+      )
     }
 
     // Get or create Stripe customer (needed for saved card payments)
-    const userData = await User.findById(user.userId);
-    if (!userData) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+    const userData = await User.findById(user.userId)
+    if (!userData) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
 
-    const userEmail = userData.email;
+    const userEmail = userData.email
 
-    let customerId = userData.stripeCustomerId;
+    let customerId = userData.stripeCustomerId
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: userData.email,
         name: userData.fullName || userData.name,
         metadata: { userId: userData._id.toString() },
-      });
-      customerId = customer.id;
-      userData.stripeCustomerId = customer.id;
-      await userData.save();
+      })
+      customerId = customer.id
+      userData.stripeCustomerId = customer.id
+      await userData.save()
     }
 
     // Build PaymentIntent params
@@ -273,21 +301,21 @@ const createPaymentIntent = async (
         userId: user.userId,
         userEmail,
         bookingId: payload.bookingId,
-        ...payload.metadata
+        ...payload.metadata,
       },
-    };
+    }
 
     // If paymentMethodId is provided → pay with saved card (off-session)
     if (payload.paymentMethodId) {
-      intentParams.payment_method = payload.paymentMethodId;
-      intentParams.off_session = true;
-      intentParams.confirm = true; // Auto-confirm with saved card
+      intentParams.payment_method = payload.paymentMethodId
+      intentParams.off_session = true
+      intentParams.confirm = true // Auto-confirm with saved card
     } else {
       // New card → Flutter SDK will collect card details using clientSecret
-      intentParams.payment_method_types = ['card'];
+      intentParams.payment_method_types = ['card']
     }
 
-    const paymentIntent = await stripe.paymentIntents.create(intentParams);
+    const paymentIntent = await stripe.paymentIntents.create(intentParams)
 
     // Create payment record
     await Payment.create({
@@ -303,7 +331,7 @@ const createPaymentIntent = async (
         userId: user.userId,
         bookingId: payload.bookingId,
         usedSavedCard: !!payload.paymentMethodId,
-        ...payload.metadata
+        ...payload.metadata,
       },
     })
 
@@ -314,7 +342,7 @@ const createPaymentIntent = async (
       status: paymentIntent.status,
     }
   } catch (error: any) {
-    if (error instanceof ApiError) throw error;
+    if (error instanceof ApiError) throw error
     throw new ApiError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       `Payment Intent creation failed: ${error.message}`,
@@ -457,7 +485,10 @@ const getAllPayments = async (
   }
 
   // Regular users can only see their own payments
-  if (user.activeRole === USER_ROLES.USER || user.activeRole === USER_ROLES.PROFESSIONAL) {
+  if (
+    user.activeRole === USER_ROLES.USER ||
+    user.activeRole === USER_ROLES.PROFESSIONAL
+  ) {
     andConditions.push({
       userId: new Types.ObjectId(user.userId),
     })
@@ -472,7 +503,7 @@ const getAllPayments = async (
       .sort({ [sortBy]: sortOrder })
       .populate('userId', 'name email')
       .populate({
-        path: 'bookingId'
+        path: 'bookingId',
       }),
     Payment.countDocuments(whereConditions),
   ])
@@ -493,8 +524,7 @@ const getSinglePayment = async (id: string): Promise<IPayment> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Payment ID')
   }
 
-  const result = await Payment.findById(id)
-    .populate('userId', 'name email')
+  const result = await Payment.findById(id).populate('userId', 'name email')
 
   if (!result) {
     throw new ApiError(
@@ -521,8 +551,7 @@ const updatePayment = async (
       new: true,
       runValidators: true,
     },
-  )
-    .populate('userId', 'name email')
+  ).populate('userId', 'name email')
 
   if (!result) {
     throw new ApiError(
@@ -561,7 +590,8 @@ const refundPayment = async (
 
     // For checkout payments, paymentIntentId may hold session ID in older records.
     if (checkoutSessionId) {
-      const checkoutSession = await stripe.checkout.sessions.retrieve(checkoutSessionId)
+      const checkoutSession =
+        await stripe.checkout.sessions.retrieve(checkoutSessionId)
       if (typeof checkoutSession.payment_intent === 'string') {
         refundPaymentIntentId = checkoutSession.payment_intent
       }
@@ -648,14 +678,20 @@ const generateInvoice = async (id: string): Promise<string | Buffer> => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Invalid Payment ID')
   }
 
-  const payment = await Payment.findById(id).populate('userId').populate('bookingId')
+  const payment = await Payment.findById(id)
+    .populate('userId')
+    .populate('bookingId')
 
   if (!payment) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'Payment not found')
   }
 
   // 1. If it's a Stripe payment, try to get the official receipt URL
-  if (payment.paymentIntentId && payment.status === 'succeeded' && payment.paymentMethod === 'stripe') {
+  if (
+    payment.paymentIntentId &&
+    payment.status === 'succeeded' &&
+    payment.paymentMethod === 'stripe'
+  ) {
     try {
       const pi = await stripe.paymentIntents.retrieve(payment.paymentIntentId)
       if (pi.latest_charge) {
@@ -669,54 +705,59 @@ const generateInvoice = async (id: string): Promise<string | Buffer> => {
     }
   }
 
-// 2. Fallback to custom PDF invoice generation
+  // 2. Fallback to custom PDF invoice generation
   return await generatePDFInvoice(payment as any)
 }
 
 /**
  * Create Setup Intent to save payment method for future use
  */
-const createSetupIntent = async (user: JwtPayload): Promise<{ clientSecret: string }> => {
-  const userData = await User.findById(user.userId);
-  if (!userData) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found');
+const createSetupIntent = async (
+  user: JwtPayload,
+): Promise<{ clientSecret: string }> => {
+  const userData = await User.findById(user.userId)
+  if (!userData) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
 
-  let customerId = userData.stripeCustomerId;
+  let customerId = userData.stripeCustomerId
 
   if (!customerId) {
     const customer = await stripe.customers.create({
       email: userData.email,
       name: userData.fullName || userData.name,
       metadata: { userId: userData._id.toString() },
-    });
-    customerId = customer.id;
-    userData.stripeCustomerId = customer.id;
-    await userData.save();
+    })
+    customerId = customer.id
+    userData.stripeCustomerId = customer.id
+    await userData.save()
   }
 
   const setupIntent = await stripe.setupIntents.create({
     customer: customerId,
     payment_method_types: ['card'],
-  });
+  })
 
   return {
     clientSecret: setupIntent.client_secret!,
-  };
-};
+  }
+}
 
 /**
  * List all saved payment methods for a user
  */
 const getMyPaymentMethods = async (user: JwtPayload) => {
-  const userData = await User.findById(user.userId);
-  if (!userData?.stripeCustomerId) return [];
+  const userData = await User.findById(user.userId)
+  if (!userData?.stripeCustomerId) return []
 
   const paymentMethods = await stripe.paymentMethods.list({
     customer: userData.stripeCustomerId,
     type: 'card',
-  });
+  })
 
-  const customer = await stripe.customers.retrieve(userData.stripeCustomerId) as any;
-  const defaultPaymentMethodId = customer.invoice_settings?.default_payment_method;
+  const customer = (await stripe.customers.retrieve(
+    userData.stripeCustomerId,
+  )) as any
+  const defaultPaymentMethodId =
+    customer.invoice_settings?.default_payment_method
 
   return paymentMethods.data.map(pm => ({
     id: pm.id,
@@ -725,41 +766,52 @@ const getMyPaymentMethods = async (user: JwtPayload) => {
     expMonth: pm.card?.exp_month,
     expYear: pm.card?.exp_year,
     isDefault: pm.id === defaultPaymentMethodId,
-  }));
-};
+  }))
+}
 
 /**
  * Delete a saved payment method
  */
-const deletePaymentMethod = async (user: JwtPayload, paymentMethodId: string) => {
-  const userData = await User.findById(user.userId);
-  if (!userData?.stripeCustomerId) throw new ApiError(StatusCodes.BAD_REQUEST, 'No stripe customer found');
+const deletePaymentMethod = async (
+  user: JwtPayload,
+  paymentMethodId: string,
+) => {
+  const userData = await User.findById(user.userId)
+  if (!userData?.stripeCustomerId)
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'No stripe customer found')
 
   // Verify ownership (optional check, Stripe handles detachment but good for safety)
-  const pm = await stripe.paymentMethods.retrieve(paymentMethodId);
+  const pm = await stripe.paymentMethods.retrieve(paymentMethodId)
   if (pm.customer !== userData.stripeCustomerId) {
-    throw new ApiError(StatusCodes.FORBIDDEN, 'Payment method does not belong to this user');
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      'Payment method does not belong to this user',
+    )
   }
 
-  await stripe.paymentMethods.detach(paymentMethodId);
-  return { success: true };
-};
+  await stripe.paymentMethods.detach(paymentMethodId)
+  return { success: true }
+}
 
 /**
  * Set a payment method as default
  */
-const setDefaultPaymentMethod = async (user: JwtPayload, paymentMethodId: string) => {
-  const userData = await User.findById(user.userId);
-  if (!userData?.stripeCustomerId) throw new ApiError(StatusCodes.BAD_REQUEST, 'No stripe customer found');
+const setDefaultPaymentMethod = async (
+  user: JwtPayload,
+  paymentMethodId: string,
+) => {
+  const userData = await User.findById(user.userId)
+  if (!userData?.stripeCustomerId)
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'No stripe customer found')
 
   await stripe.customers.update(userData.stripeCustomerId, {
     invoice_settings: {
       default_payment_method: paymentMethodId,
     },
-  });
+  })
 
-  return { success: true };
-};
+  return { success: true }
+}
 
 export const PaymentServices = {
   getAllPayments,

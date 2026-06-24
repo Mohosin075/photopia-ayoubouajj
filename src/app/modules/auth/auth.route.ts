@@ -72,7 +72,12 @@ router.post(
 
 router.post(
   '/change-password',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.SUPER_ADMIN),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.USER,
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.SUPER_ADMIN,
+  ),
   validateRequest(AuthValidations.changePasswordZodSchema),
   CustomAuthController.changePassword,
 )
@@ -93,7 +98,12 @@ router.post(
 
 router.post(
   '/logout',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.SUPER_ADMIN),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.USER,
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.SUPER_ADMIN,
+  ),
   CustomAuthController.logout,
 )
 

@@ -52,14 +52,13 @@ exports.SERVICE_CONSTANTS = {
         'status',
         'isVerified',
         'providerId',
-        'serviceType',
         'isActive',
         'theme',
         'isOnline',
         'quickResponse',
         'expressDelivery',
         'thisWeekend',
-        'lastMinute'
+        'lastMinute',
     ],
     SORTABLE_FIELDS: ['createdAt', 'updatedAt', 'price'],
     PAGINATION: {
@@ -69,7 +68,7 @@ exports.SERVICE_CONSTANTS = {
     },
 };
 // List view projection for performance
-exports.SERVICE_LIST_PROJECTION = 'title category subCategory price currency coverMedia duration location status isActive serviceType providerId totalView totalBooking';
+exports.SERVICE_LIST_PROJECTION = 'title category subCategory price currency coverMedia duration location status isActive providerId totalView totalBooking';
 // Service filterable fields for query filtering
 exports.serviceFilterableFields = [...exports.SERVICE_CONSTANTS.FILTERABLE_FIELDS];
 // Service searchable fields

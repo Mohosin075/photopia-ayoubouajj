@@ -25,7 +25,8 @@ const getMyAvailability = (0, catchAsync_1.default)(async (req, res) => {
     const user = req.user;
     if (!user)
         throw new ApiError_1.default(http_status_codes_1.default.UNAUTHORIZED, 'User not found');
-    const result = await availability_service_1.AvailabilityService.getProviderAvailability(user.userId);
+    const { serviceId } = req.query;
+    const result = await availability_service_1.AvailabilityService.getProviderAvailability(user.userId, serviceId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
@@ -35,7 +36,8 @@ const getMyAvailability = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getProviderAvailability = (0, catchAsync_1.default)(async (req, res) => {
     const { providerId } = req.params;
-    const result = await availability_service_1.AvailabilityService.getProviderAvailability(providerId);
+    const { serviceId } = req.query;
+    const result = await availability_service_1.AvailabilityService.getProviderAvailability(providerId, serviceId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
@@ -45,11 +47,11 @@ const getProviderAvailability = (0, catchAsync_1.default)(async (req, res) => {
 });
 const checkDateAvailability = (0, catchAsync_1.default)(async (req, res) => {
     const { providerId } = req.params;
-    const { date } = req.query;
+    const { date, serviceId } = req.query;
     if (!date || typeof date !== 'string') {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Date query parameter is required');
     }
-    const result = await availability_service_1.AvailabilityService.checkAvailabilityForDate(providerId, new Date(date));
+    const result = await availability_service_1.AvailabilityService.checkAvailabilityForDate(providerId, new Date(date), serviceId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
@@ -59,7 +61,7 @@ const checkDateAvailability = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getTimeSlots = (0, catchAsync_1.default)(async (req, res) => {
     const { providerId } = req.params;
-    const { date, duration } = req.query;
+    const { date, duration, serviceId } = req.query;
     if (!date || typeof date !== 'string') {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Date query parameter is required');
     }
@@ -70,7 +72,7 @@ const getTimeSlots = (0, catchAsync_1.default)(async (req, res) => {
     if (isNaN(serviceDuration) || serviceDuration <= 0) {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Duration must be a positive number');
     }
-    const result = await availability_service_1.AvailabilityService.getAvailableTimeSlots(providerId, new Date(date), serviceDuration);
+    const result = await availability_service_1.AvailabilityService.getAvailableTimeSlots(providerId, new Date(date), serviceDuration, serviceId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
@@ -80,7 +82,7 @@ const getTimeSlots = (0, catchAsync_1.default)(async (req, res) => {
 });
 const getMonthCalendar = (0, catchAsync_1.default)(async (req, res) => {
     const { providerId } = req.params;
-    const { month, year } = req.query;
+    const { month, year, serviceId } = req.query;
     if (!month || typeof month !== 'string') {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Month query parameter is required');
     }
@@ -95,7 +97,7 @@ const getMonthCalendar = (0, catchAsync_1.default)(async (req, res) => {
     if (isNaN(yearNum) || yearNum < 2020 || yearNum > 2100) {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Year must be between 2020 and 2100');
     }
-    const result = await availability_service_1.AvailabilityService.getMonthCalendar(providerId, monthNum, yearNum);
+    const result = await availability_service_1.AvailabilityService.getMonthCalendar(providerId, monthNum, yearNum, serviceId);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,

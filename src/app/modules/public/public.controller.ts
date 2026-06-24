@@ -112,7 +112,6 @@ const deleteFaq = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-
 const updatePublic = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const publicData = req.body
@@ -136,5 +135,5 @@ export const PublicController = {
   getSingleFaq,
   getAllFaqs,
   deleteFaq,
-  updatePublic
+  updatePublic,
 }

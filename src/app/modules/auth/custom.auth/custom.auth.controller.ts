@@ -12,13 +12,10 @@ const customLogin = catchAsync(async (req: Request, res: Response) => {
   const result = await CustomAuthServices.customLogin(loginData)
   const { status, message, accessToken, refreshToken, role } = result
 
-
-
   res.cookie('refreshToken', refreshToken, {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
   })
-
 
   sendResponse(res, {
     statusCode: status,
@@ -34,13 +31,10 @@ const adminLogin = catchAsync(async (req: Request, res: Response) => {
   const result = await CustomAuthServices.adminLogin(loginData)
   const { status, message, accessToken, refreshToken, role } = result
 
-
-
   res.cookie('refreshToken', refreshToken, {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
   })
-
 
   sendResponse(res, {
     statusCode: status,
@@ -79,10 +73,12 @@ const resetPassword = catchAsync(async (req: Request, res: Response) => {
 const verifyAccount = catchAsync(async (req: Request, res: Response) => {
   const { oneTimeCode, phone, email } = req.body
 
-  const result = await CustomAuthServices.verifyAccount(oneTimeCode, email, phone)
+  const result = await CustomAuthServices.verifyAccount(
+    oneTimeCode,
+    email,
+    phone,
+  )
   const { status, message, accessToken, refreshToken, role, token } = result
-
-
 
   res.cookie('refreshToken', refreshToken, {
     secure: process.env.NODE_ENV === 'production',
@@ -167,8 +163,6 @@ const socialLogin = catchAsync(async (req: Request, res: Response) => {
   const { appId, deviceToken } = req.body
   const result = await CustomAuthServices.socialLogin(appId, deviceToken)
   const { status, message, accessToken, refreshToken, role } = result
-
-
 
   res.cookie('refreshToken', refreshToken, {
     secure: process.env.NODE_ENV === 'production',

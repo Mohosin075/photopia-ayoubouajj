@@ -117,5 +117,5 @@ exports.PublicController = {
     getSingleFaq,
     getAllFaqs,
     deleteFaq,
-    updatePublic
+    updatePublic,
 };

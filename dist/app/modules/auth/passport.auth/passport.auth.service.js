@@ -56,5 +56,5 @@ const handleGoogleLogin = async (payload) => {
     }
 };
 exports.PassportAuthServices = {
-    handleGoogleLogin
+    handleGoogleLogin,
 };

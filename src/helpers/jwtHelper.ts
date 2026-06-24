@@ -3,22 +3,21 @@ import jwt, { JwtPayload, Secret } from 'jsonwebtoken'
 const createToken = (
   payload: string | object | Buffer,
   secret: Secret,
-  expireTime: string
+  expireTime: string,
 ) => {
-  return jwt.sign(payload, secret, { expiresIn: expireTime } as jwt.SignOptions);
+  return jwt.sign(payload, secret, { expiresIn: expireTime } as jwt.SignOptions)
 }
 const decodeToken = (token: string): JwtPayload | null => {
   try {
-    const decoded = jwt.decode(token);
+    const decoded = jwt.decode(token)
     if (typeof decoded === 'object' && decoded !== null) {
-      return decoded as JwtPayload;
+      return decoded as JwtPayload
     }
-    return null;
+    return null
   } catch {
-    return null;
+    return null
   }
 }
-
 
 const verifyToken = (token: string, secret: Secret) => {
   return jwt.verify(token, secret) as JwtPayload

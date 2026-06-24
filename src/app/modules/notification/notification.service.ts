@@ -54,7 +54,9 @@ const createNotification = async (
       })
 
       if (existingSpam) {
-        console.log(`[Anti-Spam] Suppressed duplicate notification ${payload.type} for user ${payload.userId} within 1 hour.`)
+        console.log(
+          `[Anti-Spam] Suppressed duplicate notification ${payload.type} for user ${payload.userId} within 1 hour.`,
+        )
         return existingSpam
       }
     }
@@ -146,7 +148,9 @@ const sendNotificationPush = async (
       user.settings?.dndMode === true &&
       notification.priority !== NotificationPriority.URGENT
     ) {
-      console.log(`[DND Suppression] Suppressed push notification due to DND mode for user ${user._id}.`)
+      console.log(
+        `[DND Suppression] Suppressed push notification due to DND mode for user ${user._id}.`,
+      )
       return
     }
 
@@ -165,19 +169,31 @@ const sendNotificationPush = async (
         })
         const localHour = parseInt(localTimeStr, 10)
 
-        const startHour = parseInt(user.settings?.quietHoursStart?.split(':')[0] || '22', 10)
-        const endHour = parseInt(user.settings?.quietHoursEnd?.split(':')[0] || '8', 10)
+        const startHour = parseInt(
+          user.settings?.quietHoursStart?.split(':')[0] || '22',
+          10,
+        )
+        const endHour = parseInt(
+          user.settings?.quietHoursEnd?.split(':')[0] || '8',
+          10,
+        )
 
-        const isQuietTime = startHour > endHour
-          ? (localHour >= startHour || localHour < endHour)
-          : (localHour >= startHour && localHour < endHour)
+        const isQuietTime =
+          startHour > endHour
+            ? localHour >= startHour || localHour < endHour
+            : localHour >= startHour && localHour < endHour
 
         if (isQuietTime) {
-          console.log(`[Quiet Hours] Suppressed push notification for user ${user._id} during quiet hours (${localHour}:00).`)
+          console.log(
+            `[Quiet Hours] Suppressed push notification for user ${user._id} during quiet hours (${localHour}:00).`,
+          )
           return
         }
       } catch (err) {
-        console.error('Quiet Hours calculation failed, falling back to sending:', err)
+        console.error(
+          'Quiet Hours calculation failed, falling back to sending:',
+          err,
+        )
       }
     }
 
@@ -273,8 +289,6 @@ const sendNotificationEmail = async (
         }
         break
 
-
-
       default:
         template = 'system-alert'
     }
@@ -336,8 +350,6 @@ const sendScheduledNotifications = async (): Promise<void> => {
   }
 }
 
-
-
 const getAllNotifications = async (
   user: JwtPayload,
   filterables: INotificationFilterables,
@@ -390,7 +402,10 @@ const getAllNotifications = async (
   }
 
   // User-specific filtering (unless admin)
-  if ((user as any).activeRole === USER_ROLES.USER || (user as any).activeRole === USER_ROLES.PROFESSIONAL) {
+  if (
+    (user as any).activeRole === USER_ROLES.USER ||
+    (user as any).activeRole === USER_ROLES.PROFESSIONAL
+  ) {
     andConditions.push({
       userId: new Types.ObjectId((user as any).userId as string),
     })
@@ -439,8 +454,8 @@ const getAllNotifications = async (
     engagement:
       stats.totalNotifications > 0
         ? Math.round(
-          (stats.clickedNotifications / stats.totalNotifications) * 100,
-        )
+            (stats.clickedNotifications / stats.totalNotifications) * 100,
+          )
         : 0,
   }
 
@@ -586,7 +601,10 @@ const getNotificationStats = async (
 ): Promise<INotificationStats> => {
   const query: any = {}
 
-  if (user.activeRole === USER_ROLES.USER || user.activeRole === USER_ROLES.PROFESSIONAL) {
+  if (
+    user.activeRole === USER_ROLES.USER ||
+    user.activeRole === USER_ROLES.PROFESSIONAL
+  ) {
     query.userId = user.userId
   }
 

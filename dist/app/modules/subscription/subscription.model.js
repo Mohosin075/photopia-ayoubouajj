@@ -115,10 +115,17 @@ const subscriptionSchema = new mongoose_1.Schema({
         min: 0,
         max: 100,
     },
-    fraudFlags: [{
+    fraudFlags: [
+        {
             type: String,
-            enum: ['multiple_trials', 'suspicious_payment', 'chargeback_history', 'high_velocity'],
-        }],
+            enum: [
+                'multiple_trials',
+                'suspicious_payment',
+                'chargeback_history',
+                'high_velocity',
+            ],
+        },
+    ],
 }, {
     timestamps: true,
 });

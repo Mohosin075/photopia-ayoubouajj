@@ -1,1 +1,1 @@
-export const REVIEW_CONSTANT = 'someValue';
+export const REVIEW_CONSTANT = 'someValue'

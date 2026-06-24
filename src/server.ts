@@ -39,13 +39,19 @@ async function main() {
       for (const name of Object.keys(interfaces)) {
         for (const iface of interfaces[name]!) {
           if (iface.family === 'IPv4' && !iface.internal) {
-            logger.info(colors.cyan(`   - Network:  http://${iface.address}:${port}`))
+            logger.info(
+              colors.cyan(`   - Network:  http://${iface.address}:${port}`),
+            )
           }
         }
       }
 
       if (config.ip_address) {
-        logger.info(colors.green(`   - Requested IP: http://${config.ip_address}:${port}`))
+        logger.info(
+          colors.green(
+            `   - Requested IP: http://${config.ip_address}:${port}`,
+          ),
+        )
       }
     })
 
@@ -100,4 +106,3 @@ process.on('SIGTERM', async () => {
     server.close()
   }
 })
-

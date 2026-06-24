@@ -96,7 +96,8 @@ class EmailNotificationService {
                 planName,
                 amount: (invoice.amount_due / 100).toFixed(2),
                 currency: invoice.currency.toUpperCase(),
-                failureReason: ((_a = invoice.last_payment_error) === null || _a === void 0 ? void 0 : _a.message) || 'Payment method declined',
+                failureReason: ((_a = invoice.last_payment_error) === null || _a === void 0 ? void 0 : _a.message) ||
+                    'Payment method declined',
                 retryDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
                 updatePaymentUrl: `${process.env.FRONTEND_URL}/billing`,
                 dashboardUrl: `${process.env.FRONTEND_URL}/dashboard`,
@@ -136,8 +137,8 @@ class EmailNotificationService {
             const user = await user_model_1.User.findById(subscription.userId).select('+email');
             if (!user || !user.email)
                 return;
-            const isUpgrade = newPlan.price > (oldPrice.unit_amount / 100);
-            const priceDifference = Math.abs(newPlan.price - (oldPrice.unit_amount / 100));
+            const isUpgrade = newPlan.price > oldPrice.unit_amount / 100;
+            const priceDifference = Math.abs(newPlan.price - oldPrice.unit_amount / 100);
             const emailData = emailTemplate_1.emailTemplate.planChange({
                 name: user.name || 'Valued Customer',
                 email: user.email,

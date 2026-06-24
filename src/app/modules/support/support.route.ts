@@ -7,16 +7,26 @@ import { createSupportSchema, updateSupportSchema } from './support.validation'
 
 const router = express.Router()
 
-router.get('/', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), SupportController.getAllSupports)
-
-router.get('/:id', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER), SupportController.getSingleSupport)
-
-router.post(
+router.get(
   '/',
+  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  SupportController.getAllSupports,
+)
+
+router.get(
+  '/:id',
   auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
     USER_ROLES.PROFESSIONAL,
     USER_ROLES.USER,
   ),
+  SupportController.getSingleSupport,
+)
+
+router.post(
+  '/',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
 
   validateRequest(createSupportSchema),
 
@@ -25,12 +35,26 @@ router.post(
 
 router.patch(
   '/:id',
-  auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.USER,
+  ),
 
   validateRequest(updateSupportSchema),
   SupportController.updateSupport,
 )
 
-router.delete('/:id', auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL, USER_ROLES.USER), SupportController.deleteSupport)
+router.delete(
+  '/:id',
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.USER,
+  ),
+  SupportController.deleteSupport,
+)
 
 export const SupportRoutes = router

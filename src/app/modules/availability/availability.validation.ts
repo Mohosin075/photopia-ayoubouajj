@@ -1,39 +1,56 @@
 import { z } from 'zod'
 
-const timeStringSchema = z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)")
+const timeStringSchema = z
+  .string()
+  .regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Invalid time format (HH:MM)')
 
 const defaultScheduleSchema = z.object({
   start: timeStringSchema,
   end: timeStringSchema,
   isActive: z.boolean().optional(),
-  maxBookings: z.number().min(1).optional()
+  maxBookings: z.number().min(1).optional(),
 })
 
 const customDateSchema = z.object({
-  date: z.string().or(z.date()).transform(val => new Date(val)),
+  date: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val)),
   type: z.enum(['blocked', 'special_hours', 'unavailable']),
   start: timeStringSchema.optional(),
   end: timeStringSchema.optional(),
   maxBookings: z.number().min(1).optional(),
   note: z.string().optional(),
   rateMultiplier: z.number().min(0.5).max(3).optional(),
-  priceOverride: z.number().min(0).optional()
+  priceOverride: z.number().min(0).optional(),
 })
 
 const availabilityPeriodSchema = z.object({
-  startDate: z.string().or(z.date()).transform(val => new Date(val)),
-  endDate: z.string().or(z.date()).transform(val => new Date(val)),
+  startDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val)),
+  endDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val)),
   startTime: timeStringSchema,
   endTime: timeStringSchema,
   maxBookings: z.number().min(1).optional(),
   rateMultiplier: z.number().min(0.5).max(3).optional(),
-  priceOverride: z.number().min(0).optional()
+  priceOverride: z.number().min(0).optional(),
 })
 
 const blockedDateRangeSchema = z.object({
-  startDate: z.string().or(z.date()).transform(val => new Date(val)),
-  endDate: z.string().or(z.date()).transform(val => new Date(val)),
-  note: z.string().optional()
+  startDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val)),
+  endDate: z
+    .string()
+    .or(z.date())
+    .transform(val => new Date(val)),
+  note: z.string().optional(),
 })
 
 const recurringRuleSchema = z.object({
@@ -43,21 +60,23 @@ const recurringRuleSchema = z.object({
   start: timeStringSchema.optional(),
   end: timeStringSchema.optional(),
   maxBookings: z.number().min(1).optional(),
-  active: z.boolean().optional()
+  active: z.boolean().optional(),
 })
 
 export const createAvailabilityValidationSchema = z.object({
   body: z.object({
     serviceId: z.string().optional(),
-    defaultSchedule: z.object({
-      monday: defaultScheduleSchema.optional(),
-      tuesday: defaultScheduleSchema.optional(),
-      wednesday: defaultScheduleSchema.optional(),
-      thursday: defaultScheduleSchema.optional(),
-      friday: defaultScheduleSchema.optional(),
-      saturday: defaultScheduleSchema.optional(),
-      sunday: defaultScheduleSchema.optional()
-    }).optional(),
+    defaultSchedule: z
+      .object({
+        monday: defaultScheduleSchema.optional(),
+        tuesday: defaultScheduleSchema.optional(),
+        wednesday: defaultScheduleSchema.optional(),
+        thursday: defaultScheduleSchema.optional(),
+        friday: defaultScheduleSchema.optional(),
+        saturday: defaultScheduleSchema.optional(),
+        sunday: defaultScheduleSchema.optional(),
+      })
+      .optional(),
     customDates: z.array(customDateSchema).optional(),
     recurringRules: z.array(recurringRuleSchema).optional(),
     availabilityPeriods: z.array(availabilityPeriodSchema).optional(),
@@ -67,22 +86,24 @@ export const createAvailabilityValidationSchema = z.object({
     maxBookingsPerDay: z.number().min(1).optional(),
     maxBookingsPerWeek: z.number().min(1).optional(),
     autoBlockAfterBooking: z.boolean().optional(),
-    autoBlockDuration: z.number().min(0).max(240).optional()
-  })
+    autoBlockDuration: z.number().min(0).max(240).optional(),
+  }),
 })
 
 export const updateAvailabilityValidationSchema = z.object({
   body: z.object({
     serviceId: z.string().optional(),
-    defaultSchedule: z.object({
-      monday: defaultScheduleSchema.optional(),
-      tuesday: defaultScheduleSchema.optional(),
-      wednesday: defaultScheduleSchema.optional(),
-      thursday: defaultScheduleSchema.optional(),
-      friday: defaultScheduleSchema.optional(),
-      saturday: defaultScheduleSchema.optional(),
-      sunday: defaultScheduleSchema.optional()
-    }).optional(),
+    defaultSchedule: z
+      .object({
+        monday: defaultScheduleSchema.optional(),
+        tuesday: defaultScheduleSchema.optional(),
+        wednesday: defaultScheduleSchema.optional(),
+        thursday: defaultScheduleSchema.optional(),
+        friday: defaultScheduleSchema.optional(),
+        saturday: defaultScheduleSchema.optional(),
+        sunday: defaultScheduleSchema.optional(),
+      })
+      .optional(),
     customDates: z.array(customDateSchema).optional(),
     recurringRules: z.array(recurringRuleSchema).optional(),
     availabilityPeriods: z.array(availabilityPeriodSchema).optional(),
@@ -92,7 +113,6 @@ export const updateAvailabilityValidationSchema = z.object({
     maxBookingsPerDay: z.number().min(1).optional(),
     maxBookingsPerWeek: z.number().min(1).optional(),
     autoBlockAfterBooking: z.boolean().optional(),
-    autoBlockDuration: z.number().min(0).max(240).optional()
-  })
+    autoBlockDuration: z.number().min(0).max(240).optional(),
+  }),
 })
-

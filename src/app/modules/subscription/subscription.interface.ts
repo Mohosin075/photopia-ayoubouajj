@@ -32,15 +32,23 @@ export interface ISubscription {
   stripeCustomerId: string
   stripeSubscriptionId: string
   stripePriceId: string
-  status: 'incomplete' | 'incomplete_expired' | 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'paused'
+  status:
+    | 'incomplete'
+    | 'incomplete_expired'
+    | 'trialing'
+    | 'active'
+    | 'past_due'
+    | 'canceled'
+    | 'unpaid'
+    | 'paused'
   currentPeriodStart: Date
   currentPeriodEnd: Date
   trialStart?: Date | null
   trialEnd?: Date | null
   canceledAt?: Date | null
-  pausedAt?:Date | null
-  resumedAt?:Date | null
-  lastSyncedAt?:Date | null
+  pausedAt?: Date | null
+  resumedAt?: Date | null
+  lastSyncedAt?: Date | null
   cancelAtPeriodEnd: boolean
   endedAt?: Date | null
   hasUsedTrial: boolean
@@ -48,9 +56,9 @@ export interface ISubscription {
   lastPaymentDate?: Date | null
   nextPaymentDate?: Date | null
   paymentFailureCount: number
-  fraudFlags?:string
+  fraudFlags?: string
   lastWebhookEventId?: string | null
-  riskScore?:Number
+  riskScore?: Number
   createdAt?: Date
   updatedAt?: Date
 }

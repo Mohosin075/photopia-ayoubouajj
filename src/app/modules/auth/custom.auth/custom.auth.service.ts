@@ -140,7 +140,10 @@ const adminLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
     )
   }
 
-  if (!isUserExist.roles.includes(USER_ROLES.ADMIN) && !isUserExist.roles.includes(USER_ROLES.SUPER_ADMIN)) {
+  if (
+    !isUserExist.roles.includes(USER_ROLES.ADMIN) &&
+    !isUserExist.roles.includes(USER_ROLES.SUPER_ADMIN)
+  ) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       'You are not authorized to login as admin',
@@ -176,9 +179,7 @@ const adminLogin = async (payload: ILoginData): Promise<IAuthResponse> => {
 }
 
 const forgetPassword = async (email?: string, phone?: string) => {
-  const query = email
-    ? { email: email.toLowerCase().trim() }
-    : { phone: phone }
+  const query = email ? { email: email.toLowerCase().trim() } : { phone: phone }
   const isUserExist = await User.findOne({
     ...query,
     status: { $in: [USER_STATUS.ACTIVE, USER_STATUS.INACTIVE] },
@@ -356,7 +357,6 @@ const verifyAccount = async (
       isUserExist.email!,
     )
 
-
     return authResponse(
       StatusCodes.OK,
       `Welcome ${isUserExist.name} to our platform.`,
@@ -432,7 +432,6 @@ const getRefreshToken = async (token: string) => {
     throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid Refresh Token')
   }
 }
-
 
 const socialLogin = async (
   appId: string,
@@ -574,9 +573,18 @@ const resendOtp = async (
   )
 
   if (email) {
-    const otpTemplate = authType === 'createAccount'
-      ? emailTemplate.createAccount({ name: isUserExist.name!, email: isUserExist.email!, otp })
-      : emailTemplate.resetPassword({ name: isUserExist.name!, email: isUserExist.email!, otp })
+    const otpTemplate =
+      authType === 'createAccount'
+        ? emailTemplate.createAccount({
+            name: isUserExist.name!,
+            email: isUserExist.email!,
+            otp,
+          })
+        : emailTemplate.resetPassword({
+            name: isUserExist.name!,
+            email: isUserExist.email!,
+            otp,
+          })
 
     emailHelper.sendEmail(otpTemplate)
   }

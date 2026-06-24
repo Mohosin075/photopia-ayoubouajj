@@ -1,6 +1,12 @@
 import { Model, Types } from 'mongoose'
 
-export type IInteractionType = 'booking_start' | 'contact_click' | 'share' | 'invoice_download' | 'profile_view' | 'service_view'
+export type IInteractionType =
+  | 'booking_start'
+  | 'contact_click'
+  | 'share'
+  | 'invoice_download'
+  | 'profile_view'
+  | 'service_view'
 
 export interface IAnalytics {
   _id: Types.ObjectId

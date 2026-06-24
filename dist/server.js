@@ -14,6 +14,7 @@ const user_service_1 = require("./app/modules/user/user.service");
 const socketHelper_1 = require("./helpers/socketHelper");
 const subscription_seed_1 = require("./app/modules/subscription/subscription.seed");
 const logger_1 = require("./shared/logger");
+const notification_scheduler_1 = require("./app/modules/notification/notification.scheduler");
 // Uncaught exceptions
 process.on('uncaughtException', error => {
     logger_1.errorLogger.error('🔥 UncaughtException Detected:', error);
@@ -50,6 +51,8 @@ async function main() {
         await user_service_1.UserServices.createAdmin();
         // Seed subscription plans
         await (0, subscription_seed_1.seedSubscriptionPlans)();
+        // Initialize notification schedulers (Cron jobs)
+        notification_scheduler_1.notificationScheduler;
         // Socket helper
         socketHelper_1.socketHelper.socket(exports.io);
         global.io = exports.io;

@@ -7,33 +7,33 @@ const walletSchema = new mongoose_1.Schema({
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
-        unique: true
+        unique: true,
     },
     balance: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
     },
     pendingBalance: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
     },
     totalEarnings: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
     },
     totalWithdrawn: {
         type: Number,
         default: 0,
-        min: 0
+        min: 0,
     },
     currency: {
         type: String,
-        default: 'EUR'
-    }
+        default: 'EUR',
+    },
 }, {
-    timestamps: true
+    timestamps: true,
 });
 exports.Wallet = (0, mongoose_1.model)('Wallet', walletSchema);

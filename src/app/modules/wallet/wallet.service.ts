@@ -5,7 +5,9 @@ import ApiError from '../../../errors/ApiError'
 import httpStatus from 'http-status-codes'
 import { Booking } from '../booking/booking.model'
 
-const getWalletByUserId = async (userId: string | Types.ObjectId): Promise<any> => {
+const getWalletByUserId = async (
+  userId: string | Types.ObjectId,
+): Promise<any> => {
   let wallet = await Wallet.findOne({ userId })
   if (!wallet) {
     wallet = await Wallet.create({ userId })
@@ -15,56 +17,64 @@ const getWalletByUserId = async (userId: string | Types.ObjectId): Promise<any> 
   const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
   const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
-  const monthBeforeLastStart = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+  const monthBeforeLastStart = new Date(
+    now.getFullYear(),
+    now.getMonth() - 2,
+    1,
+  )
   const monthBeforeLastEnd = new Date(now.getFullYear(), now.getMonth() - 1, 0)
 
-  const [thisMonthStats, lastMonthStats, monthBeforeLastStats] = await Promise.all([
-    Booking.aggregate([
-      {
-        $match: {
-          providerId: new Types.ObjectId(userId.toString()),
-          status: 'completed',
-          completedAt: { $gte: currentMonthStart },
+  const [thisMonthStats, lastMonthStats, monthBeforeLastStats] =
+    await Promise.all([
+      Booking.aggregate([
+        {
+          $match: {
+            providerId: new Types.ObjectId(userId.toString()),
+            status: 'completed',
+            completedAt: { $gte: currentMonthStart },
+          },
         },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$pricingDetails.providerEarnings' },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$pricingDetails.providerEarnings' },
+          },
         },
-      },
-    ]),
-    Booking.aggregate([
-      {
-        $match: {
-          providerId: new Types.ObjectId(userId.toString()),
-          status: 'completed',
-          completedAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+      ]),
+      Booking.aggregate([
+        {
+          $match: {
+            providerId: new Types.ObjectId(userId.toString()),
+            status: 'completed',
+            completedAt: { $gte: lastMonthStart, $lte: lastMonthEnd },
+          },
         },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$pricingDetails.providerEarnings' },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$pricingDetails.providerEarnings' },
+          },
         },
-      },
-    ]),
-    Booking.aggregate([
-      {
-        $match: {
-          providerId: new Types.ObjectId(userId.toString()),
-          status: 'completed',
-          completedAt: { $gte: monthBeforeLastStart, $lte: monthBeforeLastEnd },
+      ]),
+      Booking.aggregate([
+        {
+          $match: {
+            providerId: new Types.ObjectId(userId.toString()),
+            status: 'completed',
+            completedAt: {
+              $gte: monthBeforeLastStart,
+              $lte: monthBeforeLastEnd,
+            },
+          },
         },
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$pricingDetails.providerEarnings' },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$pricingDetails.providerEarnings' },
+          },
         },
-      },
-    ]),
-  ])
+      ]),
+    ])
 
   const thisMonthEarnings = thisMonthStats[0]?.total || 0
   const lastMonthEarnings = lastMonthStats[0]?.total || 0
@@ -72,7 +82,7 @@ const getWalletByUserId = async (userId: string | Types.ObjectId): Promise<any> 
 
   const calculateChange = (current: number, previous: number) => {
     if (previous === 0) return current > 0 ? 100 : 0
-    return Number(((current - previous) / previous * 100).toFixed(2))
+    return Number((((current - previous) / previous) * 100).toFixed(2))
   }
 
   return {
@@ -83,7 +93,10 @@ const getWalletByUserId = async (userId: string | Types.ObjectId): Promise<any> 
     },
     lastMonthEarnings: {
       amount: lastMonthEarnings,
-      percentageChange: calculateChange(lastMonthEarnings, monthBeforeLastEarnings),
+      percentageChange: calculateChange(
+        lastMonthEarnings,
+        monthBeforeLastEarnings,
+      ),
     },
   }
 }
@@ -91,14 +104,14 @@ const getWalletByUserId = async (userId: string | Types.ObjectId): Promise<any> 
 const addEarnings = async (
   userId: string | Types.ObjectId,
   amount: number,
-  session?: any
+  session?: any,
 ): Promise<IWallet | null> => {
   const wallet = await Wallet.findOneAndUpdate(
     { userId },
-    { 
-      $inc: { balance: amount, totalEarnings: amount } 
+    {
+      $inc: { balance: amount, totalEarnings: amount },
     },
-    { session, new: true, upsert: true }
+    { session, new: true, upsert: true },
   )
   return wallet
 }
@@ -106,18 +119,21 @@ const addEarnings = async (
 const deductBalance = async (
   userId: string | Types.ObjectId,
   amount: number,
-  session?: any
+  session?: any,
 ): Promise<IWallet | null> => {
   const wallet = await Wallet.findOneAndUpdate(
     { userId, balance: { $gte: amount } },
-    { 
-      $inc: { balance: -amount, totalWithdrawn: amount } 
+    {
+      $inc: { balance: -amount, totalWithdrawn: amount },
     },
-    { session, new: true }
+    { session, new: true },
   )
 
   if (!wallet) {
-    throw new ApiError(httpStatus.BAD_REQUEST, 'Insufficient balance or wallet not found')
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      'Insufficient balance or wallet not found',
+    )
   }
 
   return wallet
@@ -126,14 +142,14 @@ const deductBalance = async (
 const refundBalance = async (
   userId: string | Types.ObjectId,
   amount: number,
-  session?: any
+  session?: any,
 ): Promise<IWallet | null> => {
   const wallet = await Wallet.findOneAndUpdate(
     { userId },
-    { 
-      $inc: { balance: amount, totalWithdrawn: -amount } 
+    {
+      $inc: { balance: amount, totalWithdrawn: -amount },
     },
-    { session, new: true }
+    { session, new: true },
   )
 
   if (!wallet) {
@@ -146,14 +162,14 @@ const refundBalance = async (
 const addPendingEarnings = async (
   userId: string | Types.ObjectId,
   amount: number,
-  session?: any
+  session?: any,
 ): Promise<IWallet | null> => {
   const wallet = await Wallet.findOneAndUpdate(
     { userId },
-    { 
-      $inc: { pendingBalance: amount } 
+    {
+      $inc: { pendingBalance: amount },
     },
-    { session, new: true, upsert: true }
+    { session, new: true, upsert: true },
   )
   return wallet
 }
@@ -161,23 +177,23 @@ const addPendingEarnings = async (
 const completePendingEarnings = async (
   userId: string | Types.ObjectId,
   amount: number,
-  session?: any
+  session?: any,
 ): Promise<IWallet | null> => {
   const wallet = await Wallet.findOneAndUpdate(
     { userId, pendingBalance: { $gte: amount } },
-    { 
-      $inc: { pendingBalance: -amount, balance: amount, totalEarnings: amount } 
+    {
+      $inc: { pendingBalance: -amount, balance: amount, totalEarnings: amount },
     },
-    { session, new: true }
+    { session, new: true },
   )
-  
+
   if (!wallet) {
-     // If pending balance is less than amount (edge case), just add to balance
-     return await Wallet.findOneAndUpdate(
-       { userId },
-       { $inc: { balance: amount, totalEarnings: amount } },
-       { session, new: true }
-     )
+    // If pending balance is less than amount (edge case), just add to balance
+    return await Wallet.findOneAndUpdate(
+      { userId },
+      { $inc: { balance: amount, totalEarnings: amount } },
+      { session, new: true },
+    )
   }
   return wallet
 }
@@ -185,14 +201,14 @@ const completePendingEarnings = async (
 const cancelPendingEarnings = async (
   userId: string | Types.ObjectId,
   amount: number,
-  session?: any
+  session?: any,
 ): Promise<IWallet | null> => {
   const wallet = await Wallet.findOneAndUpdate(
     { userId, pendingBalance: { $gte: amount } },
-    { 
-      $inc: { pendingBalance: -amount } 
+    {
+      $inc: { pendingBalance: -amount },
     },
-    { session, new: true }
+    { session, new: true },
   )
   return wallet
 }
@@ -204,5 +220,5 @@ export const WalletService = {
   refundBalance,
   addPendingEarnings,
   completePendingEarnings,
-  cancelPendingEarnings
+  cancelPendingEarnings,
 }

@@ -10,7 +10,9 @@ const sendResponse_1 = __importDefault(require("../../../shared/sendResponse"));
 const analytics_service_1 = require("./analytics.service");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const trackVisit = (0, catchAsync_1.default)(async (req, res) => {
-    const visitorId = req.user ? req.user.userId : (req.headers['x-visitor-id'] || req.ip);
+    const visitorId = req.user
+        ? req.user.userId
+        : req.headers['x-visitor-id'] || req.ip;
     await analytics_service_1.AnalyticsService.trackVisit({
         ...req.body,
         visitorId,

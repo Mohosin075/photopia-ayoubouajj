@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.sendPushNotification = void 0;
 const firebase_admin_1 = __importDefault(require("firebase-admin"));
 const config_1 = __importDefault(require("../config"));
-const serviceAccountJson = Buffer.from(config_1.default.firebase_service_account_base64, "base64").toString("utf8");
+const serviceAccountJson = Buffer.from(config_1.default.firebase_service_account_base64, 'base64').toString('utf8');
 const serviceAccount = JSON.parse(serviceAccountJson);
 firebase_admin_1.default.initializeApp({
     credential: firebase_admin_1.default.credential.cert(serviceAccount),

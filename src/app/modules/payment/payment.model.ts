@@ -3,7 +3,6 @@ import { IPayment, PaymentModel } from './payment.interface'
 
 const paymentSchema = new Schema<IPayment, PaymentModel>(
   {
-
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -61,7 +60,7 @@ const paymentSchema = new Schema<IPayment, PaymentModel>(
   },
 )
 
-paymentSchema.index({ userId: 1 });
-paymentSchema.index({ paymentIntentId: 1 });
+paymentSchema.index({ userId: 1 })
+paymentSchema.index({ paymentIntentId: 1 })
 
 export const Payment = model<IPayment, PaymentModel>('Payment', paymentSchema)

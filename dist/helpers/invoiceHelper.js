@@ -18,7 +18,7 @@ const generatePDFInvoice = async (payment) => {
         doc.on('end', () => {
             resolve(Buffer.concat(buffers));
         });
-        doc.on('error', (err) => {
+        doc.on('error', err => {
             reject(err);
         });
         const userData = payment.userId;
@@ -34,12 +34,14 @@ const generatePDFInvoice = async (payment) => {
             .text('Tech City, TC 10101', 200, 80, { align: 'right' })
             .moveDown();
         // --- Line Divider ---
-        doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(50, 100).lineTo(550, 100).stroke();
-        // --- Invoice Info ---
         doc
-            .fillColor('#444444')
-            .fontSize(16)
-            .text('INVOICE', 50, 120);
+            .strokeColor('#aaaaaa')
+            .lineWidth(1)
+            .moveTo(50, 100)
+            .lineTo(550, 100)
+            .stroke();
+        // --- Invoice Info ---
+        doc.fillColor('#444444').fontSize(16).text('INVOICE', 50, 120);
         doc
             .fontSize(10)
             .text(`Invoice Number:`, 50, 145)
@@ -64,23 +66,36 @@ const generatePDFInvoice = async (payment) => {
         doc.moveDown(4);
         // --- Table Header ---
         const tableTop = 240;
-        doc.font('Helvetica-Bold')
+        doc
+            .font('Helvetica-Bold')
             .fontSize(10)
             .text('Description', 50, tableTop)
             .text('Transaction ID', 250, tableTop)
             .text('Amount', 450, tableTop, { align: 'right' });
-        doc.strokeColor('#eeeeee').lineWidth(1).moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+        doc
+            .strokeColor('#eeeeee')
+            .lineWidth(1)
+            .moveTo(50, tableTop + 15)
+            .lineTo(550, tableTop + 15)
+            .stroke();
         // --- Table Item ---
         const itemRowTop = tableTop + 30;
-        doc.font('Helvetica')
+        doc
+            .font('Helvetica')
             .fontSize(10)
             .text('Professional Booking Service', 50, itemRowTop)
             .text(payment.paymentIntentId || 'N/A', 250, itemRowTop)
             .text(`${payment.amount.toLocaleString()} ${payment.currency.toUpperCase()}`, 450, itemRowTop, { align: 'right' });
         // --- Totals ---
         const subtotalTop = itemRowTop + 50;
-        doc.strokeColor('#aaaaaa').lineWidth(1).moveTo(350, subtotalTop).lineTo(550, subtotalTop).stroke();
-        doc.font('Helvetica-Bold')
+        doc
+            .strokeColor('#aaaaaa')
+            .lineWidth(1)
+            .moveTo(350, subtotalTop)
+            .lineTo(550, subtotalTop)
+            .stroke();
+        doc
+            .font('Helvetica-Bold')
             .fontSize(12)
             .fillColor('#000000')
             .text('Total Paid:', 350, subtotalTop + 15)

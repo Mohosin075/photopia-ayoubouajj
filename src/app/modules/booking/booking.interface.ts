@@ -5,7 +5,7 @@ export interface IBooking extends Document {
   clientId: Types.ObjectId
   providerId: Types.ObjectId
   serviceId: Types.ObjectId
-  
+
   // Booking Details
   bookingDate: Date
   startTime: string
@@ -17,8 +17,7 @@ export interface IBooking extends Document {
     name: string
     price: number
   }[]
-  
-  
+
   // Location
   eventLocation: {
     address: string
@@ -31,7 +30,7 @@ export interface IBooking extends Document {
     distanceFromProviderKm: number
     notes?: string
   }
-  
+
   // Pricing & Payment
   pricingDetails: {
     pricingType: string
@@ -45,9 +44,14 @@ export interface IBooking extends Document {
     providerEarnings: number
     currency: string
   }
-  
+
   // Payment Status
-  paymentStatus: 'pending' | 'deposit_paid' | 'fully_paid' | 'refunded' | 'cancelled'
+  paymentStatus:
+    | 'pending'
+    | 'deposit_paid'
+    | 'fully_paid'
+    | 'refunded'
+    | 'cancelled'
   depositAmount: number
   depositPercentage: number
   balanceAmount: number
@@ -55,25 +59,25 @@ export interface IBooking extends Document {
   stripeClientSecret?: string
   stripeTransferId?: string
   stripeTransferStatus?: 'pending' | 'succeeded' | 'failed'
-  
+
   // Status
   status: 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled'
   cancellationReason?: string
   cancellationFee?: number
-  
+
   // Client Details
   clientName: string
   clientEmail: string
   clientPhone?: string
   eventType?: string
   specialRequests?: string
-  
+
   // Timestamps
   bookedAt: Date
   confirmedAt?: Date
   cancelledAt?: Date
   completedAt?: Date
-  
+
   // Reviews
   review?: {
     rating: number

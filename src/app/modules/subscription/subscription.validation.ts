@@ -3,34 +3,76 @@ import { z } from 'zod'
 // Subscription Plan Validation
 export const createSubscriptionPlanSchema = z.object({
   body: z.object({
-    name: z.string().min(1, 'Plan name is required').max(100, 'Plan name too long'),
-    description: z.string().min(1, 'Description is required').max(500, 'Description too long'),
+    name: z
+      .string()
+      .min(1, 'Plan name is required')
+      .max(100, 'Plan name too long'),
+    description: z
+      .string()
+      .min(1, 'Description is required')
+      .max(500, 'Description too long'),
     price: z.number().min(0, 'Price must be non-negative'),
-    currency: z.string().length(3, 'Currency must be 3 characters').default('eur'),
+    currency: z
+      .string()
+      .length(3, 'Currency must be 3 characters')
+      .default('eur'),
     interval: z.enum(['month', 'year'], {
       errorMap: () => ({ message: 'Interval must be month or year' }),
     }),
-    intervalCount: z.number().min(1, 'Interval count must be at least 1').default(1),
-    trialPeriodDays: z.number().min(0, 'Trial period must be non-negative').default(10),
-    features: z.array(z.string().min(1, 'Feature cannot be empty')).min(1, 'At least one feature is required'),
-    maxTeamMembers: z.number().min(1, 'Max team members must be at least 1').default(1),
-    maxServices: z.number().min(1, 'Max services must be at least 1').default(1),
-    userTypes: z.array(
-      z.enum(['user', 'professional', 'admin', 'super_admin'], {
-        errorMap: () => ({ message: 'Invalid user type' }),
-      }),
-    ).min(1, 'At least one user type is required'),
+    intervalCount: z
+      .number()
+      .min(1, 'Interval count must be at least 1')
+      .default(1),
+    trialPeriodDays: z
+      .number()
+      .min(0, 'Trial period must be non-negative')
+      .default(10),
+    features: z
+      .array(z.string().min(1, 'Feature cannot be empty'))
+      .min(1, 'At least one feature is required'),
+    maxTeamMembers: z
+      .number()
+      .min(1, 'Max team members must be at least 1')
+      .default(1),
+    maxServices: z
+      .number()
+      .min(1, 'Max services must be at least 1')
+      .default(1),
+    userTypes: z
+      .array(
+        z.enum(['user', 'professional', 'admin', 'super_admin'], {
+          errorMap: () => ({ message: 'Invalid user type' }),
+        }),
+      )
+      .min(1, 'At least one user type is required'),
     priority: z.number().default(0),
   }),
 })
 
 export const updateSubscriptionPlanSchema = z.object({
   body: z.object({
-    name: z.string().min(1, 'Plan name is required').max(100, 'Plan name too long').optional(),
-    description: z.string().min(1, 'Description is required').max(500, 'Description too long').optional(),
-    features: z.array(z.string().min(1, 'Feature cannot be empty')).min(1, 'At least one feature is required').optional(),
-    maxTeamMembers: z.number().min(1, 'Max team members must be at least 1').optional(),
-    maxServices: z.number().min(1, 'Max services must be at least 1').optional(),
+    name: z
+      .string()
+      .min(1, 'Plan name is required')
+      .max(100, 'Plan name too long')
+      .optional(),
+    description: z
+      .string()
+      .min(1, 'Description is required')
+      .max(500, 'Description too long')
+      .optional(),
+    features: z
+      .array(z.string().min(1, 'Feature cannot be empty'))
+      .min(1, 'At least one feature is required')
+      .optional(),
+    maxTeamMembers: z
+      .number()
+      .min(1, 'Max team members must be at least 1')
+      .optional(),
+    maxServices: z
+      .number()
+      .min(1, 'Max services must be at least 1')
+      .optional(),
     isActive: z.boolean().optional(),
     priority: z.number().optional(),
   }),
@@ -47,7 +89,10 @@ export const createSubscriptionSchema = z.object({
 
 export const updateSubscriptionSchema = z.object({
   body: z.object({
-    planId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format').optional(),
+    planId: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format')
+      .optional(),
     cancelAtPeriodEnd: z.boolean().optional(),
   }),
 })
@@ -64,14 +109,18 @@ export const createCheckoutSessionSchema = z.object({
 // Query Validation
 export const getPlansQuerySchema = z.object({
   query: z.object({
-    userType: z.enum(['user', 'professional', 'admin', 'super_admin']).optional(),
+    userType: z
+      .enum(['user', 'professional', 'admin', 'super_admin'])
+      .optional(),
   }),
 })
 
 // Params Validation
 export const subscriptionParamsSchema = z.object({
   params: z.object({
-    subscriptionId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid subscription ID format'),
+    subscriptionId: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid subscription ID format'),
   }),
 })
 
@@ -91,14 +140,19 @@ export const webhookHeaderSchema = z.object({
 // Trial Eligibility Validation
 export const checkTrialEligibilitySchema = z.object({
   params: z.object({
-    userId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format').optional(),
+    userId: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid user ID format')
+      .optional(),
   }),
 })
 
 // Admin validation for bulk operations
 export const bulkUpdatePlansSchema = z.object({
   body: z.object({
-    planIds: z.array(z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format')).min(1, 'At least one plan ID is required'),
+    planIds: z
+      .array(z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format'))
+      .min(1, 'At least one plan ID is required'),
     updates: z.object({
       isActive: z.boolean().optional(),
       priority: z.number().optional(),
@@ -111,8 +165,13 @@ export const subscriptionAnalyticsSchema = z.object({
   query: z.object({
     startDate: z.string().datetime().optional(),
     endDate: z.string().datetime().optional(),
-    planId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format').optional(),
-    status: z.enum(['active', 'trialing', 'canceled', 'past_due', 'unpaid']).optional(),
+    planId: z
+      .string()
+      .regex(/^[0-9a-fA-F]{24}$/, 'Invalid plan ID format')
+      .optional(),
+    status: z
+      .enum(['active', 'trialing', 'canceled', 'past_due', 'unpaid'])
+      .optional(),
   }),
 })
 
@@ -126,7 +185,10 @@ export const attachPaymentMethodSchema = z.object({
 // Coupon validation
 export const applyCouponSchema = z.object({
   body: z.object({
-    couponCode: z.string().min(1, 'Coupon code is required').max(50, 'Coupon code too long'),
+    couponCode: z
+      .string()
+      .min(1, 'Coupon code is required')
+      .max(50, 'Coupon code too long'),
   }),
 })
 

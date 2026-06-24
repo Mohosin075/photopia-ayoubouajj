@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
-import { StatusCodes } from 'http-status-codes';
-import ApiError from '../../../errors/ApiError';
-import { USER_ROLES, USER_STATUS } from '../../../enum/user';
-import { User } from '../user/user.model';
+import mongoose from 'mongoose'
+import { StatusCodes } from 'http-status-codes'
+import ApiError from '../../../errors/ApiError'
+import { USER_ROLES, USER_STATUS } from '../../../enum/user'
+import { User } from '../user/user.model'
 import { Message } from '../message/message.model'
 import { IChat } from './chat.interface'
 import { Chat } from './chat.model'
@@ -28,7 +28,10 @@ const createAdminChat = async (userId: string): Promise<IChat> => {
   })
 
   if (!admin) {
-    throw new ApiError(StatusCodes.NOT_FOUND, 'No active admin found to chat with')
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      'No active admin found to chat with',
+    )
   }
 
   const participants = [userId, admin._id]

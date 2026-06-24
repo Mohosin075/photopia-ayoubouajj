@@ -1,0 +1,25 @@
+টেকনিক্যাল আর্কিটেকচার প্ল্যান (সংক্ষেপে):
+Database Schema (ProjectIdea):
+
+title (String): কার্ডের মূল প্রশ্ন/টেক্সট (যেমন: "Are 🏠 you planning a wedding?")।
+
+linkText (String): ক্লিকের টেক্সট (যেমন: "See our wedding packages")।
+
+subCategoryId (ObjectId/Ref): এটি SubCategory মডেলের সাথে লিঙ্কড থাকবে। এডমিন প্যানেলের ড্রপডাউন থেকে এই আইডি সিলেক্ট করা হবে।
+
+order (Number): হোমপেজে কার্ডগুলো কোন সিরিয়ালে দেখাবে তা কন্ট্রোল করার জন্য।
+
+Backend API Endpoints:
+
+POST /api/project-ideas (Admin Only) -> নতুন আইডিয়া কার্ড তৈরি।
+
+GET /api/project-ideas (Public) -> হোমপেজে দেখানোর জন্য (populate subCategoryId সহ)।
+
+PUT /api/project-ideas/:id (Admin Only) -> আপডেট করার জন্য।
+
+DELETE /api/project-ideas/:id (Admin Only) -> ডিলিট করার জন্য।
+
+
+Hello Rimon, I hope you're fine, I'm good !
+This section is explained in the Section for home page for the design.
+To facilitate everything I suggest that you can create the category and let us fill them through the admin panel. And also let us through the admin panel choose the sub-category that should appear when we click on it.

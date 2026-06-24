@@ -10,7 +10,6 @@ export type IResetPassword = {
   otp: string
 }
 
-
 export type IEmailOrPhoneVerification = {
   name: string
   email?: string

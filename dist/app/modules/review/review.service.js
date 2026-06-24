@@ -59,18 +59,26 @@ const createReview = async (user, payload) => {
         const booking = await booking_model_1.Booking.findById(payload.bookingId).session(session);
         if (booking && booking.serviceId) {
             // Fetch all reviews for this service
-            const reviews = await review_model_1.Review.find({ serviceId: booking.serviceId }).session(session);
+            const reviews = await review_model_1.Review.find({
+                serviceId: booking.serviceId,
+            }).session(session);
             const totalRating = reviews.reduce((acc, curr) => acc + curr.rating, 0);
             const avgRating = reviews.length > 0 ? totalRating / reviews.length : 0;
             const reviewCount = reviews.length;
             if (avgRating >= 4.0 && reviewCount >= 5) {
-                await service_model_1.Service.findByIdAndUpdate(booking.serviceId, { isOriginal: true }).session(session);
+                await service_model_1.Service.findByIdAndUpdate(booking.serviceId, {
+                    isOriginal: true,
+                }).session(session);
             }
             else {
-                await service_model_1.Service.findByIdAndUpdate(booking.serviceId, { isOriginal: false }).session(session);
+                await service_model_1.Service.findByIdAndUpdate(booking.serviceId, {
+                    isOriginal: false,
+                }).session(session);
             }
             // Also update the review record with serviceId for future reference
-            await review_model_1.Review.findByIdAndUpdate(result[0]._id, { serviceId: booking.serviceId }).session(session);
+            await review_model_1.Review.findByIdAndUpdate(result[0]._id, {
+                serviceId: booking.serviceId,
+            }).session(session);
         }
         // Update Super Pro status
         if (payload.reviewee) {

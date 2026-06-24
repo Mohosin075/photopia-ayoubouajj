@@ -7,105 +7,107 @@ import pick from '../../../shared/pick'
 import { CategoryServices } from './category.service'
 
 const createCategory = catchAsync(async (req: Request, res: Response) => {
-    const categoryData = req.body
-    const result = await CategoryServices.createCategory(categoryData)
+  const categoryData = req.body
+  const result = await CategoryServices.createCategory(categoryData)
 
-    sendResponse(res, {
-        statusCode: StatusCodes.CREATED,
-        success: true,
-        message: 'Category created successfully',
-        data: result,
-    })
+  sendResponse(res, {
+    statusCode: StatusCodes.CREATED,
+    success: true,
+    message: 'Category created successfully',
+    data: result,
+  })
 })
 
 const getAllCategories = catchAsync(async (req: Request, res: Response) => {
-    const paginationOptions = pick(req.query, paginationFields)
-    const filters = pick(req.query, [
-        'searchTerm',
-        'name',
-        'theme',
-        'parent',
-        'type',
-        'isActive',
-    ])
-    const result = await CategoryServices.getAllCategories(
-        filters,
-        paginationOptions,
-    )
+  const paginationOptions = pick(req.query, paginationFields)
+  const filters = pick(req.query, [
+    'searchTerm',
+    'name',
+    'theme',
+    'parent',
+    'type',
+    'isActive',
+  ])
+  const result = await CategoryServices.getAllCategories(
+    filters,
+    paginationOptions,
+  )
 
-    sendResponse(res, {
-        statusCode: StatusCodes.OK,
-        success: true,
-        message: 'Categories retrieved successfully',
-        data: result,
-    })
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Categories retrieved successfully',
+    data: result,
+  })
 })
 
 const getSingleCategory = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params
-    const result = await CategoryServices.getSingleCategory(id)
+  const { id } = req.params
+  const result = await CategoryServices.getSingleCategory(id)
 
-    sendResponse(res, {
-        statusCode: StatusCodes.OK,
-        success: true,
-        message: 'Category retrieved successfully',
-        data: result,
-    })
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Category retrieved successfully',
+    data: result,
+  })
 })
 
 const updateCategory = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params
-    const categoryData = req.body
-    const result = await CategoryServices.updateCategory(id, categoryData)
+  const { id } = req.params
+  const categoryData = req.body
+  const result = await CategoryServices.updateCategory(id, categoryData)
 
-    sendResponse(res, {
-        statusCode: StatusCodes.OK,
-        success: true,
-        message: 'Category updated successfully',
-        data: result,
-    })
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Category updated successfully',
+    data: result,
+  })
 })
 
 const deleteCategory = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params
-    const result = await CategoryServices.deleteCategory(id)
+  const { id } = req.params
+  const result = await CategoryServices.deleteCategory(id)
 
-    sendResponse(res, {
-        statusCode: StatusCodes.OK,
-        success: true,
-        message: 'Category deleted successfully',
-        data: result,
-    })
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Category deleted successfully',
+    data: result,
+  })
 })
 
 const getPopularCategories = catchAsync(async (req: Request, res: Response) => {
-    const result = await CategoryServices.getPopularCategories()
+  const result = await CategoryServices.getPopularCategories()
 
-    sendResponse(res, {
-        statusCode: StatusCodes.OK,
-        success: true,
-        message: 'Popular categories retrieved successfully',
-        data: result,
-    })
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: 'Popular categories retrieved successfully',
+    data: result,
+  })
 })
 
-const getTrendingSubcategories = catchAsync(async (req: Request, res: Response) => {
+const getTrendingSubcategories = catchAsync(
+  async (req: Request, res: Response) => {
     const result = await CategoryServices.getTrendingSubcategories()
 
     sendResponse(res, {
-        statusCode: StatusCodes.OK,
-        success: true,
-        message: 'Trending subcategories retrieved successfully',
-        data: result,
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Trending subcategories retrieved successfully',
+      data: result,
     })
-})
+  },
+)
 
 export const CategoryController = {
-    createCategory,
-    getAllCategories,
-    getSingleCategory,
-    getPopularCategories,
-    getTrendingSubcategories,
-    updateCategory,
-    deleteCategory,
+  createCategory,
+  getAllCategories,
+  getSingleCategory,
+  getPopularCategories,
+  getTrendingSubcategories,
+  updateCategory,
+  deleteCategory,
 }

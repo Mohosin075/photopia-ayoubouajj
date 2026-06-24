@@ -7,7 +7,7 @@ import { Booking } from '../booking/booking.model'
 
 const createOrUpdateAvailability = async (
   providerId: string,
-  payload: Partial<IAvailability>
+  payload: Partial<IAvailability>,
 ): Promise<IAvailability> => {
   const query: any = { providerId }
   if (payload.serviceId) {
@@ -32,7 +32,7 @@ const createOrUpdateAvailability = async (
 
 const getProviderAvailability = async (
   providerId: string,
-  serviceId?: string
+  serviceId?: string,
 ): Promise<IAvailability | null> => {
   const query: any = { providerId }
   if (serviceId) {
@@ -47,24 +47,24 @@ const getProviderAvailability = async (
 const checkAvailabilityForDate = async (
   providerId: string,
   date: Date,
-  serviceId?: string
-): Promise<{ 
-  isAvailable: boolean; 
-  reason?: string; 
-  workingHours?: { start: string; end: string };
-  pricing?: { priceOverride?: number; rateMultiplier?: number };
+  serviceId?: string,
+): Promise<{
+  isAvailable: boolean
+  reason?: string
+  workingHours?: { start: string; end: string }
+  pricing?: { priceOverride?: number; rateMultiplier?: number }
 }> => {
   let availability = null
   if (serviceId) {
     availability = await Availability.findOne({ providerId, serviceId })
   }
   if (!availability) {
-    availability = await Availability.findOne({ 
-      providerId, 
-      $or: [{ serviceId: null }, { serviceId: { $exists: false } }] 
+    availability = await Availability.findOne({
+      providerId,
+      $or: [{ serviceId: null }, { serviceId: { $exists: false } }],
     })
   }
-  
+
   if (!availability) {
     return { isAvailable: false, reason: 'Provider has not set availability' }
   }
@@ -78,37 +78,52 @@ const checkAvailabilityForDate = async (
   let maxBookings = availability.maxBookingsPerDay
 
   // 1. Check blocked date ranges (highest priority)
-  if (availability.blockedDateRanges && availability.blockedDateRanges.length > 0) {
+  if (
+    availability.blockedDateRanges &&
+    availability.blockedDateRanges.length > 0
+  ) {
     for (const range of availability.blockedDateRanges) {
       const start = new Date(range.startDate)
       start.setHours(0, 0, 0, 0)
       const end = new Date(range.endDate)
       end.setHours(0, 0, 0, 0)
       if (checkDate >= start && checkDate <= end) {
-        return { isAvailable: false, reason: `Date falls within a blocked date range: ${range.note || ''}` }
+        return {
+          isAvailable: false,
+          reason: `Date falls within a blocked date range: ${range.note || ''}`,
+        }
       }
     }
   }
 
   // 2. Check specific custom dates (single day overrides)
   const customDate = availability.customDates.find(
-    (cd) => new Date(cd.date).toDateString() === targetDate.toDateString()
+    cd => new Date(cd.date).toDateString() === targetDate.toDateString(),
   )
 
   if (customDate) {
     if (customDate.type === 'blocked' || customDate.type === 'unavailable') {
-      return { isAvailable: false, reason: 'Date is specifically blocked by provider' }
+      return {
+        isAvailable: false,
+        reason: 'Date is specifically blocked by provider',
+      }
     }
-    workingHours = { start: customDate.start || '09:00', end: customDate.end || '17:00' }
+    workingHours = {
+      start: customDate.start || '09:00',
+      end: customDate.end || '17:00',
+    }
     pricing = {
       priceOverride: customDate.priceOverride,
-      rateMultiplier: customDate.rateMultiplier
+      rateMultiplier: customDate.rateMultiplier,
     }
     if (customDate.maxBookings) maxBookings = customDate.maxBookings
   } else {
     // 3. Check availability periods (if defined)
     let periodMatched = false
-    if (availability.availabilityPeriods && availability.availabilityPeriods.length > 0) {
+    if (
+      availability.availabilityPeriods &&
+      availability.availabilityPeriods.length > 0
+    ) {
       for (const period of availability.availabilityPeriods) {
         const start = new Date(period.startDate)
         start.setHours(0, 0, 0, 0)
@@ -118,7 +133,7 @@ const checkAvailabilityForDate = async (
           workingHours = { start: period.startTime, end: period.endTime }
           pricing = {
             priceOverride: period.priceOverride,
-            rateMultiplier: period.rateMultiplier
+            rateMultiplier: period.rateMultiplier,
           }
           if (period.maxBookings) maxBookings = period.maxBookings
           periodMatched = true
@@ -126,22 +141,41 @@ const checkAvailabilityForDate = async (
         }
       }
       if (!periodMatched) {
-        return { isAvailable: false, reason: 'Date is outside the configured availability periods' }
+        return {
+          isAvailable: false,
+          reason: 'Date is outside the configured availability periods',
+        }
       }
     } else {
       // 4. Fallback to recurring rules and default schedule
       let ruleMatched = false
-      if (availability.recurringRules && availability.recurringRules.length > 0) {
+      if (
+        availability.recurringRules &&
+        availability.recurringRules.length > 0
+      ) {
         for (const rule of availability.recurringRules) {
           if (!rule.active) continue
 
           // Weekday check
-          if (rule.type === 'block_weekly' || rule.type === 'special_hours_weekly') {
-            if (rule.dayOfWeek !== undefined && rule.dayOfWeek === targetDate.getDay()) {
+          if (
+            rule.type === 'block_weekly' ||
+            rule.type === 'special_hours_weekly'
+          ) {
+            if (
+              rule.dayOfWeek !== undefined &&
+              rule.dayOfWeek === targetDate.getDay()
+            ) {
               if (rule.type === 'block_weekly') {
-                return { isAvailable: false, reason: 'Date matches a recurring block rule' }
+                return {
+                  isAvailable: false,
+                  reason: 'Date matches a recurring block rule',
+                }
               }
-              if (rule.type === 'special_hours_weekly' && rule.start && rule.end) {
+              if (
+                rule.type === 'special_hours_weekly' &&
+                rule.start &&
+                rule.end
+              ) {
                 workingHours = { start: rule.start, end: rule.end }
                 if (rule.maxBookings) maxBookings = rule.maxBookings
                 ruleMatched = true
@@ -149,15 +183,27 @@ const checkAvailabilityForDate = async (
               }
             }
           }
-          
+
           // Monthly check
           if (rule.type === 'block_monthly') {
-            const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1)
+            const firstDayOfMonth = new Date(
+              targetDate.getFullYear(),
+              targetDate.getMonth(),
+              1,
+            )
             const dayOfMonth = targetDate.getDate()
-            const weekOfMonth = Math.ceil((dayOfMonth + firstDayOfMonth.getDay()) / 7)
-            
-            if (rule.weekOfMonth !== undefined && rule.weekOfMonth === weekOfMonth) {
-              return { isAvailable: false, reason: 'Date matches a recurring monthly block rule' }
+            const weekOfMonth = Math.ceil(
+              (dayOfMonth + firstDayOfMonth.getDay()) / 7,
+            )
+
+            if (
+              rule.weekOfMonth !== undefined &&
+              rule.weekOfMonth === weekOfMonth
+            ) {
+              return {
+                isAvailable: false,
+                reason: 'Date matches a recurring monthly block rule',
+              }
             }
           }
         }
@@ -165,13 +211,25 @@ const checkAvailabilityForDate = async (
 
       if (!ruleMatched) {
         // Check default schedule
-        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+        const days = [
+          'sunday',
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'saturday',
+        ]
         const dayName = days[targetDate.getDay()]
         const defaultSchedule = availability.defaultSchedule as any
-        const daySchedule = defaultSchedule[dayName] || defaultSchedule.get?.(dayName)
+        const daySchedule =
+          defaultSchedule[dayName] || defaultSchedule.get?.(dayName)
 
         if (!daySchedule || !daySchedule.isActive) {
-          return { isAvailable: false, reason: `Day (${dayName}) is not a working day in default schedule` }
+          return {
+            isAvailable: false,
+            reason: `Day (${dayName}) is not a working day in default schedule`,
+          }
         }
         workingHours = { start: daySchedule.start, end: daySchedule.end }
         if (daySchedule.maxBookings) maxBookings = daySchedule.maxBookings
@@ -189,19 +247,19 @@ const checkAvailabilityForDate = async (
     providerId: new Types.ObjectId(providerId),
     bookingDate: {
       $gte: startOfDay,
-      $lte: endOfDay
+      $lte: endOfDay,
     },
-    status: { $nin: ['cancelled', 'completed'] }
+    status: { $nin: ['cancelled', 'completed'] },
   })
 
   if (bookingCount >= maxBookings) {
     return { isAvailable: false, reason: 'Fully booked for this date' }
   }
 
-  return { 
-    isAvailable: true, 
+  return {
+    isAvailable: true,
     workingHours,
-    pricing
+    pricing,
   }
 }
 
@@ -209,7 +267,7 @@ const getAvailableTimeSlots = async (
   providerId: string,
   date: Date,
   serviceDuration: number,
-  serviceId?: string
+  serviceId?: string,
 ): Promise<string[]> => {
   let availability = null
   if (serviceId) {
@@ -218,10 +276,10 @@ const getAvailableTimeSlots = async (
   if (!availability) {
     availability = await Availability.findOne({
       providerId,
-      $or: [{ serviceId: null }, { serviceId: { $exists: false } }]
+      $or: [{ serviceId: null }, { serviceId: { $exists: false } }],
     })
   }
-  
+
   if (!availability) {
     return []
   }
@@ -240,17 +298,20 @@ const getAvailableTimeSlots = async (
   const slots: string[] = []
   const [startHour, startMinute] = start.split(':').map(Number)
   const [endHour, endMinute] = end.split(':').map(Number)
-  
+
   const startMinutes = startHour * 60 + startMinute
   const endMinutes = endHour * 60 + endMinute
-  
-  for (let minutes = startMinutes; minutes + serviceDuration <= endMinutes; minutes += totalSlotDuration) {
+
+  for (
+    let minutes = startMinutes;
+    minutes + serviceDuration <= endMinutes;
+    minutes += totalSlotDuration
+  ) {
     const hour = Math.floor(minutes / 60)
     const minute = minutes % 60
     const timeSlot = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
     slots.push(timeSlot)
   }
-
 
   // Filter out booked slots
   const targetDate = new Date(date)
@@ -262,9 +323,9 @@ const getAvailableTimeSlots = async (
     providerId: new Types.ObjectId(providerId),
     bookingDate: {
       $gte: targetDate,
-      $lt: nextDay
+      $lt: nextDay,
     },
-    status: { $nin: ['cancelled', 'completed'] }
+    status: { $nin: ['cancelled', 'completed'] },
   }).select('startTime endTime')
 
   // Filter out slots that conflict with existing bookings
@@ -273,19 +334,28 @@ const getAvailableTimeSlots = async (
     const slotStartMinutes = slotHour * 60 + slotMinute
     const slotEndMinutes = slotStartMinutes + serviceDuration
 
-    return !existingBookings.some((booking: { startTime: string; endTime: string }) => {
-      const [bookingStartHour, bookingStartMinute] = booking.startTime.split(':').map(Number)
-      const [bookingEndHour, bookingEndMinute] = booking.endTime.split(':').map(Number)
-      const bookingStartMinutes = bookingStartHour * 60 + bookingStartMinute
-      const bookingEndMinutes = bookingEndHour * 60 + bookingEndMinute
+    return !existingBookings.some(
+      (booking: { startTime: string; endTime: string }) => {
+        const [bookingStartHour, bookingStartMinute] = booking.startTime
+          .split(':')
+          .map(Number)
+        const [bookingEndHour, bookingEndMinute] = booking.endTime
+          .split(':')
+          .map(Number)
+        const bookingStartMinutes = bookingStartHour * 60 + bookingStartMinute
+        const bookingEndMinutes = bookingEndHour * 60 + bookingEndMinute
 
-      // Check for overlap
-      return (
-        (slotStartMinutes >= bookingStartMinutes && slotStartMinutes < bookingEndMinutes) ||
-        (slotEndMinutes > bookingStartMinutes && slotEndMinutes <= bookingEndMinutes) ||
-        (slotStartMinutes <= bookingStartMinutes && slotEndMinutes >= bookingEndMinutes)
-      )
-    })
+        // Check for overlap
+        return (
+          (slotStartMinutes >= bookingStartMinutes &&
+            slotStartMinutes < bookingEndMinutes) ||
+          (slotEndMinutes > bookingStartMinutes &&
+            slotEndMinutes <= bookingEndMinutes) ||
+          (slotStartMinutes <= bookingStartMinutes &&
+            slotEndMinutes >= bookingEndMinutes)
+        )
+      },
+    )
   })
 
   return availableSlots
@@ -295,13 +365,15 @@ const getMonthCalendar = async (
   providerId: string,
   month: number,
   year: number,
-  serviceId?: string
-): Promise<{
-  date: string;
-  isAvailable: boolean;
-  reason?: string;
-  hasSpecialPricing?: boolean;
-}[]> => {
+  serviceId?: string,
+): Promise<
+  {
+    date: string
+    isAvailable: boolean
+    reason?: string
+    hasSpecialPricing?: boolean
+  }[]
+> => {
   let availability = null
   if (serviceId) {
     availability = await Availability.findOne({ providerId, serviceId })
@@ -309,10 +381,10 @@ const getMonthCalendar = async (
   if (!availability) {
     availability = await Availability.findOne({
       providerId,
-      $or: [{ serviceId: null }, { serviceId: { $exists: false } }]
+      $or: [{ serviceId: null }, { serviceId: { $exists: false } }],
     })
   }
-  
+
   if (!availability) {
     return []
   }
@@ -322,13 +394,19 @@ const getMonthCalendar = async (
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month - 1, day)
-    const dateCheck = await checkAvailabilityForDate(providerId, date, serviceId)
-    
+    const dateCheck = await checkAvailabilityForDate(
+      providerId,
+      date,
+      serviceId,
+    )
+
     calendar.push({
       date: date.toISOString().split('T')[0],
       isAvailable: dateCheck.isAvailable,
       reason: dateCheck.reason,
-      hasSpecialPricing: !!(dateCheck.pricing?.priceOverride || dateCheck.pricing?.rateMultiplier)
+      hasSpecialPricing: !!(
+        dateCheck.pricing?.priceOverride || dateCheck.pricing?.rateMultiplier
+      ),
     })
   }
 

@@ -13,9 +13,9 @@ const chat_model_1 = require("../chat/chat.model");
 const sendMessageToDB = async (payload) => {
     console.log(payload);
     if (!mongoose_1.default.Types.ObjectId.isValid(payload.receiver)) {
-        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, "Invalid Receiver ID");
+        throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Receiver ID');
     }
-    const sender = await user_model_1.User.findById(payload.sender).select("name");
+    const sender = await user_model_1.User.findById(payload.sender).select('name');
     // save to DB
     const response = await message_model_1.Message.create(payload);
     // Update Chat's updatedAt to bring it to the top
@@ -30,10 +30,10 @@ const sendMessageToDB = async (payload) => {
         io.emit(`updateChatList::${payload === null || payload === void 0 ? void 0 : payload.receiver}`);
         const data = {
             text: `${sender === null || sender === void 0 ? void 0 : sender.name} send you message.`,
-            title: "Received Message",
+            title: 'Received Message',
             link: payload === null || payload === void 0 ? void 0 : payload.chatId,
-            direction: "message",
-            receiver: payload.receiver
+            direction: 'message',
+            receiver: payload.receiver,
         };
         // await sendNotifications(data);
     }
@@ -54,9 +54,7 @@ const getMessageFromDB = async (chatId, user) => {
         const io = global.io;
         if (io) {
             // For each unique sender of the unread messages, notify them
-            const senders = [
-                ...new Set(unreadMessages.map(m => m.sender.toString())),
-            ];
+            const senders = [...new Set(unreadMessages.map(m => m.sender.toString()))];
             senders.forEach(senderId => {
                 io.emit(`updateChatList::${senderId}`);
             });

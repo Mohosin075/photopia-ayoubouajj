@@ -23,7 +23,14 @@ const analyticsSchema = new mongoose_1.Schema({
     },
     interactionType: {
         type: String,
-        enum: ['booking_start', 'contact_click', 'share', 'invoice_download', 'profile_view', 'service_view'],
+        enum: [
+            'booking_start',
+            'contact_click',
+            'share',
+            'invoice_download',
+            'profile_view',
+            'service_view',
+        ],
     },
     timestamp: {
         type: Date,

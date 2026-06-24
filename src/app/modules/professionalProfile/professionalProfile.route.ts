@@ -9,44 +9,48 @@ import { fileAndBodyProcessorUsingDiskStorage } from '../../middleware/processRe
 const router = express.Router()
 
 router.post(
-    '/',
-    auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
-    fileAndBodyProcessorUsingDiskStorage(),
-    validateRequest(ProfessionalProfileValidation.createProfessionalProfileSchema),
-    ProfessionalProfileController.createProfile,
+  '/',
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
+  fileAndBodyProcessorUsingDiskStorage(),
+  validateRequest(
+    ProfessionalProfileValidation.createProfessionalProfileSchema,
+  ),
+  ProfessionalProfileController.createProfile,
 )
 
 router.get(
-    '/',
-    auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
-    ProfessionalProfileController.getProfile,
+  '/',
+  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL),
+  ProfessionalProfileController.getProfile,
 )
 
 router.get(
-    '/statistics',
-    auth(USER_ROLES.PROFESSIONAL),
-    ProfessionalProfileController.getDetailedStatistics,
+  '/statistics',
+  auth(USER_ROLES.PROFESSIONAL),
+  ProfessionalProfileController.getDetailedStatistics,
 )
 
 router.get(
-    '/statistics/export',
-    auth(USER_ROLES.PROFESSIONAL),
-    ProfessionalProfileController.exportStatisticsReport,
+  '/statistics/export',
+  auth(USER_ROLES.PROFESSIONAL),
+  ProfessionalProfileController.exportStatisticsReport,
 )
 
 router.patch(
-    '/',
-    auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
-    fileAndBodyProcessorUsingDiskStorage(),
-    validateRequest(ProfessionalProfileValidation.updateProfessionalProfileSchema),
-    ProfessionalProfileController.updateProfile,
+  '/',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  fileAndBodyProcessorUsingDiskStorage(),
+  validateRequest(
+    ProfessionalProfileValidation.updateProfessionalProfileSchema,
+  ),
+  ProfessionalProfileController.updateProfile,
 )
 
 router.patch(
-    '/remove-items',
-    auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
-    validateRequest(ProfessionalProfileValidation.removeItemSchema),
-    ProfessionalProfileController.removeItem,
+  '/remove-items',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  validateRequest(ProfessionalProfileValidation.removeItemSchema),
+  ProfessionalProfileController.removeItem,
 )
 
 export const ProfessionalProfileRoutes = router

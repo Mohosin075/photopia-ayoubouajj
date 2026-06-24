@@ -28,6 +28,7 @@ const dashboard_route_1 = require("../app/modules/dashboard/dashboard.route");
 const recentlyViewed_route_1 = require("../app/modules/recentlyViewed/recentlyViewed.route");
 const home_route_1 = require("../app/modules/home/home.route");
 const inspiration_route_1 = require("../app/modules/inspiration/inspiration.route");
+const projectIdea_route_1 = require("../app/modules/projectIdea/projectIdea.route");
 const location_route_1 = require("../app/modules/location/location.route");
 const router = express_1.default.Router();
 const apiRoutes = [
@@ -79,7 +80,8 @@ const apiRoutes = [
     { path: '/public', route: public_route_1.PublicRoutes },
     { path: '/home', route: home_route_1.HomeRoutes },
     { path: '/inspiration', route: inspiration_route_1.InspirationRoutes },
-    { path: '/locations', route: location_route_1.LocationRoutes }
+    { path: '/project-ideas', route: projectIdea_route_1.ProjectIdeaRoutes },
+    { path: '/locations', route: location_route_1.LocationRoutes },
 ];
 apiRoutes.forEach(route => {
     router.use(route.path, route.route);

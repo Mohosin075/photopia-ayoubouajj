@@ -64,4 +64,3 @@ export interface IAvailability extends Document {
 }
 
 export type AvailabilityModel = Model<IAvailability>
-

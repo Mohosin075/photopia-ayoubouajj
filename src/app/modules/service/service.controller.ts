@@ -39,8 +39,14 @@ const createService = catchAsync(async (req: Request, res: Response) => {
 
 const getAllServices = catchAsync(async (req: Request, res: Response) => {
   const paginationOptions = pick(req.query, paginationFields)
-  const filters = pick(req.query, serviceFilterableFields) as IServiceFilterables
-  const result = await ServiceServices.getAllServices(filters, paginationOptions)
+  const filters = pick(
+    req.query,
+    serviceFilterableFields,
+  ) as IServiceFilterables
+  const result = await ServiceServices.getAllServices(
+    filters,
+    paginationOptions,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,
@@ -58,7 +64,7 @@ const getSingleService = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   if (user?.userId) {
     RecentlyViewedServices.recordView(user.userId, id).catch(err => {
-        console.error('Failed to record view:', err)
+      console.error('Failed to record view:', err)
     })
   }
 
@@ -99,29 +105,34 @@ const deleteService = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const getServicesByProvider = catchAsync(async (req: Request, res: Response) => {
-  const { providerId } = req.params
-  const paginationOptions = pick(req.query, paginationFields)
-  const filters = pick(req.query, serviceFilterableFields)
+const getServicesByProvider = catchAsync(
+  async (req: Request, res: Response) => {
+    const { providerId } = req.params
+    const paginationOptions = pick(req.query, paginationFields)
+    const filters = pick(req.query, serviceFilterableFields)
 
-  const result = await ServiceServices.getServicesByProvider(
-    providerId,
-    filters as IServiceFilterables,
-    paginationOptions
-  )
+    const result = await ServiceServices.getServicesByProvider(
+      providerId,
+      filters as IServiceFilterables,
+      paginationOptions,
+    )
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Provider services retrieved successfully',
-    data: result,
-  })
-})
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Provider services retrieved successfully',
+      data: result,
+    })
+  },
+)
 
 const getMyServices = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.user as JwtPayload
   const paginationOptions = pick(req.query, paginationFields)
-  const filters = pick(req.query, serviceFilterableFields) as IServiceFilterables
+  const filters = pick(
+    req.query,
+    serviceFilterableFields,
+  ) as IServiceFilterables
 
   if (!userId) {
     return sendResponse(res, {
@@ -134,7 +145,7 @@ const getMyServices = catchAsync(async (req: Request, res: Response) => {
   const result = await ServiceServices.getServicesByProvider(
     userId,
     filters,
-    paginationOptions
+    paginationOptions,
   )
 
   sendResponse(res, {
@@ -149,7 +160,10 @@ const toggleServiceStatus = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
   const { status } = req.body
 
-  const result = await ServiceServices.toggleServiceStatus(id, status as SERVICE_STATUS)
+  const result = await ServiceServices.toggleServiceStatus(
+    id,
+    status as SERVICE_STATUS,
+  )
 
   sendResponse(res, {
     statusCode: StatusCodes.OK,

@@ -59,7 +59,10 @@ const getNotificationById = (0, catchAsync_1.default)(async (req, res) => {
 const updateNotification = (0, catchAsync_1.default)(async (req, res) => {
     const { id } = req.params;
     const user = req.user;
-    const result = await notification_service_1.NotificationServices.updateNotification(id, req.body, user.activeRole === user_1.USER_ROLES.USER || user.activeRole === user_1.USER_ROLES.PROFESSIONAL ? user.userId : undefined);
+    const result = await notification_service_1.NotificationServices.updateNotification(id, req.body, user.activeRole === user_1.USER_ROLES.USER ||
+        user.activeRole === user_1.USER_ROLES.PROFESSIONAL
+        ? user.userId
+        : undefined);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

@@ -93,8 +93,10 @@ const handleLoginLogic = async (
     await User.findByIdAndUpdate(isUserExist._id, {
       $set: {
         status: isUserExist.status,
-        'authentication.restrictionLeftAt': isUserExist.authentication.restrictionLeftAt,
-        'authentication.wrongLoginAttempts': isUserExist.authentication.wrongLoginAttempts,
+        'authentication.restrictionLeftAt':
+          isUserExist.authentication.restrictionLeftAt,
+        'authentication.wrongLoginAttempts':
+          isUserExist.authentication.wrongLoginAttempts,
       },
     })
 

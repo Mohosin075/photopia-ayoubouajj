@@ -9,14 +9,14 @@ import { Payment } from '../payment/payment.model'
 import { User } from '../user/user.model'
 
 export class NotificationIntegration {
-
-
   static async onPaymentSuccess(
     paymentId: Types.ObjectId | string,
   ): Promise<void> {
     try {
-      const payment = await Payment.findById(paymentId)
-        .populate('userId', 'email name')
+      const payment = await Payment.findById(paymentId).populate(
+        'userId',
+        'email name',
+      )
 
       if (!payment) return
 
@@ -45,8 +45,10 @@ export class NotificationIntegration {
     paymentId: Types.ObjectId | string,
   ): Promise<void> {
     try {
-      const payment = await Payment.findById(paymentId)
-        .populate('userId', 'email name')
+      const payment = await Payment.findById(paymentId).populate(
+        'userId',
+        'email name',
+      )
 
       if (!payment) return
 
@@ -70,8 +72,6 @@ export class NotificationIntegration {
       console.error('Error creating payment failed notification:', error)
     }
   }
-
-
 
   static async onNewMessage(
     senderId: Types.ObjectId,

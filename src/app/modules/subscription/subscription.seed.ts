@@ -73,7 +73,9 @@ export async function seedSubscriptionPlans(): Promise<void> {
     // Check if plans already exist
     const existingPlansCount = await SubscriptionPlan.countDocuments()
     if (existingPlansCount > 0) {
-      console.log(`${existingPlansCount} subscription plans already exist. Skipping seed.`)
+      console.log(
+        `${existingPlansCount} subscription plans already exist. Skipping seed.`,
+      )
       return
     }
 
@@ -133,7 +135,7 @@ export async function updateSubscriptionPlans(): Promise<void> {
 
     // Add any plan updates here
     // Example: Update features for existing plans
-    
+
     console.log('Subscription plans update completed')
   } catch (error) {
     console.error('Error updating subscription plans:', error)

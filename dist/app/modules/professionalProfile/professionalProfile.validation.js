@@ -20,20 +20,42 @@ const experienceDetailsSchema = zod_1.z.object({
     education: zod_1.z.string().optional(),
 });
 const notificationPreferencesSchema = zod_1.z.object({
-    emailNewRequests: zod_1.z.boolean({ required_error: 'Email preference is required' }),
-    smsUrgentRequests: zod_1.z.boolean({ required_error: 'SMS preference is required' }),
-    newsletterPros: zod_1.z.boolean({ required_error: 'Newsletter preference is required' }),
-    customerReviewReminder: zod_1.z.boolean({ required_error: 'Review reminder preference is required' }),
+    emailNewRequests: zod_1.z.boolean({
+        required_error: 'Email preference is required',
+    }),
+    smsUrgentRequests: zod_1.z.boolean({
+        required_error: 'SMS preference is required',
+    }),
+    newsletterPros: zod_1.z.boolean({
+        required_error: 'Newsletter preference is required',
+    }),
+    customerReviewReminder: zod_1.z.boolean({
+        required_error: 'Review reminder preference is required',
+    }),
 });
 const legalNoticeSchema = zod_1.z.object({
-    acceptedTerms: zod_1.z.boolean().refine(val => val === true, { message: 'You must accept the Terms of Use' }),
-    privacyPolicy: zod_1.z.boolean().refine(val => val === true, { message: 'You must accept the Privacy Policy' }),
-    gdprAuthorization: zod_1.z.boolean().refine(val => val === true, { message: 'You must accept GDPR Authorization' }),
+    acceptedTerms: zod_1.z
+        .boolean()
+        .refine(val => val === true, {
+        message: 'You must accept the Terms of Use',
+    }),
+    privacyPolicy: zod_1.z
+        .boolean()
+        .refine(val => val === true, {
+        message: 'You must accept the Privacy Policy',
+    }),
+    gdprAuthorization: zod_1.z
+        .boolean()
+        .refine(val => val === true, {
+        message: 'You must accept GDPR Authorization',
+    }),
 });
 exports.createProfessionalProfileSchema = zod_1.z.object({
     body: zod_1.z.object({
         dateOfBirth: zod_1.z.string({ required_error: 'Date of birth is required' }),
-        primaryDomain: zod_1.z.array(zod_1.z.enum(['Photography', 'Videography', 'Editing'])).min(1, 'At least one primary domain is required'),
+        primaryDomain: zod_1.z
+            .array(zod_1.z.enum(['Photography', 'Videography', 'Editing']))
+            .min(1, 'At least one primary domain is required'),
         categories: zod_1.z.array(zod_1.z.string()).optional(),
         areaOfIntervention: areaOfInterventionSchema.optional(),
         experienceDetails: experienceDetailsSchema.optional(),
@@ -54,7 +76,9 @@ exports.createProfessionalProfileSchema = zod_1.z.object({
 exports.updateProfessionalProfileSchema = zod_1.z.object({
     body: zod_1.z.object({
         dateOfBirth: zod_1.z.string().optional(),
-        primaryDomain: zod_1.z.array(zod_1.z.enum(['Photography', 'Videography', 'Editing'])).optional(),
+        primaryDomain: zod_1.z
+            .array(zod_1.z.enum(['Photography', 'Videography', 'Editing']))
+            .optional(),
         categories: zod_1.z.array(zod_1.z.string()).optional(),
         areaOfIntervention: areaOfInterventionSchema.optional(),
         experienceDetails: experienceDetailsSchema.optional(),
@@ -74,7 +98,14 @@ exports.updateProfessionalProfileSchema = zod_1.z.object({
 });
 exports.removeItemSchema = zod_1.z.object({
     body: zod_1.z.object({
-        field: zod_1.z.enum(['portfolio', 'specialties', 'language', 'documents', 'categories', 'primaryDomain']),
+        field: zod_1.z.enum([
+            'portfolio',
+            'specialties',
+            'language',
+            'documents',
+            'categories',
+            'primaryDomain',
+        ]),
         values: zod_1.z.array(zod_1.z.string()).min(1, 'At least one value is required'),
     }),
 });

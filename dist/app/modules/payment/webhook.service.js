@@ -53,7 +53,9 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
             await payment.save({ session: mongoSession });
             // Update Booking Status if bookingId exists in metadata or payment
             const bookingId = payment.bookingId || ((_b = sessionWithDetails.metadata) === null || _b === void 0 ? void 0 : _b.bookingId);
-            const paymentType = ((_c = sessionWithDetails.metadata) === null || _c === void 0 ? void 0 : _c.paymentType) || ((_d = payment.metadata) === null || _d === void 0 ? void 0 : _d.paymentType) || 'deposit';
+            const paymentType = ((_c = sessionWithDetails.metadata) === null || _c === void 0 ? void 0 : _c.paymentType) ||
+                ((_d = payment.metadata) === null || _d === void 0 ? void 0 : _d.paymentType) ||
+                'deposit';
             console.log(`Webhook: Processing booking update for ID: ${bookingId}, paymentType: ${paymentType}`);
             if (bookingId) {
                 const updateData = {
@@ -82,7 +84,7 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
             await emailHelper_1.emailHelper.sendEmail({
                 to: payment.userEmail,
                 subject: 'Payment Successful',
-                html: `<p>Your payment was successful.</p>`
+                html: `<p>Your payment was successful.</p>`,
             });
         }
         catch (error) {
@@ -169,7 +171,9 @@ const handlePaymentSuccess = async (paymentIntent) => {
         await payment.save({ session: mongoSession });
         // Update Booking Status if bookingId exists
         const bookingId = payment.bookingId || ((_a = paymentIntent.metadata) === null || _a === void 0 ? void 0 : _a.bookingId);
-        const paymentType = ((_b = paymentIntent.metadata) === null || _b === void 0 ? void 0 : _b.paymentType) || ((_c = payment.metadata) === null || _c === void 0 ? void 0 : _c.paymentType) || 'deposit';
+        const paymentType = ((_b = paymentIntent.metadata) === null || _b === void 0 ? void 0 : _b.paymentType) ||
+            ((_c = payment.metadata) === null || _c === void 0 ? void 0 : _c.paymentType) ||
+            'deposit';
         if (bookingId) {
             const updateData = {
                 stripePaymentId: paymentIntent.id,
@@ -200,7 +204,7 @@ const handlePaymentSuccess = async (paymentIntent) => {
             await emailHelper_1.emailHelper.sendEmail({
                 to: payment.userEmail,
                 subject: 'Payment Successful',
-                html: `<p>Your payment was successful.</p>`
+                html: `<p>Your payment was successful.</p>`,
             });
         }
     }
@@ -220,9 +224,11 @@ const handlePaymentFailure = async (paymentIntent) => {
             paymentIntentId: paymentIntent.id,
         }).session(mongoSession);
         // Fallback for failure too
-        if (!payment && paymentIntent.metadata && paymentIntent.metadata.bookingId) {
+        if (!payment &&
+            paymentIntent.metadata &&
+            paymentIntent.metadata.bookingId) {
             payment = await payment_model_1.Payment.findOne({
-                bookingId: paymentIntent.metadata.bookingId
+                bookingId: paymentIntent.metadata.bookingId,
             }).session(mongoSession);
         }
         if (payment) {

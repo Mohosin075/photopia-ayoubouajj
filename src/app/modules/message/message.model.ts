@@ -1,5 +1,5 @@
-import { Schema, model } from 'mongoose';
-import { IMessage, MessageModel } from './message.interface';
+import { Schema, model } from 'mongoose'
+import { IMessage, MessageModel } from './message.interface'
 
 const messageSchema = new Schema<IMessage, MessageModel>(
   {
@@ -15,15 +15,15 @@ const messageSchema = new Schema<IMessage, MessageModel>(
     },
     text: {
       type: String,
-      required: false
+      required: false,
     },
     image: {
       type: String,
-      required: false
+      required: false,
     },
     file: {
       type: String,
-      required: false
+      required: false,
     },
     seen: {
       type: Boolean,
@@ -32,11 +32,11 @@ const messageSchema = new Schema<IMessage, MessageModel>(
   },
   {
     timestamps: true,
-  }
-);
+  },
+)
 
-messageSchema.index({ chatId: 1, createdAt: -1 });
-messageSchema.index({ sender: 1 });
-messageSchema.index({ chatId: 1, seen: 1 });
+messageSchema.index({ chatId: 1, createdAt: -1 })
+messageSchema.index({ sender: 1 })
+messageSchema.index({ chatId: 1, seen: 1 })
 
-export const Message = model<IMessage, MessageModel>('Message', messageSchema);
+export const Message = model<IMessage, MessageModel>('Message', messageSchema)

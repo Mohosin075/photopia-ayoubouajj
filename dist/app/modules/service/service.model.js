@@ -3,13 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Service = void 0;
 const mongoose_1 = require("mongoose");
 const service_constants_1 = require("./service.constants");
-const user_1 = require("../../../enum/user");
 const service_1 = require("../../../enum/service");
 const locationSchema = new mongoose_1.Schema({
     type: {
         type: String,
         enum: Object.values(service_1.SERVICE_LOCATION_TYPE),
-        default: service_1.SERVICE_LOCATION_TYPE.ONSITE
+        default: service_1.SERVICE_LOCATION_TYPE.ONSITE,
     },
     country: {
         type: String,
@@ -46,48 +45,66 @@ const locationSchema = new mongoose_1.Schema({
 const servicePricingSchema = new mongoose_1.Schema({
     type: {
         type: String,
-        enum: Object.values(service_1.SERVICE_PRICING_TYPE)
+        enum: Object.values(service_1.SERVICE_PRICING_TYPE),
     },
     weekdayHourlyRate: {
         type: Number,
-        min: 0
+        min: 0,
     },
     weekendHourlyRate: {
         type: Number,
-        min: 0
+        min: 0,
     },
     dailyRate: {
         type: Number,
-        min: 0
+        min: 0,
     },
     dailyHours: {
         type: Number,
         default: 8,
-        min: 1
+        min: 1,
     },
-    packages: [{
+    packages: [
+        {
             name: {
                 type: String,
-                required: true
+                required: true,
             },
             price: {
                 type: Number,
                 required: true,
-                min: 0
+                min: 0,
             },
             duration: {
                 type: Number,
                 required: true,
-                min: 1
+                min: 1,
             },
             description: String,
-            includes: [String]
-        }]
+            includes: [String],
+        },
+    ],
+});
+const addOnSchema = new mongoose_1.Schema({
+    name: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+    price: {
+        type: Number,
+        required: true,
+        min: 0,
+    },
+    description: {
+        type: String,
+        trim: true,
+    },
 });
 const pricingRuleSchema = new mongoose_1.Schema({
     ruleType: {
         type: String,
-        required: true
+        required: true,
     },
     condition: {
         startHour: Number,
@@ -97,20 +114,20 @@ const pricingRuleSchema = new mongoose_1.Schema({
         startDate: Date,
         endDate: Date,
         minDuration: Number,
-        maxDuration: Number
+        maxDuration: Number,
     },
     modifierType: {
         type: String,
-        required: true
+        required: true,
     },
     modifierValue: {
         type: Number,
-        required: true
+        required: true,
     },
     priority: {
         type: Number,
-        default: 10
-    }
+        default: 10,
+    },
 });
 const serviceSchema = new mongoose_1.Schema({
     providerId: {
@@ -135,11 +152,6 @@ const serviceSchema = new mongoose_1.Schema({
     category: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Category',
-        required: true,
-    },
-    serviceType: {
-        type: String,
-        enum: Object.values(user_1.SERVICE_TYPE),
         required: true,
     },
     subCategory: {
@@ -172,49 +184,57 @@ const serviceSchema = new mongoose_1.Schema({
         required: true,
     },
     pricingModel: {
-        type: servicePricingSchema
+        type: servicePricingSchema,
     },
     pricingRules: {
         type: [pricingRuleSchema],
-        default: []
+        default: [],
     },
     travelFeePerKm: {
         type: Number,
         default: 1.5,
-        min: 0
+        min: 0,
     },
     allowOutsideRadius: {
         type: Boolean,
-        default: true
+        default: true,
     },
     maxTravelFee: {
         type: Number,
         default: 100,
-        min: 0
+        min: 0,
     },
     depositPercentage: {
         type: Number,
-        default: 0.5,
+        default: 0,
         min: 0,
-        max: 1
+        max: 1,
     },
     cancellationPolicy: {
         freeCancellationHours: {
             type: Number,
-            default: 24
+            default: 24,
         },
         partialRefundHours: {
             type: Number,
-            default: 12
+            default: 12,
         },
         noRefundHours: {
             type: Number,
-            default: 2
-        }
+            default: 2,
+        },
     },
     duration: {
-        type: String,
-        required: true,
+        value: {
+            type: Number,
+            required: true,
+            min: 1,
+        },
+        unit: {
+            type: String,
+            enum: ['minute', 'hour'],
+            required: true,
+        },
     },
     location: {
         type: locationSchema,
@@ -253,6 +273,20 @@ const serviceSchema = new mongoose_1.Schema({
         type: Number,
         default: 0,
     },
+    addOns: {
+        type: [addOnSchema],
+        default: [],
+    },
+    otherServices: {
+        type: [String],
+        default: [],
+    },
+    autoAcceptBookings: {
+        enabled: { type: Boolean, default: false },
+        minimumBudget: { type: Number, default: 0 },
+        withinRadiusKm: { type: Number, default: 30 },
+        verifiedClientsOnly: { type: Boolean, default: false },
+    },
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
@@ -261,7 +295,6 @@ const serviceSchema = new mongoose_1.Schema({
 // Indexes for better query performance
 serviceSchema.index({ providerId: 1 });
 serviceSchema.index({ category: 1 });
-serviceSchema.index({ serviceType: 1 });
 serviceSchema.index({ subCategory: 1 });
 serviceSchema.index({ tags: 1 });
 serviceSchema.index({ 'location.type': 1 });

@@ -68,7 +68,7 @@ class UsageTrackingService {
             if (currentServiceCount >= plan.maxServices) {
                 return {
                     allowed: false,
-                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxServices} services.`
+                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxServices} services.`,
                 };
             }
             return { allowed: true };
@@ -103,7 +103,7 @@ class UsageTrackingService {
             if (currentTeamMemberCount >= plan.maxTeamMembers) {
                 return {
                     allowed: false,
-                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxTeamMembers} team members.`
+                    reason: `Plan limit reached. Your ${plan.name} plan allows ${plan.maxTeamMembers} team members.`,
                 };
             }
             return { allowed: true };
@@ -200,7 +200,7 @@ class UsageTrackingService {
             // Count active services created by the professional
             const count = await service_model_1.Service.countDocuments({
                 providerId: new mongoose_1.Types.ObjectId(userId),
-                isActive: true
+                isActive: true,
             });
             return count;
         }

@@ -20,8 +20,6 @@ export const notificationFilterableFields = [
 ]
 
 export const NOTIFICATION_TEMPLATES = {
-
-
   // Payment Templates
   PAYMENT_SUCCESS: 'payment-success',
   PAYMENT_FAILED: 'payment-failed',
@@ -37,8 +35,6 @@ export const NOTIFICATION_TEMPLATES = {
   SYSTEM_ALERT: 'system-alert',
   MAINTENANCE: 'maintenance',
   NEW_FEATURE: 'new-feature',
-
-
 }
 
 export const NOTIFICATION_CONFIG = {

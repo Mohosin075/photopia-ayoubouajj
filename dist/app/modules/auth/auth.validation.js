@@ -66,7 +66,10 @@ const loginZodSchema = zod_1.z.object({
 });
 const verifyAccountZodSchema = zod_1.z.object({
     body: zod_1.z.object({
-        email: zod_1.z.string().optional().refine(value => !value || /^\S+@\S+\.\S+$/.test(value), {
+        email: zod_1.z
+            .string()
+            .optional()
+            .refine(value => !value || /^\S+@\S+\.\S+$/.test(value), {
             message: 'Invalid email format',
         }),
         phone: zod_1.z

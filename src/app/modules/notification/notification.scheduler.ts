@@ -33,8 +33,6 @@ export class NotificationScheduler {
       await this.processPendingNotifications()
     })
 
-
-
     // Schedule 3: Clean up old archived notifications daily at 2 AM
     cron.schedule('0 2 * * *', async () => {
       await this.cleanupArchivedNotifications()
@@ -102,8 +100,6 @@ export class NotificationScheduler {
       console.error('Error processing pending notifications:', error)
     }
   }
-
-
 
   private async sendWelcomeEmails(): Promise<void> {
     try {
@@ -243,7 +239,9 @@ export class NotificationScheduler {
           status: 'confirmed',
         })
 
-        console.log(`⏰ Found ${bookings.length} confirmed bookings for ${interval.label} reminders.`)
+        console.log(
+          `⏰ Found ${bookings.length} confirmed bookings for ${interval.label} reminders.`,
+        )
 
         for (const booking of bookings as any[]) {
           try {
@@ -282,7 +280,9 @@ export class NotificationScheduler {
                   interval.clientChannel === NotificationChannel.ALL,
               )
             } else {
-              console.log(`[Reminder Shield] Client reminder already sent today for booking ${booking.bookingNumber}`)
+              console.log(
+                `[Reminder Shield] Client reminder already sent today for booking ${booking.bookingNumber}`,
+              )
             }
 
             // 2. Professional Reminder Check
@@ -313,10 +313,15 @@ export class NotificationScheduler {
                   interval.proChannel === NotificationChannel.ALL,
               )
             } else {
-              console.log(`[Reminder Shield] Professional reminder already sent today for booking ${booking.bookingNumber}`)
+              console.log(
+                `[Reminder Shield] Professional reminder already sent today for booking ${booking.bookingNumber}`,
+              )
             }
           } catch (err: any) {
-            console.error(`Failed to send reminder for booking ${booking.bookingNumber}:`, err.message)
+            console.error(
+              `Failed to send reminder for booking ${booking.bookingNumber}:`,
+              err.message,
+            )
           }
         }
       }

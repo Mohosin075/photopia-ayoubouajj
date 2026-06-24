@@ -70,25 +70,35 @@ const createReview = async (user: JwtPayload, payload: IReview) => {
     // Update isOriginal for the specific service
     const booking = await Booking.findById(payload.bookingId).session(session)
     if (booking && booking.serviceId) {
-        // Fetch all reviews for this service
-        const reviews = await Review.find({ serviceId: booking.serviceId }).session(session)
-        const totalRating = reviews.reduce((acc, curr) => acc + curr.rating, 0)
-        const avgRating = reviews.length > 0 ? totalRating / reviews.length : 0
-        const reviewCount = reviews.length
+      // Fetch all reviews for this service
+      const reviews = await Review.find({
+        serviceId: booking.serviceId,
+      }).session(session)
+      const totalRating = reviews.reduce((acc, curr) => acc + curr.rating, 0)
+      const avgRating = reviews.length > 0 ? totalRating / reviews.length : 0
+      const reviewCount = reviews.length
 
-        if (avgRating >= 4.0 && reviewCount >= 5) {
-            await Service.findByIdAndUpdate(booking.serviceId, { isOriginal: true }).session(session)
-        } else {
-            await Service.findByIdAndUpdate(booking.serviceId, { isOriginal: false }).session(session)
-        }
-        
-        // Also update the review record with serviceId for future reference
-        await Review.findByIdAndUpdate(result[0]._id, { serviceId: booking.serviceId }).session(session)
+      if (avgRating >= 4.0 && reviewCount >= 5) {
+        await Service.findByIdAndUpdate(booking.serviceId, {
+          isOriginal: true,
+        }).session(session)
+      } else {
+        await Service.findByIdAndUpdate(booking.serviceId, {
+          isOriginal: false,
+        }).session(session)
+      }
+
+      // Also update the review record with serviceId for future reference
+      await Review.findByIdAndUpdate(result[0]._id, {
+        serviceId: booking.serviceId,
+      }).session(session)
     }
 
     // Update Super Pro status
     if (payload.reviewee) {
-        await ProfessionalProfileServices.updateSuperStatus(payload.reviewee.toString())
+      await ProfessionalProfileServices.updateSuperStatus(
+        payload.reviewee.toString(),
+      )
     }
 
     await session.commitTransaction()

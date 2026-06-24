@@ -9,7 +9,7 @@ const supportSchema = new mongoose_1.Schema({
     contentId: { type: mongoose_1.Schema.Types.ObjectId },
     contentType: {
         type: String,
-        enum: ['comment', 'review', 'user']
+        enum: ['comment', 'review', 'user'],
     },
     reason: {
         type: String,

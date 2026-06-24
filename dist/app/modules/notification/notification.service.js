@@ -18,8 +18,32 @@ const payment_model_1 = require("../payment/payment.model");
 const config_1 = __importDefault(require("../../../config"));
 const server_1 = require("../../../server");
 const pushnotificationHelper_1 = require("../../../helpers/pushnotificationHelper");
+const smsHelper_1 = require("../../../helpers/smsHelper");
 const createNotification = async (payload, sendEmail = false, sendPush = true) => {
     try {
+        // 1. Anti-Spam Filter: Max 1 similar notification per hour
+        // Exempt real-time chat messages, call alerts, and urgent payments from throttling
+        const exemptSpamTypes = [
+            notification_interface_1.NotificationType.NEW_MESSAGE,
+            notification_interface_1.NotificationType.INCOMING_VIDEO_CALL,
+            notification_interface_1.NotificationType.URGENT_MESSAGE,
+            notification_interface_1.NotificationType.SYSTEM_ALERT,
+            notification_interface_1.NotificationType.PAYMENT_SUCCESS,
+            notification_interface_1.NotificationType.PAYMENT_FAILED,
+        ];
+        if (!exemptSpamTypes.includes(payload.type)) {
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            const existingSpam = await notification_model_1.Notification.findOne({
+                userId: payload.userId,
+                type: payload.type,
+                content: payload.content, // Matching identical content to permit different notifications
+                createdAt: { $gte: oneHourAgo },
+            });
+            if (existingSpam) {
+                console.log(`[Anti-Spam] Suppressed duplicate notification ${payload.type} for user ${payload.userId} within 1 hour.`);
+                return existingSpam;
+            }
+        }
         const notificationData = {
             userId: payload.userId,
             title: payload.title,
@@ -51,13 +75,15 @@ const createNotification = async (payload, sendEmail = false, sendPush = true) =
             await sendNotificationEmail(notification);
         }
         // Send push notification if requested
-        // if (
-        //   (sendPush &&
-        //     (notification.channel === NotificationChannel.PUSH ||
-        //       notification.channel === NotificationChannel.ALL))
-        // ) {
         await sendNotificationPush(notification);
-        // }
+        // Send SMS notification if requested
+        if (notification.channel === notification_interface_1.NotificationChannel.SMS ||
+            notification.channel === notification_interface_1.NotificationChannel.ALL) {
+            const user = await user_model_1.User.findById(notification.userId);
+            if (user && user.phone) {
+                await (0, smsHelper_1.sendSMSNotification)(user.phone, notification.content);
+            }
+        }
         return notification;
     }
     catch (error) {
@@ -65,7 +91,7 @@ const createNotification = async (payload, sendEmail = false, sendPush = true) =
     }
 };
 const sendNotificationPush = async (notification) => {
-    var _a;
+    var _a, _b, _c, _d, _e, _f, _g;
     try {
         const user = await user_model_1.User.findById(notification.userId);
         if (!user) {
@@ -79,6 +105,38 @@ const sendNotificationPush = async (notification) => {
         if (((_a = user.settings) === null || _a === void 0 ? void 0 : _a.pushNotification) === false &&
             notification.priority !== notification_interface_1.NotificationPriority.URGENT) {
             return;
+        }
+        // Skip if user has enabled DND Mode and priority is not URGENT
+        if (((_b = user.settings) === null || _b === void 0 ? void 0 : _b.dndMode) === true &&
+            notification.priority !== notification_interface_1.NotificationPriority.URGENT) {
+            console.log(`[DND Suppression] Suppressed push notification due to DND mode for user ${user._id}.`);
+            return;
+        }
+        // Skip if quiet hours are enabled, active, and priority is not URGENT
+        if (((_c = user.settings) === null || _c === void 0 ? void 0 : _c.quietHoursEnabled) !== false &&
+            notification.priority !== notification_interface_1.NotificationPriority.URGENT) {
+            const timezone = user.timezone || 'UTC';
+            try {
+                // Get user's current local hour
+                const localTimeStr = new Date().toLocaleString('en-US', {
+                    timeZone: timezone,
+                    hour: 'numeric',
+                    hour12: false,
+                });
+                const localHour = parseInt(localTimeStr, 10);
+                const startHour = parseInt(((_e = (_d = user.settings) === null || _d === void 0 ? void 0 : _d.quietHoursStart) === null || _e === void 0 ? void 0 : _e.split(':')[0]) || '22', 10);
+                const endHour = parseInt(((_g = (_f = user.settings) === null || _f === void 0 ? void 0 : _f.quietHoursEnd) === null || _g === void 0 ? void 0 : _g.split(':')[0]) || '8', 10);
+                const isQuietTime = startHour > endHour
+                    ? localHour >= startHour || localHour < endHour
+                    : localHour >= startHour && localHour < endHour;
+                if (isQuietTime) {
+                    console.log(`[Quiet Hours] Suppressed push notification for user ${user._id} during quiet hours (${localHour}:00).`);
+                    return;
+                }
+            }
+            catch (err) {
+                console.error('Quiet Hours calculation failed, falling back to sending:', err);
+            }
         }
         const pushPayload = {
             notificationId: notification._id.toString(),
@@ -242,7 +300,8 @@ const getAllNotifications = async (user, filterables, pagination) => {
         });
     }
     // User-specific filtering (unless admin)
-    if (user.activeRole === user_1.USER_ROLES.USER || user.activeRole === user_1.USER_ROLES.PROFESSIONAL) {
+    if (user.activeRole === user_1.USER_ROLES.USER ||
+        user.activeRole === user_1.USER_ROLES.PROFESSIONAL) {
         andConditions.push({
             userId: new mongoose_1.Types.ObjectId(user.userId),
         });
@@ -376,7 +435,8 @@ const deleteNotification = async (id) => {
 };
 const getNotificationStats = async (user) => {
     const query = {};
-    if (user.activeRole === user_1.USER_ROLES.USER || user.activeRole === user_1.USER_ROLES.PROFESSIONAL) {
+    if (user.activeRole === user_1.USER_ROLES.USER ||
+        user.activeRole === user_1.USER_ROLES.PROFESSIONAL) {
         query.userId = user.userId;
     }
     const [total, unread, byType, byChannel, byStatus] = await Promise.all([

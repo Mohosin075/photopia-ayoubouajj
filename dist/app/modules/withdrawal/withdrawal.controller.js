@@ -53,5 +53,5 @@ exports.WithdrawalController = {
     createWithdrawal,
     getMyWithdrawals,
     getAllWithdrawals,
-    updateWithdrawalStatus
+    updateWithdrawalStatus,
 };

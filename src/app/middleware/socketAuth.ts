@@ -1,14 +1,14 @@
-import { StatusCodes } from "http-status-codes"
-import ApiError from "../../errors/ApiError"
-import { ErrorResponse, SocketWithUser } from "../../interfaces/socket"
-import { ExtendedError } from "socket.io"
-import { jwtHelper } from "../../helpers/jwtHelper"
+import { StatusCodes } from 'http-status-codes'
+import ApiError from '../../errors/ApiError'
+import { ErrorResponse, SocketWithUser } from '../../interfaces/socket'
+import { ExtendedError } from 'socket.io'
+import { jwtHelper } from '../../helpers/jwtHelper'
 import { Socket } from 'socket.io'
-import colors from "colors"
-import config from "../../config"
-import { Secret } from "jsonwebtoken"
-import { ZodSchema } from "zod"
-import handleZodError from "../../errors/handleZodError"
+import colors from 'colors'
+import config from '../../config'
+import { Secret } from 'jsonwebtoken'
+import { ZodSchema } from 'zod'
+import handleZodError from '../../errors/handleZodError'
 
 const socketAuth = (...roles: string[]) => {
   return (socket: SocketWithUser, next: (err?: ExtendedError) => void) => {
@@ -17,8 +17,6 @@ const socketAuth = (...roles: string[]) => {
         socket.handshake.auth.token ||
         socket.handshake.query.token ||
         socket.handshake.headers.authorization
-
-
 
       if (!token) {
         throw new ApiError(
@@ -31,7 +29,10 @@ const socketAuth = (...roles: string[]) => {
         let jwtToken = extractToken(token)
 
         // Verify token
-        const verifiedUser = jwtHelper.verifyToken(jwtToken, config.jwt.jwt_secret as Secret)
+        const verifiedUser = jwtHelper.verifyToken(
+          jwtToken,
+          config.jwt.jwt_secret as Secret,
+        )
 
         // Attach user to socket
         socket.user = {
@@ -51,17 +52,25 @@ const socketAuth = (...roles: string[]) => {
             ),
           )
           return next(
-            new ApiError(StatusCodes.FORBIDDEN, "You don't have permission to access this socket event"),
+            new ApiError(
+              StatusCodes.FORBIDDEN,
+              "You don't have permission to access this socket event",
+            ),
           )
         }
 
         console.log(
-          colors.green(`Socket authenticated for user: ${verifiedUser.userId || verifiedUser.authId}`),
+          colors.green(
+            `Socket authenticated for user: ${verifiedUser.userId || verifiedUser.authId}`,
+          ),
         )
         next()
       } catch (error) {
         if (error instanceof Error && error.name === 'TokenExpiredError') {
-          throw new ApiError(StatusCodes.UNAUTHORIZED, 'Access Token has expired')
+          throw new ApiError(
+            StatusCodes.UNAUTHORIZED,
+            'Access Token has expired',
+          )
         }
         throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid Access Token')
       }
@@ -80,8 +89,6 @@ const socketAuth = (...roles: string[]) => {
   }
 }
 
-
-
 const handleSocketRequest = (socket: Socket, ...roles: string[]) => {
   try {
     const token =
@@ -92,7 +99,10 @@ const handleSocketRequest = (socket: Socket, ...roles: string[]) => {
     let jwtToken = extractToken(token)
 
     // Verify token
-    const verifiedUser = jwtHelper.verifyToken(jwtToken, config.jwt.jwt_secret as Secret)
+    const verifiedUser = jwtHelper.verifyToken(
+      jwtToken,
+      config.jwt.jwt_secret as Secret,
+    )
     // Guard user based on roles
     if (roles.length && !roles.includes(verifiedUser.role)) {
       socket.emit(
@@ -115,11 +125,8 @@ const handleSocketRequest = (socket: Socket, ...roles: string[]) => {
       throw new ApiError(StatusCodes.UNAUTHORIZED, 'Access Token has expired')
     }
     throw new ApiError(StatusCodes.FORBIDDEN, 'Invalid Access Token')
-
   }
 }
-
-
 
 function createErrorResponse(
   statusCode: number,
@@ -170,8 +177,6 @@ function extractToken(token: string | string[]): string {
   return token as string
 }
 
-
-
 function getErrorName(statusCode: number): string {
   switch (statusCode) {
     case StatusCodes.BAD_REQUEST:
@@ -186,7 +191,6 @@ function getErrorName(statusCode: number): string {
       return 'Error'
   }
 }
-
 
 /**
  * Validate socket event data against schema

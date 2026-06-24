@@ -95,10 +95,6 @@ export class EmailTemplates {
       `,
     },
 
-
-
-
-
     // Payment Success
     [NOTIFICATION_TEMPLATES.PAYMENT_SUCCESS]: {
       getTitle: (data: TemplateData) => `Payment Successful!`,
@@ -165,10 +161,6 @@ export class EmailTemplates {
         <p>If you didn't request this password reset, please ignore this email or contact support if you're concerned.</p>
       `,
     },
-
-
-
-
 
     // Account Verification
     [NOTIFICATION_TEMPLATES.ACCOUNT_VERIFICATION]: {

@@ -4,7 +4,10 @@ exports.Faq = exports.Public = void 0;
 const mongoose_1 = require("mongoose");
 const publicSchema = new mongoose_1.Schema({
     content: { type: String },
-    type: { type: String, enum: ['privacy-policy', 'terms-and-condition', 'contact', 'about'] },
+    type: {
+        type: String,
+        enum: ['privacy-policy', 'terms-and-condition', 'contact', 'about'],
+    },
 }, {
     timestamps: true,
 });

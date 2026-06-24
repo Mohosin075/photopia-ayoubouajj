@@ -54,7 +54,9 @@ const createAdmin = async (): Promise<Partial<IUser> | null> => {
   const password = config.super_admin.password
 
   if (!email || !password) {
-    console.warn('⚠️ SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set. Skipping admin creation.')
+    console.warn(
+      '⚠️ SUPER_ADMIN_EMAIL or SUPER_ADMIN_PASSWORD not set. Skipping admin creation.',
+    )
     return null
   }
 
@@ -94,7 +96,6 @@ const createAdmin = async (): Promise<Partial<IUser> | null> => {
   }
   return result.toObject()
 }
-
 
 const getAllUsers = async (
   paginationOptions: IPaginationOptions,
@@ -167,7 +168,6 @@ const getAllUsers = async (
     data: users,
   }
 }
-
 
 const deleteUser = async (userId: string): Promise<string> => {
   const isUserExist = await User.findOne({
@@ -268,7 +268,6 @@ const getUserById = async (userId: string): Promise<any> => {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User not found.')
   }
 
-
   return isUserExist
 }
 
@@ -315,9 +314,14 @@ const switchRole = async (user: JwtPayload, role: USER_ROLES) => {
   }
 
   // Special case: User wants to become professional but doesn't have the role yet
-  if (role === USER_ROLES.PROFESSIONAL && !isUserExist.roles.includes(USER_ROLES.PROFESSIONAL)) {
+  if (
+    role === USER_ROLES.PROFESSIONAL &&
+    !isUserExist.roles.includes(USER_ROLES.PROFESSIONAL)
+  ) {
     // Check if they already have a professional profile
-    const existingProfile = await ProfessionalProfile.findOne({ user: user.userId })
+    const existingProfile = await ProfessionalProfile.findOne({
+      user: user.userId,
+    })
 
     if (!existingProfile) {
       // Create empty professional profile (which will add the role)

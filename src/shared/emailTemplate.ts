@@ -43,8 +43,6 @@ export interface IStaffCreateEmail {
   otp: string
 }
 
-
-
 const paymentSuccess = (values: {
   name: string
   email: string
@@ -164,9 +162,6 @@ const planChange = (values: {
     `,
   }
 }
-
-
-
 
 export const emailTemplate = {
   createAccount,

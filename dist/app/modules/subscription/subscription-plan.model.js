@@ -37,10 +37,12 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
         default: 10,
         min: 0,
     },
-    features: [{
+    features: [
+        {
             type: String,
             required: true,
-        }],
+        },
+    ],
     maxTeamMembers: {
         type: Number,
         default: 1,
@@ -62,11 +64,13 @@ const subscriptionPlanSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
-    userTypes: [{
+    userTypes: [
+        {
             type: String,
             enum: ['user', 'professional', 'admin', 'super_admin'],
             required: true,
-        }],
+        },
+    ],
     priority: {
         type: Number,
         default: 0,

@@ -4,11 +4,14 @@ exports.WithdrawalValidation = void 0;
 const zod_1 = require("zod");
 const createWithdrawalZodSchema = zod_1.z.object({
     body: zod_1.z.object({
-        amount: zod_1.z.number({
+        amount: zod_1.z
+            .number({
             required_error: 'Amount is required',
-        }).positive('Amount must be positive'),
+        })
+            .positive('Amount must be positive'),
         currency: zod_1.z.string().optional(),
-        bankAccountDetails: zod_1.z.object({
+        bankAccountDetails: zod_1.z
+            .object({
             accountHolderName: zod_1.z.string({
                 required_error: 'Account holder name is required',
             }),
@@ -19,7 +22,8 @@ const createWithdrawalZodSchema = zod_1.z.object({
                 required_error: 'IBAN is required',
             }),
             swiftCode: zod_1.z.string().optional(),
-        }).optional(),
+        })
+            .optional(),
     }),
 });
 const updateWithdrawalStatusZodSchema = zod_1.z.object({

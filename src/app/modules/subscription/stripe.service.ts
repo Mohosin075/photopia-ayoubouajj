@@ -16,7 +16,11 @@ class StripeService {
   }
 
   // Customer Management
-  async createCustomer(email: string, name?: string, metadata?: Record<string, string>): Promise<Stripe.Customer> {
+  async createCustomer(
+    email: string,
+    name?: string,
+    metadata?: Record<string, string>,
+  ): Promise<Stripe.Customer> {
     try {
       const customer = await this.stripe.customers.create({
         email,
@@ -42,7 +46,10 @@ class StripeService {
     }
   }
 
-  async updateCustomer(customerId: string, params: Stripe.CustomerUpdateParams): Promise<Stripe.Customer> {
+  async updateCustomer(
+    customerId: string,
+    params: Stripe.CustomerUpdateParams,
+  ): Promise<Stripe.Customer> {
     try {
       const customer = await this.stripe.customers.update(customerId, params)
       console.log(`Stripe customer updated: ${customerId}`)
@@ -81,7 +88,8 @@ class StripeService {
         subscriptionParams.default_payment_method = params.paymentMethodId
       }
 
-      const subscription = await this.stripe.subscriptions.create(subscriptionParams)
+      const subscription =
+        await this.stripe.subscriptions.create(subscriptionParams)
 
       console.log(`Stripe subscription created: ${subscription.id}`)
       return subscription
@@ -93,12 +101,18 @@ class StripeService {
 
   async getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId, {
-        expand: ['latest_invoice.payment_intent'],
-      })
+      const subscription = await this.stripe.subscriptions.retrieve(
+        subscriptionId,
+        {
+          expand: ['latest_invoice.payment_intent'],
+        },
+      )
       return subscription
     } catch (error) {
-      console.error(`Error retrieving Stripe subscription ${subscriptionId}:`, error)
+      console.error(
+        `Error retrieving Stripe subscription ${subscriptionId}:`,
+        error,
+      )
       throw error
     }
   }
@@ -108,11 +122,17 @@ class StripeService {
     params: Stripe.SubscriptionUpdateParams,
   ): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.update(subscriptionId, params)
+      const subscription = await this.stripe.subscriptions.update(
+        subscriptionId,
+        params,
+      )
       console.log(`Stripe subscription updated: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      console.error(`Error updating Stripe subscription ${subscriptionId}:`, error)
+      console.error(
+        `Error updating Stripe subscription ${subscriptionId}:`,
+        error,
+      )
       throw error
     }
   }
@@ -135,33 +155,52 @@ class StripeService {
       console.log(`Stripe subscription canceled: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      console.error(`Error canceling Stripe subscription ${subscriptionId}:`, error)
+      console.error(
+        `Error canceling Stripe subscription ${subscriptionId}:`,
+        error,
+      )
       throw error
     }
   }
 
-  async reactivateSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  async reactivateSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.update(subscriptionId, {
-        cancel_at_period_end: false,
-      })
+      const subscription = await this.stripe.subscriptions.update(
+        subscriptionId,
+        {
+          cancel_at_period_end: false,
+        },
+      )
 
       console.log(`Stripe subscription reactivated: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      console.error(`Error reactivating Stripe subscription ${subscriptionId}:`, error)
+      console.error(
+        `Error reactivating Stripe subscription ${subscriptionId}:`,
+        error,
+      )
       throw error
     }
   }
 
   // Payment Method Management
-  async attachPaymentMethod(paymentMethodId: string, customerId: string): Promise<Stripe.PaymentMethod> {
+  async attachPaymentMethod(
+    paymentMethodId: string,
+    customerId: string,
+  ): Promise<Stripe.PaymentMethod> {
     try {
-      const paymentMethod = await this.stripe.paymentMethods.attach(paymentMethodId, {
-        customer: customerId,
-      })
+      const paymentMethod = await this.stripe.paymentMethods.attach(
+        paymentMethodId,
+        {
+          customer: customerId,
+        },
+      )
 
-      console.log(`Payment method attached: ${paymentMethodId} to customer: ${customerId}`)
+      console.log(
+        `Payment method attached: ${paymentMethodId} to customer: ${customerId}`,
+      )
       return paymentMethod
     } catch (error) {
       console.error('Error attaching payment method:', error)
@@ -169,7 +208,10 @@ class StripeService {
     }
   }
 
-  async setDefaultPaymentMethod(customerId: string, paymentMethodId: string): Promise<Stripe.Customer> {
+  async setDefaultPaymentMethod(
+    customerId: string,
+    paymentMethodId: string,
+  ): Promise<Stripe.Customer> {
     try {
       const customer = await this.stripe.customers.update(customerId, {
         invoice_settings: {
@@ -233,20 +275,28 @@ class StripeService {
   }
 
   // Invoice Management
-  async getUpcomingInvoice(customerId: string): Promise<Stripe.UpcomingInvoice> {
+  async getUpcomingInvoice(
+    customerId: string,
+  ): Promise<Stripe.UpcomingInvoice> {
     try {
       const invoice = await (this.stripe.invoices as any).retrieveUpcoming({
         customer: customerId,
       })
       return invoice as Stripe.UpcomingInvoice
     } catch (error) {
-      console.error(`Error retrieving upcoming invoice for customer ${customerId}:`, error)
+      console.error(
+        `Error retrieving upcoming invoice for customer ${customerId}:`,
+        error,
+      )
       throw error
     }
   }
 
   // Webhook Verification
-  constructWebhookEvent(payload: string | Buffer, signature: string): Stripe.Event {
+  constructWebhookEvent(
+    payload: string | Buffer,
+    signature: string,
+  ): Stripe.Event {
     try {
       if (!config.stripe.webhookSecret) {
         throw new Error('Stripe webhook secret is required')
@@ -315,7 +365,10 @@ class StripeService {
   }
 
   // Update product
-  async updateProduct(productId: string, params: Stripe.ProductUpdateParams): Promise<Stripe.Product> {
+  async updateProduct(
+    productId: string,
+    params: Stripe.ProductUpdateParams,
+  ): Promise<Stripe.Product> {
     try {
       const product = await this.stripe.products.update(productId, params)
       console.log(`Stripe product updated: ${productId}`)
@@ -351,48 +404,72 @@ class StripeService {
   }
 
   // Pause subscription
-  async pauseSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  async pauseSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.update(subscriptionId, {
-        pause_collection: {
-          behavior: 'keep_as_draft',
+      const subscription = await this.stripe.subscriptions.update(
+        subscriptionId,
+        {
+          pause_collection: {
+            behavior: 'keep_as_draft',
+          },
         },
-      })
+      )
       console.log(`Stripe subscription paused: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      console.error(`Error pausing Stripe subscription ${subscriptionId}:`, error)
+      console.error(
+        `Error pausing Stripe subscription ${subscriptionId}:`,
+        error,
+      )
       throw error
     }
   }
 
   // Resume subscription
-  async resumeSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+  async resumeSubscription(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.update(subscriptionId, {
-        pause_collection: null,
-      })
+      const subscription = await this.stripe.subscriptions.update(
+        subscriptionId,
+        {
+          pause_collection: null,
+        },
+      )
       console.log(`Stripe subscription resumed: ${subscriptionId}`)
       return subscription
     } catch (error) {
-      console.error(`Error resuming Stripe subscription ${subscriptionId}:`, error)
+      console.error(
+        `Error resuming Stripe subscription ${subscriptionId}:`,
+        error,
+      )
       throw error
     }
   }
 
   // Get payment method
-  async getPaymentMethod(paymentMethodId: string): Promise<Stripe.PaymentMethod> {
+  async getPaymentMethod(
+    paymentMethodId: string,
+  ): Promise<Stripe.PaymentMethod> {
     try {
-      const paymentMethod = await this.stripe.paymentMethods.retrieve(paymentMethodId)
+      const paymentMethod =
+        await this.stripe.paymentMethods.retrieve(paymentMethodId)
       return paymentMethod
     } catch (error) {
-      console.error(`Error retrieving payment method ${paymentMethodId}:`, error)
+      console.error(
+        `Error retrieving payment method ${paymentMethodId}:`,
+        error,
+      )
       throw error
     }
   }
 
   // List customer payment methods
-  async listCustomerPaymentMethods(customerId: string): Promise<Stripe.PaymentMethod[]> {
+  async listCustomerPaymentMethods(
+    customerId: string,
+  ): Promise<Stripe.PaymentMethod[]> {
     try {
       const paymentMethods = await this.stripe.paymentMethods.list({
         customer: customerId,
@@ -400,7 +477,10 @@ class StripeService {
       })
       return paymentMethods.data
     } catch (error) {
-      console.error(`Error listing payment methods for customer ${customerId}:`, error)
+      console.error(
+        `Error listing payment methods for customer ${customerId}:`,
+        error,
+      )
       throw error
     }
   }
@@ -434,7 +514,10 @@ class StripeService {
   }
 
   // Create customer portal session (for managing payment methods and billing)
-  async createPortalSession(customerId: string, returnUrl: string): Promise<Stripe.BillingPortal.Session> {
+  async createPortalSession(
+    customerId: string,
+    returnUrl: string,
+  ): Promise<Stripe.BillingPortal.Session> {
     try {
       const session = await this.stripe.billingPortal.sessions.create({
         customer: customerId,
@@ -449,19 +532,27 @@ class StripeService {
   }
 
   // Get subscription with expanded data
-  async getSubscriptionExpanded(subscriptionId: string): Promise<Stripe.Subscription> {
+  async getSubscriptionExpanded(
+    subscriptionId: string,
+  ): Promise<Stripe.Subscription> {
     try {
-      const subscription = await this.stripe.subscriptions.retrieve(subscriptionId, {
-        expand: [
-          'latest_invoice',
-          'latest_invoice.payment_intent',
-          'customer',
-          'items.data.price.product',
-        ],
-      })
+      const subscription = await this.stripe.subscriptions.retrieve(
+        subscriptionId,
+        {
+          expand: [
+            'latest_invoice',
+            'latest_invoice.payment_intent',
+            'customer',
+            'items.data.price.product',
+          ],
+        },
+      )
       return subscription
     } catch (error) {
-      console.error(`Error retrieving expanded subscription ${subscriptionId}:`, error)
+      console.error(
+        `Error retrieving expanded subscription ${subscriptionId}:`,
+        error,
+      )
       throw error
     }
   }

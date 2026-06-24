@@ -10,7 +10,7 @@ const router = express.Router()
 router.post(
   '/track',
   validateRequest(AnalyticsValidation.trackVisitZodSchema),
-  AnalyticsController.trackVisit
+  AnalyticsController.trackVisit,
 )
 
 export const AnalyticsRoutes = router

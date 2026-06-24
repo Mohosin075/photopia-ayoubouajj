@@ -20,5 +20,5 @@ const getHomeData = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 exports.HomeController = {
-    getHomeData
+    getHomeData,
 };

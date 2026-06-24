@@ -21,13 +21,13 @@ router
     auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(createServiceSchema),
-    ServiceController.createService
+    ServiceController.createService,
   )
 
 router.get(
   '/provider/:providerId',
   validateRequest(filterServiceSchema),
-  ServiceController.getServicesByProvider
+  ServiceController.getServicesByProvider,
 )
 
 // --- Provider Routes ---
@@ -35,7 +35,7 @@ router.get(
   '/my/services',
   auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(filterServiceSchema),
-  ServiceController.getMyServices
+  ServiceController.getMyServices,
 )
 
 router
@@ -45,15 +45,18 @@ router
     auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     fileAndBodyProcessorUsingDiskStorage(),
     validateRequest(updateServiceSchema),
-    ServiceController.updateService
+    ServiceController.updateService,
   )
-  .delete(auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN), ServiceController.deleteService)
+  .delete(
+    auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    ServiceController.deleteService,
+  )
 
 router.patch(
   '/:id/status',
   auth(USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   validateRequest(toggleServiceStatusSchema),
-  ServiceController.toggleServiceStatus
+  ServiceController.toggleServiceStatus,
 )
 
 export const ServiceRoutes = router

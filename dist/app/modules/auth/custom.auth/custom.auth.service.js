@@ -143,7 +143,8 @@ const adminLogin = async (payload) => {
     if (!isUserExist) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `No account found with this ${email ? 'email' : 'phone'}`);
     }
-    if (!isUserExist.roles.includes(user_1.USER_ROLES.ADMIN) && !isUserExist.roles.includes(user_1.USER_ROLES.SUPER_ADMIN)) {
+    if (!isUserExist.roles.includes(user_1.USER_ROLES.ADMIN) &&
+        !isUserExist.roles.includes(user_1.USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'You are not authorized to login as admin');
     }
     const isPasswordMatch = await auth_helper_1.AuthHelper.isPasswordMatched(payload.password, isUserExist.password);
@@ -155,9 +156,7 @@ const adminLogin = async (payload) => {
     return (0, common_1.authResponse)(http_status_codes_1.StatusCodes.OK, `Welcome back ${isUserExist.name}`, isUserExist.activeRole, tokens.accessToken, tokens.refreshToken);
 };
 const forgetPassword = async (email, phone) => {
-    const query = email
-        ? { email: email.toLowerCase().trim() }
-        : { phone: phone };
+    const query = email ? { email: email.toLowerCase().trim() } : { phone: phone };
     const isUserExist = await user_model_1.User.findOne({
         ...query,
         status: { $in: [user_1.USER_STATUS.ACTIVE, user_1.USER_STATUS.INACTIVE] },
@@ -384,8 +383,16 @@ const resendOtp = async (authType, email, phone) => {
     }, { new: true });
     if (email) {
         const otpTemplate = authType === 'createAccount'
-            ? emailTemplate_1.emailTemplate.createAccount({ name: isUserExist.name, email: isUserExist.email, otp })
-            : emailTemplate_1.emailTemplate.resetPassword({ name: isUserExist.name, email: isUserExist.email, otp });
+            ? emailTemplate_1.emailTemplate.createAccount({
+                name: isUserExist.name,
+                email: isUserExist.email,
+                otp,
+            })
+            : emailTemplate_1.emailTemplate.resetPassword({
+                name: isUserExist.name,
+                email: isUserExist.email,
+                otp,
+            });
         emailHelper_1.emailHelper.sendEmail(otpTemplate);
     }
 };

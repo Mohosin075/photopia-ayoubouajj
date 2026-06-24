@@ -41,22 +41,28 @@ const getAllWithdrawals = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const updateWithdrawalStatus = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params
-  const { status, transactionId } = req.body
-  const result = await WithdrawalService.updateWithdrawalStatus(id, status, transactionId)
+const updateWithdrawalStatus = catchAsync(
+  async (req: Request, res: Response) => {
+    const { id } = req.params
+    const { status, transactionId } = req.body
+    const result = await WithdrawalService.updateWithdrawalStatus(
+      id,
+      status,
+      transactionId,
+    )
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Withdrawal status updated successfully',
-    data: result,
-  })
-})
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Withdrawal status updated successfully',
+      data: result,
+    })
+  },
+)
 
 export const WithdrawalController = {
   createWithdrawal,
   getMyWithdrawals,
   getAllWithdrawals,
-  updateWithdrawalStatus
+  updateWithdrawalStatus,
 }

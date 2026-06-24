@@ -5,9 +5,16 @@ const availability_model_1 = require("./availability.model");
 const mongoose_1 = require("mongoose");
 const booking_model_1 = require("../booking/booking.model");
 const createOrUpdateAvailability = async (providerId, payload) => {
-    const isExist = await availability_model_1.Availability.findOne({ providerId });
+    const query = { providerId };
+    if (payload.serviceId) {
+        query.serviceId = payload.serviceId;
+    }
+    else {
+        query.$or = [{ serviceId: null }, { serviceId: { $exists: false } }];
+    }
+    const isExist = await availability_model_1.Availability.findOne(query);
     if (isExist) {
-        const result = await availability_model_1.Availability.findOneAndUpdate({ providerId }, payload, {
+        const result = await availability_model_1.Availability.findOneAndUpdate(query, payload, {
             new: true,
             runValidators: true,
         });
@@ -18,79 +25,172 @@ const createOrUpdateAvailability = async (providerId, payload) => {
         return result;
     }
 };
-const getProviderAvailability = async (providerId) => {
-    const result = await availability_model_1.Availability.findOne({ providerId });
+const getProviderAvailability = async (providerId, serviceId) => {
+    const query = { providerId };
+    if (serviceId) {
+        query.serviceId = serviceId;
+    }
+    else {
+        query.$or = [{ serviceId: null }, { serviceId: { $exists: false } }];
+    }
+    const result = await availability_model_1.Availability.findOne(query);
     return result;
 };
-const checkAvailabilityForDate = async (providerId, date) => {
+const checkAvailabilityForDate = async (providerId, date, serviceId) => {
     var _a;
-    const availability = await availability_model_1.Availability.findOne({ providerId });
+    let availability = null;
+    if (serviceId) {
+        availability = await availability_model_1.Availability.findOne({ providerId, serviceId });
+    }
+    if (!availability) {
+        availability = await availability_model_1.Availability.findOne({
+            providerId,
+            $or: [{ serviceId: null }, { serviceId: { $exists: false } }],
+        });
+    }
     if (!availability) {
         return { isAvailable: false, reason: 'Provider has not set availability' };
     }
     const targetDate = new Date(date);
+    const checkDate = new Date(targetDate);
+    checkDate.setHours(0, 0, 0, 0);
     let workingHours;
     let pricing;
     let maxBookings = availability.maxBookingsPerDay;
-    // 1. Check specific custom dates (overrides everything)
-    const customDate = availability.customDates.find((cd) => new Date(cd.date).toDateString() === targetDate.toDateString());
+    // 1. Check blocked date ranges (highest priority)
+    if (availability.blockedDateRanges &&
+        availability.blockedDateRanges.length > 0) {
+        for (const range of availability.blockedDateRanges) {
+            const start = new Date(range.startDate);
+            start.setHours(0, 0, 0, 0);
+            const end = new Date(range.endDate);
+            end.setHours(0, 0, 0, 0);
+            if (checkDate >= start && checkDate <= end) {
+                return {
+                    isAvailable: false,
+                    reason: `Date falls within a blocked date range: ${range.note || ''}`,
+                };
+            }
+        }
+    }
+    // 2. Check specific custom dates (single day overrides)
+    const customDate = availability.customDates.find(cd => new Date(cd.date).toDateString() === targetDate.toDateString());
     if (customDate) {
         if (customDate.type === 'blocked' || customDate.type === 'unavailable') {
-            return { isAvailable: false, reason: 'Date is specifically blocked by provider' };
+            return {
+                isAvailable: false,
+                reason: 'Date is specifically blocked by provider',
+            };
         }
-        workingHours = { start: customDate.start || '09:00', end: customDate.end || '17:00' };
+        workingHours = {
+            start: customDate.start || '09:00',
+            end: customDate.end || '17:00',
+        };
         pricing = {
             priceOverride: customDate.priceOverride,
-            rateMultiplier: customDate.rateMultiplier
+            rateMultiplier: customDate.rateMultiplier,
         };
         if (customDate.maxBookings)
             maxBookings = customDate.maxBookings;
     }
     else {
-        // 2. Check recurring rules
-        let ruleMatched = false;
-        if (availability.recurringRules && availability.recurringRules.length > 0) {
-            for (const rule of availability.recurringRules) {
-                if (!rule.active)
-                    continue;
-                // Weekday check
-                if (rule.type === 'block_weekly' || rule.type === 'special_hours_weekly') {
-                    if (rule.dayOfWeek !== undefined && rule.dayOfWeek === targetDate.getDay()) {
-                        if (rule.type === 'block_weekly') {
-                            return { isAvailable: false, reason: 'Date matches a recurring block rule' };
-                        }
-                        if (rule.type === 'special_hours_weekly' && rule.start && rule.end) {
-                            workingHours = { start: rule.start, end: rule.end };
-                            if (rule.maxBookings)
-                                maxBookings = rule.maxBookings;
-                            ruleMatched = true;
-                            break;
-                        }
-                    }
+        // 3. Check availability periods (if defined)
+        let periodMatched = false;
+        if (availability.availabilityPeriods &&
+            availability.availabilityPeriods.length > 0) {
+            for (const period of availability.availabilityPeriods) {
+                const start = new Date(period.startDate);
+                start.setHours(0, 0, 0, 0);
+                const end = new Date(period.endDate);
+                end.setHours(0, 0, 0, 0);
+                if (checkDate >= start && checkDate <= end) {
+                    workingHours = { start: period.startTime, end: period.endTime };
+                    pricing = {
+                        priceOverride: period.priceOverride,
+                        rateMultiplier: period.rateMultiplier,
+                    };
+                    if (period.maxBookings)
+                        maxBookings = period.maxBookings;
+                    periodMatched = true;
+                    break;
                 }
-                // Monthly check
-                if (rule.type === 'block_monthly') {
-                    const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-                    const dayOfMonth = targetDate.getDate();
-                    const weekOfMonth = Math.ceil((dayOfMonth + firstDayOfMonth.getDay()) / 7);
-                    if (rule.weekOfMonth !== undefined && rule.weekOfMonth === weekOfMonth) {
-                        return { isAvailable: false, reason: 'Date matches a recurring monthly block rule' };
-                    }
-                }
+            }
+            if (!periodMatched) {
+                return {
+                    isAvailable: false,
+                    reason: 'Date is outside the configured availability periods',
+                };
             }
         }
-        if (!ruleMatched) {
-            // 3. Check default schedule
-            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            const dayName = days[targetDate.getDay()];
-            const defaultSchedule = availability.defaultSchedule;
-            const daySchedule = defaultSchedule[dayName] || ((_a = defaultSchedule.get) === null || _a === void 0 ? void 0 : _a.call(defaultSchedule, dayName));
-            if (!daySchedule || !daySchedule.isActive) {
-                return { isAvailable: false, reason: `Day (${dayName}) is not a working day in default schedule` };
+        else {
+            // 4. Fallback to recurring rules and default schedule
+            let ruleMatched = false;
+            if (availability.recurringRules &&
+                availability.recurringRules.length > 0) {
+                for (const rule of availability.recurringRules) {
+                    if (!rule.active)
+                        continue;
+                    // Weekday check
+                    if (rule.type === 'block_weekly' ||
+                        rule.type === 'special_hours_weekly') {
+                        if (rule.dayOfWeek !== undefined &&
+                            rule.dayOfWeek === targetDate.getDay()) {
+                            if (rule.type === 'block_weekly') {
+                                return {
+                                    isAvailable: false,
+                                    reason: 'Date matches a recurring block rule',
+                                };
+                            }
+                            if (rule.type === 'special_hours_weekly' &&
+                                rule.start &&
+                                rule.end) {
+                                workingHours = { start: rule.start, end: rule.end };
+                                if (rule.maxBookings)
+                                    maxBookings = rule.maxBookings;
+                                ruleMatched = true;
+                                break;
+                            }
+                        }
+                    }
+                    // Monthly check
+                    if (rule.type === 'block_monthly') {
+                        const firstDayOfMonth = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
+                        const dayOfMonth = targetDate.getDate();
+                        const weekOfMonth = Math.ceil((dayOfMonth + firstDayOfMonth.getDay()) / 7);
+                        if (rule.weekOfMonth !== undefined &&
+                            rule.weekOfMonth === weekOfMonth) {
+                            return {
+                                isAvailable: false,
+                                reason: 'Date matches a recurring monthly block rule',
+                            };
+                        }
+                    }
+                }
             }
-            workingHours = { start: daySchedule.start, end: daySchedule.end };
-            if (daySchedule.maxBookings)
-                maxBookings = daySchedule.maxBookings;
+            if (!ruleMatched) {
+                // Check default schedule
+                const days = [
+                    'sunday',
+                    'monday',
+                    'tuesday',
+                    'wednesday',
+                    'thursday',
+                    'friday',
+                    'saturday',
+                ];
+                const dayName = days[targetDate.getDay()];
+                const defaultSchedule = availability.defaultSchedule;
+                const daySchedule = defaultSchedule[dayName] || ((_a = defaultSchedule.get) === null || _a === void 0 ? void 0 : _a.call(defaultSchedule, dayName));
+                if (!daySchedule || !daySchedule.isActive) {
+                    return {
+                        isAvailable: false,
+                        reason: `Day (${dayName}) is not a working day in default schedule`,
+                    };
+                }
+                workingHours = { start: daySchedule.start, end: daySchedule.end };
+                if (daySchedule.maxBookings)
+                    maxBookings = daySchedule.maxBookings;
+            }
         }
     }
     // Final step: Check if fully booked for the day
@@ -102,9 +202,9 @@ const checkAvailabilityForDate = async (providerId, date) => {
         providerId: new mongoose_1.Types.ObjectId(providerId),
         bookingDate: {
             $gte: startOfDay,
-            $lte: endOfDay
+            $lte: endOfDay,
         },
-        status: { $nin: ['cancelled', 'completed'] }
+        status: { $nin: ['cancelled', 'completed'] },
     });
     if (bookingCount >= maxBookings) {
         return { isAvailable: false, reason: 'Fully booked for this date' };
@@ -112,16 +212,25 @@ const checkAvailabilityForDate = async (providerId, date) => {
     return {
         isAvailable: true,
         workingHours,
-        pricing
+        pricing,
     };
 };
-const getAvailableTimeSlots = async (providerId, date, serviceDuration) => {
-    const availability = await availability_model_1.Availability.findOne({ providerId });
+const getAvailableTimeSlots = async (providerId, date, serviceDuration, serviceId) => {
+    let availability = null;
+    if (serviceId) {
+        availability = await availability_model_1.Availability.findOne({ providerId, serviceId });
+    }
+    if (!availability) {
+        availability = await availability_model_1.Availability.findOne({
+            providerId,
+            $or: [{ serviceId: null }, { serviceId: { $exists: false } }],
+        });
+    }
     if (!availability) {
         return [];
     }
     // First check if the date is available
-    const dateCheck = await checkAvailabilityForDate(providerId, date);
+    const dateCheck = await checkAvailabilityForDate(providerId, date, serviceId);
     if (!dateCheck.isAvailable || !dateCheck.workingHours) {
         return [];
     }
@@ -149,9 +258,9 @@ const getAvailableTimeSlots = async (providerId, date, serviceDuration) => {
         providerId: new mongoose_1.Types.ObjectId(providerId),
         bookingDate: {
             $gte: targetDate,
-            $lt: nextDay
+            $lt: nextDay,
         },
-        status: { $nin: ['cancelled', 'completed'] }
+        status: { $nin: ['cancelled', 'completed'] },
     }).select('startTime endTime');
     // Filter out slots that conflict with existing bookings
     const availableSlots = slots.filter(slot => {
@@ -159,21 +268,37 @@ const getAvailableTimeSlots = async (providerId, date, serviceDuration) => {
         const slotStartMinutes = slotHour * 60 + slotMinute;
         const slotEndMinutes = slotStartMinutes + serviceDuration;
         return !existingBookings.some((booking) => {
-            const [bookingStartHour, bookingStartMinute] = booking.startTime.split(':').map(Number);
-            const [bookingEndHour, bookingEndMinute] = booking.endTime.split(':').map(Number);
+            const [bookingStartHour, bookingStartMinute] = booking.startTime
+                .split(':')
+                .map(Number);
+            const [bookingEndHour, bookingEndMinute] = booking.endTime
+                .split(':')
+                .map(Number);
             const bookingStartMinutes = bookingStartHour * 60 + bookingStartMinute;
             const bookingEndMinutes = bookingEndHour * 60 + bookingEndMinute;
             // Check for overlap
-            return ((slotStartMinutes >= bookingStartMinutes && slotStartMinutes < bookingEndMinutes) ||
-                (slotEndMinutes > bookingStartMinutes && slotEndMinutes <= bookingEndMinutes) ||
-                (slotStartMinutes <= bookingStartMinutes && slotEndMinutes >= bookingEndMinutes));
+            return ((slotStartMinutes >= bookingStartMinutes &&
+                slotStartMinutes < bookingEndMinutes) ||
+                (slotEndMinutes > bookingStartMinutes &&
+                    slotEndMinutes <= bookingEndMinutes) ||
+                (slotStartMinutes <= bookingStartMinutes &&
+                    slotEndMinutes >= bookingEndMinutes));
         });
     });
     return availableSlots;
 };
-const getMonthCalendar = async (providerId, month, year) => {
+const getMonthCalendar = async (providerId, month, year, serviceId) => {
     var _a, _b;
-    const availability = await availability_model_1.Availability.findOne({ providerId });
+    let availability = null;
+    if (serviceId) {
+        availability = await availability_model_1.Availability.findOne({ providerId, serviceId });
+    }
+    if (!availability) {
+        availability = await availability_model_1.Availability.findOne({
+            providerId,
+            $or: [{ serviceId: null }, { serviceId: { $exists: false } }],
+        });
+    }
     if (!availability) {
         return [];
     }
@@ -181,12 +306,12 @@ const getMonthCalendar = async (providerId, month, year) => {
     const calendar = [];
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month - 1, day);
-        const dateCheck = await checkAvailabilityForDate(providerId, date);
+        const dateCheck = await checkAvailabilityForDate(providerId, date, serviceId);
         calendar.push({
             date: date.toISOString().split('T')[0],
             isAvailable: dateCheck.isAvailable,
             reason: dateCheck.reason,
-            hasSpecialPricing: !!(((_a = dateCheck.pricing) === null || _a === void 0 ? void 0 : _a.priceOverride) || ((_b = dateCheck.pricing) === null || _b === void 0 ? void 0 : _b.rateMultiplier))
+            hasSpecialPricing: !!(((_a = dateCheck.pricing) === null || _a === void 0 ? void 0 : _a.priceOverride) || ((_b = dateCheck.pricing) === null || _b === void 0 ? void 0 : _b.rateMultiplier)),
         });
     }
     return calendar;

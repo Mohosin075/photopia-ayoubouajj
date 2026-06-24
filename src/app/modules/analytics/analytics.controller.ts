@@ -7,8 +7,10 @@ import { JwtPayload } from 'jsonwebtoken'
 import ApiError from '../../../errors/ApiError'
 
 const trackVisit = catchAsync(async (req: Request, res: Response) => {
-  const visitorId = req.user ? (req.user as JwtPayload).userId : (req.headers['x-visitor-id'] as string || req.ip)
-  
+  const visitorId = req.user
+    ? (req.user as JwtPayload).userId
+    : (req.headers['x-visitor-id'] as string) || req.ip
+
   await AnalyticsService.trackVisit({
     ...req.body,
     visitorId,

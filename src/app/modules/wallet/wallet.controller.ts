@@ -18,5 +18,5 @@ const getMyWallet = catchAsync(async (req: Request, res: Response) => {
 })
 
 export const WalletController = {
-  getMyWallet
+  getMyWallet,
 }

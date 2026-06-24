@@ -50,8 +50,8 @@ const getMyFavourites = async (userId, favouriteType, paginationOptions) => {
         path: 'service',
         populate: [
             { path: 'providerId', select: 'name email profile' },
-            { path: 'category', select: 'name image' }
-        ]
+            { path: 'category', select: 'name image' },
+        ],
     })
         .populate('provider', 'name email profile')
         .skip(skip)

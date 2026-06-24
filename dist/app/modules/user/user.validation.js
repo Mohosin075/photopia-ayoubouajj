@@ -26,10 +26,21 @@ const pointSchema = zod_1.z.object({
     type: zod_1.z.literal('Point').default('Point'),
     coordinates: zod_1.z.tuple([zod_1.z.number(), zod_1.z.number()]).optional(), // [longitude, latitude]
 });
+const settingsSchema = zod_1.z.object({
+    pushNotification: zod_1.z.boolean().optional(),
+    emailNotification: zod_1.z.boolean().optional(),
+    smsNotification: zod_1.z.boolean().optional(),
+    locationService: zod_1.z.boolean().optional(),
+    profileStatus: zod_1.z.enum(['public', 'private']).optional(),
+    dndMode: zod_1.z.boolean().optional(),
+    quietHoursEnabled: zod_1.z.boolean().optional(),
+    quietHoursStart: zod_1.z.string().optional(),
+    quietHoursEnd: zod_1.z.string().optional(),
+    disabledCategories: zod_1.z.array(zod_1.z.string()).optional(),
+});
 // ------------------ UPDATE USER VALIDATION ------------------
 exports.updateUserSchema = zod_1.z.object({
-    body: zod_1.z
-        .object({
+    body: zod_1.z.object({
         name: zod_1.z.string().optional(),
         profile: zod_1.z.string().optional(),
         phone: zod_1.z.string().optional(),
@@ -39,7 +50,8 @@ exports.updateUserSchema = zod_1.z.object({
         location: pointSchema.optional(),
         appId: zod_1.z.string().optional(),
         deviceToken: zod_1.z.string().optional(),
-    })
+        settings: settingsSchema.optional(),
+    }),
 });
 exports.updateUserStatusSchema = zod_1.z.object({
     body: zod_1.z.object({

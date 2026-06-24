@@ -5,15 +5,20 @@ import { Favourite } from './favourite.model'
 import { IPaginationOptions } from '../../../interfaces/pagination'
 import { paginationHelper } from '../../../helpers/paginationHelper'
 
-const toggleFavourite = async (userId: string, payload: Partial<IFavourite>) => {
+const toggleFavourite = async (
+  userId: string,
+  payload: Partial<IFavourite>,
+) => {
   const { favouriteType, service, provider } = payload
 
   const filter: any = { user: userId, favouriteType }
   if (favouriteType === FavouriteType.SERVICE) {
-    if (!service) throw new ApiError(StatusCodes.BAD_REQUEST, 'Service ID is required')
+    if (!service)
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Service ID is required')
     filter.service = service
   } else {
-    if (!provider) throw new ApiError(StatusCodes.BAD_REQUEST, 'Provider ID is required')
+    if (!provider)
+      throw new ApiError(StatusCodes.BAD_REQUEST, 'Provider ID is required')
     filter.provider = provider
   }
 
@@ -31,7 +36,7 @@ const toggleFavourite = async (userId: string, payload: Partial<IFavourite>) => 
 const getMyFavourites = async (
   userId: string,
   favouriteType: FavouriteType,
-  paginationOptions: IPaginationOptions
+  paginationOptions: IPaginationOptions,
 ) => {
   const { page, limit, skip, sortBy, sortOrder } =
     paginationHelper.calculatePagination(paginationOptions)
@@ -53,8 +58,8 @@ const getMyFavourites = async (
       path: 'service',
       populate: [
         { path: 'providerId', select: 'name email profile' },
-        { path: 'category', select: 'name image' }
-      ]
+        { path: 'category', select: 'name image' },
+      ],
     })
     .populate('provider', 'name email profile')
     .skip(skip)

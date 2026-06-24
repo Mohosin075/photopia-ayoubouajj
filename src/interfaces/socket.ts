@@ -1,5 +1,5 @@
-import { JwtPayload } from "jsonwebtoken";
-import { Socket } from "socket.io";
+import { JwtPayload } from 'jsonwebtoken'
+import { Socket } from 'socket.io'
 
 export interface SocketWithUser extends Socket {
   user?: JwtPayload & {
@@ -9,7 +9,6 @@ export interface SocketWithUser extends Socket {
     role: string
   }
 }
-
 
 // Standard error response format
 export interface ErrorResponse {

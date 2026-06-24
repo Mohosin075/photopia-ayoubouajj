@@ -23,14 +23,23 @@ router.patch(
 
 router.get(
   '/profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.PROFESSIONAL,
+  ),
   UserController.getProfile,
 )
 
-
 router.patch(
   '/profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.PROFESSIONAL,
+  ),
 
   fileAndBodyProcessorUsingDiskStorage(),
 
@@ -46,26 +55,31 @@ router.delete(
 
 router.patch(
   '/deactivate-profile',
-  auth(USER_ROLES.ADMIN, USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.SUPER_ADMIN),
+  auth(
+    USER_ROLES.ADMIN,
+    USER_ROLES.USER,
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.SUPER_ADMIN,
+  ),
   UserController.deactivateProfile,
 )
 router.post(
-    '/stripe-connect-onboarding',
-    auth(USER_ROLES.PROFESSIONAL),
-    ProfessionalProfileController.stripeConnectOnboarding,
+  '/stripe-connect-onboarding',
+  auth(USER_ROLES.PROFESSIONAL),
+  ProfessionalProfileController.stripeConnectOnboarding,
 )
 
 router.get(
-    '/stripe-connect-status',
-    auth(USER_ROLES.PROFESSIONAL),
-    ProfessionalProfileController.checkStripeAccountStatus,
+  '/stripe-connect-status',
+  auth(USER_ROLES.PROFESSIONAL),
+  ProfessionalProfileController.checkStripeAccountStatus,
 )
 
 // Public route for Stripe to return to
 router.get(
-    '/stripe-connect-return',
-    auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
-    ProfessionalProfileController.checkStripeAccountStatus,
+  '/stripe-connect-return',
+  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  ProfessionalProfileController.checkStripeAccountStatus,
 )
 router
   .route('/')

@@ -10,10 +10,10 @@ class QueryBuilder {
         var _a;
         if ((_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.searchTerm) {
             this.modelQuery = this.modelQuery.find({
-                $or: searchableFields.map((field) => ({
+                $or: searchableFields.map(field => ({
                     [field]: {
                         $regex: this.query.searchTerm,
-                        $options: "i",
+                        $options: 'i',
                     },
                 })),
             });
@@ -24,23 +24,23 @@ class QueryBuilder {
     filter() {
         const queryObj = { ...this.query };
         const excludeFields = [
-            "searchTerm",
-            "sort",
-            "page",
-            "limit",
-            "fields",
-            "withLocked",
-            "showHidden",
-            "download",
+            'searchTerm',
+            'sort',
+            'page',
+            'limit',
+            'fields',
+            'withLocked',
+            'showHidden',
+            'download',
         ];
-        excludeFields.forEach((el) => delete queryObj[el]);
+        excludeFields.forEach(el => delete queryObj[el]);
         this.modelQuery = this.modelQuery.find(cleanObject(queryObj));
         return this;
     }
     //sorting
     sort() {
         var _a;
-        let sort = ((_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.sort) || "-createdAt";
+        let sort = ((_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.sort) || '-createdAt';
         this.modelQuery = this.modelQuery.sort(sort);
         return this;
     }
@@ -56,13 +56,13 @@ class QueryBuilder {
     //fields filtering
     fields() {
         var _a, _b;
-        let fields = ((_b = (_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.fields) === null || _b === void 0 ? void 0 : _b.split(",").join(" ")) || "-__v";
+        let fields = ((_b = (_a = this === null || this === void 0 ? void 0 : this.query) === null || _a === void 0 ? void 0 : _a.fields) === null || _b === void 0 ? void 0 : _b.split(',').join(' ')) || '-__v';
         this.modelQuery = this.modelQuery.select(fields);
         return this;
     }
     //populating
     populate(populateFields, selectFields) {
-        this.modelQuery = this.modelQuery.populate(populateFields.map((field) => ({
+        this.modelQuery = this.modelQuery.populate(populateFields.map(field => ({
             path: field,
             select: selectFields[field],
         })));
@@ -90,10 +90,10 @@ function cleanObject(obj) {
         // Skip null, undefined, empty string, empty array, or empty object
         if (value !== null &&
             value !== undefined &&
-            value !== "" &&
-            value !== "undefined" &&
+            value !== '' &&
+            value !== 'undefined' &&
             !(Array.isArray(value) && value.length === 0) &&
-            !(typeof value === "object" &&
+            !(typeof value === 'object' &&
                 !Array.isArray(value) &&
                 Object.keys(value).length === 0)) {
             cleaned[key] = value;

@@ -80,7 +80,9 @@ passport.deserializeUser(async (payload: any, done) => {
 
     if (payload.type === 'db') {
       // Fetch DB user by _id
-      const user = await User.findById(payload.id).select('email name roles activeRole')
+      const user = await User.findById(payload.id).select(
+        'email name roles activeRole',
+      )
       return done(null, user || null)
     } else if (payload.type === 'social') {
       // Social-only user, just return stored data

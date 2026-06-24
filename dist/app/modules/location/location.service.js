@@ -20,7 +20,8 @@ const searchSuggestions = async (query) => {
                 key: apiKey,
             },
         });
-        if (response.data.status !== 'OK' && response.data.status !== 'ZERO_RESULTS') {
+        if (response.data.status !== 'OK' &&
+            response.data.status !== 'ZERO_RESULTS') {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, `Google API Error: ${response.data.status}`);
         }
         const predictions = response.data.predictions || [];

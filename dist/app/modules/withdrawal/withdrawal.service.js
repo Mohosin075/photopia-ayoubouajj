@@ -17,14 +17,19 @@ const createWithdrawal = async (payload) => {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'User ID and amount are required');
     }
     // Check if professional has Stripe Connect
-    const professionalProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId });
-    const isStripeConnected = (professionalProfile === null || professionalProfile === void 0 ? void 0 : professionalProfile.stripeAccountId) && (professionalProfile === null || professionalProfile === void 0 ? void 0 : professionalProfile.stripeOnboardingComplete);
+    const professionalProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({
+        user: userId,
+    });
+    const isStripeConnected = (professionalProfile === null || professionalProfile === void 0 ? void 0 : professionalProfile.stripeAccountId) &&
+        (professionalProfile === null || professionalProfile === void 0 ? void 0 : professionalProfile.stripeOnboardingComplete);
     const session = await mongoose_1.default.startSession();
     session.startTransaction();
     try {
         // 1. Deduct from local wallet first to ensure they have balance
         const wallet = await wallet_service_1.WalletService.deductBalance(userId.toString(), amount, session);
-        const currency = (payload.currency || (wallet === null || wallet === void 0 ? void 0 : wallet.currency) || 'EUR').toLowerCase();
+        const currency = (payload.currency ||
+            (wallet === null || wallet === void 0 ? void 0 : wallet.currency) ||
+            'EUR').toLowerCase();
         let withdrawalData = { ...payload, currency: currency.toUpperCase() };
         if (isStripeConnected) {
             // 2. Trigger Stripe Payout from Connected Account to their Bank
@@ -66,7 +71,9 @@ const getMyWithdrawals = async (userId) => {
     return await withdrawal_model_1.Withdrawal.find({ userId }).sort({ createdAt: -1 });
 };
 const getAllWithdrawals = async () => {
-    return await withdrawal_model_1.Withdrawal.find().populate('userId', 'name email').sort({ createdAt: -1 });
+    return await withdrawal_model_1.Withdrawal.find()
+        .populate('userId', 'name email')
+        .sort({ createdAt: -1 });
 };
 const updateWithdrawalStatus = async (withdrawalId, status, transactionId) => {
     const withdrawal = await withdrawal_model_1.Withdrawal.findById(withdrawalId);
@@ -103,5 +110,5 @@ exports.WithdrawalService = {
     createWithdrawal,
     getMyWithdrawals,
     getAllWithdrawals,
-    updateWithdrawalStatus
+    updateWithdrawalStatus,
 };

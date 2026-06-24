@@ -9,15 +9,25 @@ const router = express.Router()
 
 router.post(
   '/toggle',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  auth(
+    USER_ROLES.USER,
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
+  ),
   validateRequest(FavouriteValidation.toggleFavouriteZodSchema),
-  FavouriteController.toggleFavourite
+  FavouriteController.toggleFavourite,
 )
 
 router.get(
   '/my-favourites',
-  auth(USER_ROLES.USER, USER_ROLES.PROFESSIONAL, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
-  FavouriteController.getMyFavourites
+  auth(
+    USER_ROLES.USER,
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
+  ),
+  FavouriteController.getMyFavourites,
 )
 
 export const FavouriteRoutes = router

@@ -27,7 +27,7 @@ const getMyFavourites = catchAsync(async (req: Request, res: Response) => {
   const result = await FavouriteService.getMyFavourites(
     userId,
     favouriteType as any,
-    paginationOptions
+    paginationOptions,
   )
 
   sendResponse(res, {

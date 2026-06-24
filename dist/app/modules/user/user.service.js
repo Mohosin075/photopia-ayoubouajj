@@ -230,9 +230,12 @@ const switchRole = async (user, role) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'User not found.');
     }
     // Special case: User wants to become professional but doesn't have the role yet
-    if (role === user_1.USER_ROLES.PROFESSIONAL && !isUserExist.roles.includes(user_1.USER_ROLES.PROFESSIONAL)) {
+    if (role === user_1.USER_ROLES.PROFESSIONAL &&
+        !isUserExist.roles.includes(user_1.USER_ROLES.PROFESSIONAL)) {
         // Check if they already have a professional profile
-        const existingProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: user.userId });
+        const existingProfile = await professionalProfile_model_1.ProfessionalProfile.findOne({
+            user: user.userId,
+        });
         if (!existingProfile) {
             // Create empty professional profile (which will add the role)
             await professionalProfile_model_1.ProfessionalProfile.create({

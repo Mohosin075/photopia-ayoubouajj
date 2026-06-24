@@ -7,7 +7,6 @@ import { Subscription } from './subscription.model'
 import { SubscriptionPlan } from './subscription-plan.model'
 import { User } from '../user/user.model'
 
-
 class WebhookService {
   // Process webhook events with idempotency
   async processWebhookEvent(event: Stripe.Event): Promise<void> {
@@ -26,103 +25,175 @@ class WebhookService {
 
       switch (event.type) {
         case 'customer.subscription.created':
-          await this.handleSubscriptionCreated(event.data.object as Stripe.Subscription, event.id)
+          await this.handleSubscriptionCreated(
+            event.data.object as Stripe.Subscription,
+            event.id,
+          )
           break
 
         case 'customer.subscription.updated':
-          await this.handleSubscriptionUpdated(event.data.object as Stripe.Subscription, event.id)
+          await this.handleSubscriptionUpdated(
+            event.data.object as Stripe.Subscription,
+            event.id,
+          )
           break
 
         case 'customer.subscription.deleted':
-          await this.handleSubscriptionDeleted(event.data.object as Stripe.Subscription, event.id)
+          await this.handleSubscriptionDeleted(
+            event.data.object as Stripe.Subscription,
+            event.id,
+          )
           break
 
         case 'customer.subscription.trial_will_end':
-          await this.handleTrialWillEnd(event.data.object as Stripe.Subscription, event.id)
+          await this.handleTrialWillEnd(
+            event.data.object as Stripe.Subscription,
+            event.id,
+          )
           break
 
         case 'invoice.payment_succeeded':
-          await this.handlePaymentSucceeded(event.data.object as Stripe.Invoice, event.id)
+          await this.handlePaymentSucceeded(
+            event.data.object as Stripe.Invoice,
+            event.id,
+          )
           break
 
         case 'invoice.payment_failed':
-          await this.handlePaymentFailed(event.data.object as Stripe.Invoice, event.id)
+          await this.handlePaymentFailed(
+            event.data.object as Stripe.Invoice,
+            event.id,
+          )
           break
 
         case 'invoice.upcoming':
-          await this.handleUpcomingInvoice(event.data.object as Stripe.Invoice, event.id)
+          await this.handleUpcomingInvoice(
+            event.data.object as Stripe.Invoice,
+            event.id,
+          )
           break
 
         case 'checkout.session.completed':
-          await this.handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, event.id)
+          await this.handleCheckoutCompleted(
+            event.data.object as Stripe.Checkout.Session,
+            event.id,
+          )
           break
 
         // Product and Price Management Events
         case 'product.updated':
-          await this.handleProductUpdated(event.data.object as Stripe.Product, event.id)
+          await this.handleProductUpdated(
+            event.data.object as Stripe.Product,
+            event.id,
+          )
           break
 
         case 'product.deleted':
-          await this.handleProductDeleted(event.data.object as Stripe.Product, event.id)
+          await this.handleProductDeleted(
+            event.data.object as Stripe.Product,
+            event.id,
+          )
           break
 
         case 'price.updated':
-          await this.handlePriceUpdated(event.data.object as Stripe.Price, event.id)
+          await this.handlePriceUpdated(
+            event.data.object as Stripe.Price,
+            event.id,
+          )
           break
 
         case 'price.deleted':
-          await this.handlePriceDeleted(event.data.object as Stripe.Price, event.id)
+          await this.handlePriceDeleted(
+            event.data.object as Stripe.Price,
+            event.id,
+          )
           break
 
         // Payment Method Events
         case 'payment_method.attached':
-          await this.handlePaymentMethodAttached(event.data.object as Stripe.PaymentMethod, event.id)
+          await this.handlePaymentMethodAttached(
+            event.data.object as Stripe.PaymentMethod,
+            event.id,
+          )
           break
 
         case 'customer.updated':
-          await this.handleCustomerUpdated(event.data.object as Stripe.Customer, event.id)
+          await this.handleCustomerUpdated(
+            event.data.object as Stripe.Customer,
+            event.id,
+          )
           break
 
         case 'customer.deleted':
-          await this.handleCustomerDeleted(event.data.object as Stripe.Customer, event.id)
+          await this.handleCustomerDeleted(
+            event.data.object as Stripe.Customer,
+            event.id,
+          )
           break
 
         // Dispute and Chargeback Events
         case 'charge.dispute.created':
-          await this.handleDisputeCreated(event.data.object as Stripe.Dispute, event.id)
+          await this.handleDisputeCreated(
+            event.data.object as Stripe.Dispute,
+            event.id,
+          )
           break
 
         // Additional Important Events
         case 'invoice.created':
-          await this.handleInvoiceCreated(event.data.object as Stripe.Invoice, event.id)
+          await this.handleInvoiceCreated(
+            event.data.object as Stripe.Invoice,
+            event.id,
+          )
           break
 
         case 'invoice.finalized':
-          await this.handleInvoiceFinalized(event.data.object as Stripe.Invoice, event.id)
+          await this.handleInvoiceFinalized(
+            event.data.object as Stripe.Invoice,
+            event.id,
+          )
           break
 
         case 'payment_intent.succeeded':
-          await this.handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent, event.id)
+          await this.handlePaymentIntentSucceeded(
+            event.data.object as Stripe.PaymentIntent,
+            event.id,
+          )
           break
 
         case 'payment_intent.payment_failed':
-          await this.handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent, event.id)
+          await this.handlePaymentIntentFailed(
+            event.data.object as Stripe.PaymentIntent,
+            event.id,
+          )
           break
 
         case 'customer.subscription.paused':
-          await this.handleSubscriptionPaused(event.data.object as Stripe.Subscription, event.id)
+          await this.handleSubscriptionPaused(
+            event.data.object as Stripe.Subscription,
+            event.id,
+          )
           break
 
         case 'customer.subscription.resumed':
-          await this.handleSubscriptionResumed(event.data.object as Stripe.Subscription, event.id)
+          await this.handleSubscriptionResumed(
+            event.data.object as Stripe.Subscription,
+            event.id,
+          )
           break
 
         case 'setup_intent.succeeded':
-          await this.handleSetupIntentSucceeded(event.data.object as Stripe.SetupIntent, event.id)
+          await this.handleSetupIntentSucceeded(
+            event.data.object as Stripe.SetupIntent,
+            event.id,
+          )
           break
 
         case 'payment_method.automatically_updated':
-          await this.handlePaymentMethodUpdated(event.data.object as Stripe.PaymentMethod, event.id)
+          await this.handlePaymentMethodUpdated(
+            event.data.object as Stripe.PaymentMethod,
+            event.id,
+          )
           break
 
         default:
@@ -157,9 +228,10 @@ class WebhookService {
       }
 
       // Find the plan by Stripe price ID
-      const priceId = typeof stripeSubscription.items.data[0].price === 'string' 
-        ? stripeSubscription.items.data[0].price 
-        : stripeSubscription.items.data[0].price.id
+      const priceId =
+        typeof stripeSubscription.items.data[0].price === 'string'
+          ? stripeSubscription.items.data[0].price
+          : stripeSubscription.items.data[0].price.id
 
       const plan = await SubscriptionPlan.findOne({
         stripePriceId: priceId,
@@ -172,9 +244,13 @@ class WebhookService {
 
       // Create subscription record
       // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
-      const subscriptionItem = stripeSubscription.items.data[0];
-      const currentPeriodStart = (stripeSubscription as any).current_period_start || (subscriptionItem as any).current_period_start;
-      const currentPeriodEnd = (stripeSubscription as any).current_period_end || (subscriptionItem as any).current_period_end;
+      const subscriptionItem = stripeSubscription.items.data[0]
+      const currentPeriodStart =
+        (stripeSubscription as any).current_period_start ||
+        (subscriptionItem as any).current_period_start
+      const currentPeriodEnd =
+        (stripeSubscription as any).current_period_end ||
+        (subscriptionItem as any).current_period_end
 
       const subscription = new Subscription({
         userId: new Types.ObjectId(userId),
@@ -183,8 +259,12 @@ class WebhookService {
         stripeSubscriptionId: stripeSubscription.id,
         stripePriceId: stripeSubscription.items.data[0].price.id,
         status: stripeSubscription.status,
-        currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : new Date(),
-        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        currentPeriodStart: currentPeriodStart
+          ? new Date(currentPeriodStart * 1000)
+          : new Date(),
+        currentPeriodEnd: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         trialStart: stripeSubscription.trial_start
           ? new Date(stripeSubscription.trial_start * 1000)
           : null,
@@ -204,15 +284,19 @@ class WebhookService {
         subscriptionStatus: stripeSubscription.status,
         subscriptionTier: this.getSubscriptionTier(plan.name),
         trialUsed: !!stripeSubscription.trial_start,
-        subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        subscriptionExpiresAt: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       })
 
       // Send welcome email
-      const { emailNotificationService } = await import('./email-notification.service')
+      const { emailNotificationService } = await import(
+        './email-notification.service'
+      )
       await emailNotificationService.sendSubscriptionWelcomeEmail(
         subscription,
         plan,
-        !!stripeSubscription.trial_start
+        !!stripeSubscription.trial_start,
       )
 
       console.log(`Subscription created from webhook: ${subscription._id}`)
@@ -240,14 +324,22 @@ class WebhookService {
 
       // Update subscription data
       // In newer Stripe API versions (like 2025-08-27.basil), current_period_start/end are moved to items.data[0]
-      const subscriptionItem = stripeSubscription.items.data[0];
-      const currentPeriodStart = (stripeSubscription as any).current_period_start || (subscriptionItem as any).current_period_start;
-      const currentPeriodEnd = (stripeSubscription as any).current_period_end || (subscriptionItem as any).current_period_end;
+      const subscriptionItem = stripeSubscription.items.data[0]
+      const currentPeriodStart =
+        (stripeSubscription as any).current_period_start ||
+        (subscriptionItem as any).current_period_start
+      const currentPeriodEnd =
+        (stripeSubscription as any).current_period_end ||
+        (subscriptionItem as any).current_period_end
 
       const updateData: any = {
         status: stripeSubscription.status,
-        currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : undefined,
-        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
+        currentPeriodStart: currentPeriodStart
+          ? new Date(currentPeriodStart * 1000)
+          : undefined,
+        currentPeriodEnd: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : undefined,
         cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
         lastWebhookEventId: eventId,
       }
@@ -274,10 +366,12 @@ class WebhookService {
       // Handle plan changes
       const newPrice = stripeSubscription.items.data[0].price
       const newPriceId = typeof newPrice === 'string' ? newPrice : newPrice.id
-      
-      let newTier: string | undefined;
+
+      let newTier: string | undefined
       if (subscription.stripePriceId !== newPriceId) {
-        const newPlan = await SubscriptionPlan.findOne({ stripePriceId: newPriceId })
+        const newPlan = await SubscriptionPlan.findOne({
+          stripePriceId: newPriceId,
+        })
         if (newPlan) {
           updateData.planId = newPlan._id
           updateData.stripePriceId = newPriceId
@@ -290,7 +384,9 @@ class WebhookService {
       // Update user profile with new subscription info
       const userUpdate: any = {
         subscriptionStatus: stripeSubscription.status,
-        subscriptionExpiresAt: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : new Date((stripeSubscription as any).current_period_end * 1000),
+        subscriptionExpiresAt: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : new Date((stripeSubscription as any).current_period_end * 1000),
         trialUsed: !!stripeSubscription.trial_start,
       }
 
@@ -336,13 +432,15 @@ class WebhookService {
       })
 
       // Send cancellation email
-      const { emailNotificationService } = await import('./email-notification.service')
+      const { emailNotificationService } = await import(
+        './email-notification.service'
+      )
       const plan = await SubscriptionPlan.findById(subscription.planId)
       if (plan) {
         await emailNotificationService.sendSubscriptionCanceledEmail(
           subscription,
           plan,
-          new Date()
+          new Date(),
         )
       }
 
@@ -374,15 +472,21 @@ class WebhookService {
       })
 
       // Send trial ending email
-      const { emailNotificationService } = await import('./email-notification.service')
-      const daysLeft = Math.ceil((subscription.trialEnd!.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+      const { emailNotificationService } = await import(
+        './email-notification.service'
+      )
+      const daysLeft = Math.ceil(
+        (subscription.trialEnd!.getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+      )
       await emailNotificationService.sendTrialEndingEmail(
         subscription,
         subscription.planId as any,
-        daysLeft
+        daysLeft,
       )
 
-      console.log(`Trial will end notification sent for subscription: ${subscription._id}`)
+      console.log(
+        `Trial will end notification sent for subscription: ${subscription._id}`,
+      )
     } catch (error) {
       console.error('Error handling trial will end:', error)
       throw error
@@ -390,7 +494,10 @@ class WebhookService {
   }
 
   // Handle successful payment
-  private async handlePaymentSucceeded(invoice: Stripe.Invoice, eventId: string): Promise<void> {
+  private async handlePaymentSucceeded(
+    invoice: Stripe.Invoice,
+    eventId: string,
+  ): Promise<void> {
     try {
       const invoiceWithSubscription = invoice as any
 
@@ -402,21 +509,24 @@ class WebhookService {
       const subscription = await Subscription.findOne({
         stripeSubscriptionId: invoiceWithSubscription.subscription as string,
       })
-      
 
       if (!subscription) {
-        console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`)
+        console.error(
+          `Subscription not found: ${invoiceWithSubscription.subscription}`,
+        )
         return
       }
 
       // Fetch the latest subscription to get accurate status
-      const stripeSubscription = await stripeService.getSubscription(invoiceWithSubscription.subscription as string)
+      const stripeSubscription = await stripeService.getSubscription(
+        invoiceWithSubscription.subscription as string,
+      )
 
       // Update payment information
       await Subscription.findByIdAndUpdate(subscription._id, {
         status: stripeSubscription.status, // Use the actual status from Stripe (trialing or active)
         lastPaymentDate: new Date(invoice.status_transitions.paid_at! * 1000),
-        paymentFailureCount: 0, 
+        paymentFailureCount: 0,
         lastWebhookEventId: eventId,
       })
 
@@ -426,8 +536,13 @@ class WebhookService {
       })
 
       // Send payment success email
-      const { emailNotificationService } = await import('./email-notification.service')
-      await emailNotificationService.sendPaymentSuccessEmail(subscription, invoice)
+      const { emailNotificationService } = await import(
+        './email-notification.service'
+      )
+      await emailNotificationService.sendPaymentSuccessEmail(
+        subscription,
+        invoice,
+      )
 
       console.log(`Payment succeeded for subscription: ${subscription._id}`)
     } catch (error) {
@@ -437,7 +552,10 @@ class WebhookService {
   }
 
   // Handle failed payment
-  private async handlePaymentFailed(invoice: Stripe.Invoice, eventId: string): Promise<void> {
+  private async handlePaymentFailed(
+    invoice: Stripe.Invoice,
+    eventId: string,
+  ): Promise<void> {
     try {
       const invoiceWithSubscription = invoice as any
 
@@ -451,7 +569,9 @@ class WebhookService {
       }).populate(['userId', 'planId'])
 
       if (!subscription) {
-        console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`)
+        console.error(
+          `Subscription not found: ${invoiceWithSubscription.subscription}`,
+        )
         return
       }
 
@@ -471,16 +591,26 @@ class WebhookService {
       })
 
       // Send payment failed email
-      const { emailNotificationService } = await import('./email-notification.service')
-      await emailNotificationService.sendPaymentFailedEmail(subscription, invoice, failureCount)
+      const { emailNotificationService } = await import(
+        './email-notification.service'
+      )
+      await emailNotificationService.sendPaymentFailedEmail(
+        subscription,
+        invoice,
+        failureCount,
+      )
 
       // If too many failures, consider additional actions
       if (failureCount >= 3) {
-        console.warn(`Multiple payment failures for subscription: ${subscription._id}`)
+        console.warn(
+          `Multiple payment failures for subscription: ${subscription._id}`,
+        )
         // Implement additional logic for handling repeated failures
       }
 
-      console.log(`Payment failed for subscription: ${subscription._id} (attempt ${failureCount})`)
+      console.log(
+        `Payment failed for subscription: ${subscription._id} (attempt ${failureCount})`,
+      )
     } catch (error) {
       console.error('Error handling payment failed:', error)
       throw error
@@ -488,7 +618,10 @@ class WebhookService {
   }
 
   // Handle upcoming invoice (7 days before charge)
-  private async handleUpcomingInvoice(invoice: Stripe.Invoice, eventId: string): Promise<void> {
+  private async handleUpcomingInvoice(
+    invoice: Stripe.Invoice,
+    eventId: string,
+  ): Promise<void> {
     try {
       const invoiceWithSubscription = invoice as any
 
@@ -502,7 +635,9 @@ class WebhookService {
       }).populate(['userId', 'planId'])
 
       if (!subscription) {
-        console.error(`Subscription not found: ${invoiceWithSubscription.subscription}`)
+        console.error(
+          `Subscription not found: ${invoiceWithSubscription.subscription}`,
+        )
         return
       }
 
@@ -515,7 +650,9 @@ class WebhookService {
       // Send upcoming payment notification
       // await notificationService.sendUpcomingPaymentNotification(subscription, invoice)
 
-      console.log(`Upcoming invoice notification sent for subscription: ${subscription._id}`)
+      console.log(
+        `Upcoming invoice notification sent for subscription: ${subscription._id}`,
+      )
     } catch (error) {
       console.error('Error handling upcoming invoice:', error)
       throw error
@@ -541,22 +678,24 @@ class WebhookService {
       console.log('session', session)
 
       // Update subscription and user if it's already created
-       if (session.subscription) {
-         const stripeSubscription = await stripeService.getSubscription(session.subscription as string)
-         
-         await Subscription.findOneAndUpdate(
-           { stripeSubscriptionId: stripeSubscription.id },
-           { 
-             status: stripeSubscription.status,
-             lastWebhookEventId: eventId 
-           }
-         )
+      if (session.subscription) {
+        const stripeSubscription = await stripeService.getSubscription(
+          session.subscription as string,
+        )
 
-         await User.findByIdAndUpdate(userId, {
-           subscriptionStatus: stripeSubscription.status,
-           stripeCustomerId: session.customer as string,
-         })
-       }
+        await Subscription.findOneAndUpdate(
+          { stripeSubscriptionId: stripeSubscription.id },
+          {
+            status: stripeSubscription.status,
+            lastWebhookEventId: eventId,
+          },
+        )
+
+        await User.findByIdAndUpdate(userId, {
+          subscriptionStatus: stripeSubscription.status,
+          stripeCustomerId: session.customer as string,
+        })
+      }
 
       console.log(`Checkout completed for user: ${userId}`)
 
@@ -571,7 +710,10 @@ class WebhookService {
   }
 
   // Handle product updated
-  private async handleProductUpdated(stripeProduct: Stripe.Product, eventId: string): Promise<void> {
+  private async handleProductUpdated(
+    stripeProduct: Stripe.Product,
+    eventId: string,
+  ): Promise<void> {
     try {
       const plan = await SubscriptionPlan.findOne({
         stripeProductId: stripeProduct.id,
@@ -598,14 +740,19 @@ class WebhookService {
   }
 
   // Handle product deleted
-  private async handleProductDeleted(stripeProduct: Stripe.Product, eventId: string): Promise<void> {
+  private async handleProductDeleted(
+    stripeProduct: Stripe.Product,
+    eventId: string,
+  ): Promise<void> {
     try {
       const plan = await SubscriptionPlan.findOne({
         stripeProductId: stripeProduct.id,
       })
 
       if (!plan) {
-        console.warn(`Plan not found for deleted Stripe product: ${stripeProduct.id}`)
+        console.warn(
+          `Plan not found for deleted Stripe product: ${stripeProduct.id}`,
+        )
         return
       }
 
@@ -623,10 +770,18 @@ class WebhookService {
 
       for (const subscription of activeSubscriptions) {
         try {
-          await stripeService.cancelSubscription(subscription.stripeSubscriptionId, true)
-          console.log(`Canceled subscription due to product deletion: ${subscription._id}`)
+          await stripeService.cancelSubscription(
+            subscription.stripeSubscriptionId,
+            true,
+          )
+          console.log(
+            `Canceled subscription due to product deletion: ${subscription._id}`,
+          )
         } catch (error) {
-          console.error(`Error canceling subscription ${subscription._id}:`, error)
+          console.error(
+            `Error canceling subscription ${subscription._id}:`,
+            error,
+          )
         }
       }
 
@@ -638,7 +793,10 @@ class WebhookService {
   }
 
   // Handle price updated
-  private async handlePriceUpdated(stripePrice: Stripe.Price, eventId: string): Promise<void> {
+  private async handlePriceUpdated(
+    stripePrice: Stripe.Price,
+    eventId: string,
+  ): Promise<void> {
     try {
       const plan = await SubscriptionPlan.findOne({
         stripePriceId: stripePrice.id,
@@ -679,14 +837,19 @@ class WebhookService {
   }
 
   // Handle price deleted
-  private async handlePriceDeleted(stripePrice: Stripe.Price, eventId: string): Promise<void> {
+  private async handlePriceDeleted(
+    stripePrice: Stripe.Price,
+    eventId: string,
+  ): Promise<void> {
     try {
       const plan = await SubscriptionPlan.findOne({
         stripePriceId: stripePrice.id,
       })
 
       if (!plan) {
-        console.warn(`Plan not found for deleted Stripe price: ${stripePrice.id}`)
+        console.warn(
+          `Plan not found for deleted Stripe price: ${stripePrice.id}`,
+        )
         return
       }
 
@@ -710,8 +873,10 @@ class WebhookService {
   ): Promise<void> {
     try {
       // Log payment method attachment for security monitoring
-      console.log(`Payment method attached: ${paymentMethod.id} to customer: ${paymentMethod.customer}`)
-      
+      console.log(
+        `Payment method attached: ${paymentMethod.id} to customer: ${paymentMethod.customer}`,
+      )
+
       // You could add additional logic here like:
       // - Updating user payment method preferences
       // - Sending confirmation emails
@@ -723,7 +888,10 @@ class WebhookService {
   }
 
   // Handle customer updated
-  private async handleCustomerUpdated(stripeCustomer: Stripe.Customer, eventId: string): Promise<void> {
+  private async handleCustomerUpdated(
+    stripeCustomer: Stripe.Customer,
+    eventId: string,
+  ): Promise<void> {
     try {
       // Update user information if customer details changed
       const subscription = await Subscription.findOne({
@@ -747,7 +915,10 @@ class WebhookService {
   }
 
   // Handle customer deleted
-  private async handleCustomerDeleted(stripeCustomer: Stripe.Customer, eventId: string): Promise<void> {
+  private async handleCustomerDeleted(
+    stripeCustomer: Stripe.Customer,
+    eventId: string,
+  ): Promise<void> {
     try {
       // Cancel all subscriptions for deleted customer
       const subscriptions = await Subscription.find({
@@ -763,7 +934,9 @@ class WebhookService {
         })
       }
 
-      console.log(`Customer deleted and subscriptions canceled: ${stripeCustomer.id}`)
+      console.log(
+        `Customer deleted and subscriptions canceled: ${stripeCustomer.id}`,
+      )
     } catch (error) {
       console.error('Error handling customer deleted:', error)
       throw error
@@ -771,13 +944,20 @@ class WebhookService {
   }
 
   // Handle dispute created (chargeback)
-  private async handleDisputeCreated(dispute: Stripe.Dispute, eventId: string): Promise<void> {
+  private async handleDisputeCreated(
+    dispute: Stripe.Dispute,
+    eventId: string,
+  ): Promise<void> {
     try {
-      console.warn(`Dispute created: ${dispute.id} for charge: ${dispute.charge}`)
-      
+      console.warn(
+        `Dispute created: ${dispute.id} for charge: ${dispute.charge}`,
+      )
+
       // Find subscription related to the disputed charge
       const subscription = await Subscription.findOne({
-        stripeCustomerId: dispute.charge ? (dispute.charge as any).customer : null,
+        stripeCustomerId: dispute.charge
+          ? (dispute.charge as any).customer
+          : null,
       }).populate(['userId', 'planId'])
 
       if (subscription) {
@@ -788,8 +968,10 @@ class WebhookService {
         })
 
         // Send alert to admin
-        console.error(`DISPUTE ALERT: Subscription ${subscription._id} suspended due to dispute ${dispute.id}`)
-        
+        console.error(
+          `DISPUTE ALERT: Subscription ${subscription._id} suspended due to dispute ${dispute.id}`,
+        )
+
         // You could add notification logic here
         // await notificationService.sendDisputeAlert(subscription, dispute)
       }
@@ -800,7 +982,10 @@ class WebhookService {
   }
 
   // Handle invoice created
-  private async handleInvoiceCreated(invoice: Stripe.Invoice, eventId: string): Promise<void> {
+  private async handleInvoiceCreated(
+    invoice: Stripe.Invoice,
+    eventId: string,
+  ): Promise<void> {
     try {
       const invoiceWithSubscription = invoice as any
       if (!invoiceWithSubscription.subscription) return
@@ -811,9 +996,11 @@ class WebhookService {
 
       if (subscription) {
         console.log(`Invoice created for subscription: ${subscription._id}`)
-        
+
         // Send invoice email to customer
-        const { emailNotificationService } = await import('./email-notification.service')
+        const { emailNotificationService } = await import(
+          './email-notification.service'
+        )
         await emailNotificationService.sendInvoiceEmail(invoice)
       }
     } catch (error) {
@@ -823,7 +1010,10 @@ class WebhookService {
   }
 
   // Handle invoice finalized
-  private async handleInvoiceFinalized(invoice: Stripe.Invoice, eventId: string): Promise<void> {
+  private async handleInvoiceFinalized(
+    invoice: Stripe.Invoice,
+    eventId: string,
+  ): Promise<void> {
     try {
       const invoiceWithSubscription = invoice as any
       if (!invoiceWithSubscription.subscription) return
@@ -853,7 +1043,7 @@ class WebhookService {
   ): Promise<void> {
     try {
       console.log(`Payment intent succeeded: ${paymentIntent.id}`)
-      
+
       // Find subscription by customer
       if (paymentIntent.customer) {
         const subscription = await Subscription.findOne({
@@ -880,7 +1070,7 @@ class WebhookService {
   ): Promise<void> {
     try {
       console.warn(`Payment intent failed: ${paymentIntent.id}`)
-      
+
       if (paymentIntent.customer) {
         const subscription = await Subscription.findOne({
           stripeCustomerId: paymentIntent.customer as string,
@@ -888,7 +1078,7 @@ class WebhookService {
 
         if (subscription) {
           const failureCount = subscription.paymentFailureCount + 1
-          
+
           await Subscription.findByIdAndUpdate(subscription._id, {
             paymentFailureCount: failureCount,
             lastWebhookEventId: eventId,
@@ -896,7 +1086,9 @@ class WebhookService {
 
           // Alert on multiple failures
           if (failureCount >= 3) {
-            console.error(`CRITICAL: Multiple payment failures for subscription ${subscription._id}`)
+            console.error(
+              `CRITICAL: Multiple payment failures for subscription ${subscription._id}`,
+            )
           }
         }
       }
@@ -973,7 +1165,7 @@ class WebhookService {
   ): Promise<void> {
     try {
       console.log(`Setup intent succeeded: ${setupIntent.id}`)
-      
+
       // This indicates a payment method was successfully saved
       // You could send confirmation notifications here
     } catch (error) {
@@ -989,7 +1181,7 @@ class WebhookService {
   ): Promise<void> {
     try {
       console.log(`Payment method automatically updated: ${paymentMethod.id}`)
-      
+
       // Stripe automatically updates expired cards
       // You could notify the customer about the update
     } catch (error) {
@@ -1010,7 +1202,10 @@ class WebhookService {
   }
 
   // Verify webhook signature
-  verifyWebhookSignature(payload: string | Buffer, signature: string): Stripe.Event {
+  verifyWebhookSignature(
+    payload: string | Buffer,
+    signature: string,
+  ): Stripe.Event {
     try {
       return stripeService.constructWebhookEvent(payload, signature)
     } catch (error) {

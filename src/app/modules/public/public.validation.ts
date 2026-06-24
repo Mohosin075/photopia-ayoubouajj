@@ -26,14 +26,24 @@ export const PublicValidation = {
   create: z.object({
     body: z.object({
       content: z.string(),
-      type: z.enum(['privacy-policy', 'terms-and-condition','contact','about']),
+      type: z.enum([
+        'privacy-policy',
+        'terms-and-condition',
+        'contact',
+        'about',
+      ]),
     }),
   }),
 
   update: z.object({
     body: z.object({
       content: z.string(),
-      type: z.enum(['privacy-policy', 'terms-and-condition','contact','about']),
+      type: z.enum([
+        'privacy-policy',
+        'terms-and-condition',
+        'contact',
+        'about',
+      ]),
     }),
   }),
   contactZodSchema,
@@ -54,7 +64,6 @@ export const FaqValidations = {
     }),
   }),
 }
-
 
 export const updatePublicZodSchema = z.object({
   body: z.object({

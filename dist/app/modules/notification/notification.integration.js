@@ -8,8 +8,7 @@ const user_model_1 = require("../user/user.model");
 class NotificationIntegration {
     static async onPaymentSuccess(paymentId) {
         try {
-            const payment = await payment_model_1.Payment.findById(paymentId)
-                .populate('userId', 'email name');
+            const payment = await payment_model_1.Payment.findById(paymentId).populate('userId', 'email name');
             if (!payment)
                 return;
             await notification_service_1.NotificationServices.createNotification({
@@ -32,8 +31,7 @@ class NotificationIntegration {
     }
     static async onPaymentFailed(paymentId) {
         try {
-            const payment = await payment_model_1.Payment.findById(paymentId)
-                .populate('userId', 'email name');
+            const payment = await payment_model_1.Payment.findById(paymentId).populate('userId', 'email name');
             if (!payment)
                 return;
             await notification_service_1.NotificationServices.createNotification({

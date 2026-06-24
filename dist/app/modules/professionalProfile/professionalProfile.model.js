@@ -11,38 +11,38 @@ const ProfessionalProfileSchema = new mongoose_1.Schema({
     },
     dateOfBirth: {
         type: Date,
-        required: true
+        required: true,
     },
     primaryDomain: {
         type: [String],
         enum: ['Photography', 'Videography', 'Editing'],
-        required: true
+        required: true,
     },
     categories: {
         type: [mongoose_1.Schema.Types.ObjectId],
-        ref: 'Category'
+        ref: 'Category',
     },
     areaOfIntervention: {
         mainCity: { type: String },
         department: { type: String },
         radius: { type: String },
-        availableForTravel: { type: Boolean, default: false }
+        availableForTravel: { type: Boolean, default: false },
     },
     experienceDetails: {
         yearsOfExperience: { type: String },
         projectsCompleted: { type: String },
-        education: { type: String }
+        education: { type: String },
     },
     notificationPreferences: {
         emailNewRequests: { type: Boolean, default: true, required: true },
         smsUrgentRequests: { type: Boolean, default: true, required: true },
         newsletterPros: { type: Boolean, default: true, required: true },
-        customerReviewReminder: { type: Boolean, default: true, required: true }
+        customerReviewReminder: { type: Boolean, default: true, required: true },
     },
     legalNotice: {
         acceptedTerms: { type: Boolean, default: false, required: true },
         privacyPolicy: { type: Boolean, default: false, required: true },
-        gdprAuthorization: { type: Boolean, default: false, required: true }
+        gdprAuthorization: { type: Boolean, default: false, required: true },
     },
     miniBio: { type: String, maxlength: 500 },
     externalPortfolioLink: { type: String },

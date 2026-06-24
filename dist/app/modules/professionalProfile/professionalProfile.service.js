@@ -21,7 +21,7 @@ const analytics_service_1 = require("../analytics/analytics.service");
 const calculateChange = (current, previous) => {
     if (previous === 0)
         return current > 0 ? 100 : 0;
-    return Number(((current - previous) / previous * 100).toFixed(1));
+    return Number((((current - previous) / previous) * 100).toFixed(1));
 };
 const createProfile = async (userId, payload) => {
     const user = await user_model_1.User.findById(userId);
@@ -96,7 +96,7 @@ const getProfile = async (userId) => {
     const calculateChangeValue = (current, previous) => {
         if (previous === 0)
             return current > 0 ? 100 : 0;
-        return Number(((current - previous) / previous * 100).toFixed(2));
+        return Number((((current - previous) / previous) * 100).toFixed(2));
     };
     const currentMonthRevenue = ((_a = thisMonthStats[0]) === null || _a === void 0 ? void 0 : _a.totalRevenue) || 0;
     const lastMonthRevenue = ((_b = lastMonthStats[0]) === null || _b === void 0 ? void 0 : _b.totalRevenue) || 0;
@@ -122,12 +122,18 @@ const updateProfile = async (userId, payload) => {
     }
     // Append new portfolio items instead of overwriting
     if (payload.portfolio && Array.isArray(payload.portfolio)) {
-        payload.portfolio = [...(existingProfile.portfolio || []), ...payload.portfolio];
+        payload.portfolio = [
+            ...(existingProfile.portfolio || []),
+            ...payload.portfolio,
+        ];
     }
     // Append new specialties instead of overwriting (optional, but good for consistency)
     if (payload.specialties && Array.isArray(payload.specialties)) {
         payload.specialties = [
-            ...new Set([...(existingProfile.specialties || []), ...payload.specialties]),
+            ...new Set([
+                ...(existingProfile.specialties || []),
+                ...payload.specialties,
+            ]),
         ];
     }
     // Append new language instead of overwriting (optional, but good for consistency)
@@ -138,7 +144,10 @@ const updateProfile = async (userId, payload) => {
     }
     // Append new documents instead of overwriting
     if (payload.documents && Array.isArray(payload.documents)) {
-        payload.documents = [...(existingProfile.documents || []), ...payload.documents];
+        payload.documents = [
+            ...(existingProfile.documents || []),
+            ...payload.documents,
+        ];
     }
     const profile = await professionalProfile_model_1.ProfessionalProfile.findOneAndUpdate({ user: userId }, payload, { new: true });
     return profile;
@@ -206,11 +215,14 @@ const checkStripeAccountStatus = async (userId) => {
 };
 const getDetailedStatistics = async (userId) => {
     var _a;
-    const profile = await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId }).populate('user').lean();
+    const profile = (await professionalProfile_model_1.ProfessionalProfile.findOne({ user: userId })
+        .populate('user')
+        .lean());
     if (!profile)
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Professional profile not found');
     const user = profile.user;
-    const isPremium = (user === null || user === void 0 ? void 0 : user.subscriptionStatus) === 'active' || (user === null || user === void 0 ? void 0 : user.subscriptionStatus) === 'trialing';
+    const isPremium = (user === null || user === void 0 ? void 0 : user.subscriptionStatus) === 'active' ||
+        (user === null || user === void 0 ? void 0 : user.subscriptionStatus) === 'trialing';
     const now = new Date();
     const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const previousMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -237,7 +249,7 @@ const getDetailedStatistics = async (userId) => {
                     amount: { $sum: '$pricingDetails.providerEarnings' },
                 },
             },
-            { $sort: { '_id': 1 } }
+            { $sort: { _id: 1 } },
         ]),
         // Previous Month Revenue Stats
         booking_model_1.Booking.aggregate([
@@ -254,7 +266,7 @@ const getDetailedStatistics = async (userId) => {
                     totalRevenue: { $sum: '$pricingDetails.providerEarnings' },
                 },
             },
-        ])
+        ]),
     ];
     // Only add heavy premium queries if the user is premium
     if (isPremium) {
@@ -268,7 +280,7 @@ const getDetailedStatistics = async (userId) => {
     const formattedWeeklyRevenue = isPremium
         ? currentMonthData.map((w, index) => ({
             week: `Week ${index + 1}`,
-            amount: w.amount
+            amount: w.amount,
         }))
         : [];
     // 4. Final Response Construction
@@ -279,16 +291,16 @@ const getDetailedStatistics = async (userId) => {
             change: -8, // Weekly trend (mocked for now)
             performanceVsCategory: {
                 categoryAverage: categoryAverageViews,
-                percentageAbove: viewsPerformance
-            }
+                percentageAbove: viewsPerformance,
+            },
         },
         rating: {
             score: profile.rating || 0,
             reviews: profile.reviewCount || 0,
             performanceVsCategory: {
                 categoryAverage: categoryAverageRating,
-                percentageHigher: ratingPerformance
-            }
+                percentageHigher: ratingPerformance,
+            },
         },
         revenueAnalytics: {
             currentMonth: currentMonthRevenue,
@@ -298,8 +310,8 @@ const getDetailedStatistics = async (userId) => {
             bestPerforming: isPremium && formattedWeeklyRevenue.length > 0
                 ? Math.max(...formattedWeeklyRevenue.map((w) => w.amount))
                 : 0,
-            weeklyBreakdown: formattedWeeklyRevenue // Only populated if premium
-        }
+            weeklyBreakdown: formattedWeeklyRevenue, // Only populated if premium
+        },
     };
     if (isPremium) {
         response.viewsByRegion = [
@@ -315,7 +327,7 @@ const getDetailedStatistics = async (userId) => {
     return response;
 };
 const exportStatisticsReport = async (userId) => {
-    const stats = await getDetailedStatistics(userId);
+    const stats = (await getDetailedStatistics(userId));
     const workbook = new exceljs_1.default.Workbook();
     const worksheet = workbook.addWorksheet('Statistics Report');
     worksheet.columns = [
@@ -324,20 +336,40 @@ const exportStatisticsReport = async (userId) => {
         { header: 'Details', key: 'details', width: 40 },
     ];
     // Add Overview
-    worksheet.addRow({ metric: 'Profile Views', value: stats.profileViews.count, details: `${stats.profileViews.change}% this week` });
-    worksheet.addRow({ metric: 'Rating', value: stats.rating.score, details: `${stats.rating.reviews} reviews` });
+    worksheet.addRow({
+        metric: 'Profile Views',
+        value: stats.profileViews.count,
+        details: `${stats.profileViews.change}% this week`,
+    });
+    worksheet.addRow({
+        metric: 'Rating',
+        value: stats.rating.score,
+        details: `${stats.rating.reviews} reviews`,
+    });
     worksheet.addRow({});
     // Add Revenue
-    worksheet.addRow({ metric: 'Current Month Revenue', value: `€${stats.revenueAnalytics.currentMonth}`, details: `${stats.revenueAnalytics.percentageChange}% vs previous month` });
+    worksheet.addRow({
+        metric: 'Current Month Revenue',
+        value: `€${stats.revenueAnalytics.currentMonth}`,
+        details: `${stats.revenueAnalytics.percentageChange}% vs previous month`,
+    });
     stats.revenueAnalytics.weeklyBreakdown.forEach((w) => {
         worksheet.addRow({ metric: w.week, value: `€${w.amount}` });
     });
     worksheet.addRow({});
     // Add Regions
     if (stats.viewsByRegion && Array.isArray(stats.viewsByRegion)) {
-        worksheet.addRow({ metric: 'Region', value: 'Views', details: 'Percentage' });
+        worksheet.addRow({
+            metric: 'Region',
+            value: 'Views',
+            details: 'Percentage',
+        });
         stats.viewsByRegion.forEach((r) => {
-            worksheet.addRow({ metric: r.city, value: r.count, details: `${r.percentage}%` });
+            worksheet.addRow({
+                metric: r.city,
+                value: r.count,
+                details: `${r.percentage}%`,
+            });
         });
     }
     // Style header
@@ -373,5 +405,5 @@ exports.ProfessionalProfileServices = {
     getDetailedStatistics,
     exportStatisticsReport,
     updateSuperStatus,
-    incrementProjectsCount
+    incrementProjectsCount,
 };

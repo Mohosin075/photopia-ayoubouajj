@@ -57,7 +57,10 @@ const getWalletByUserId = async (userId) => {
                 $match: {
                     providerId: new mongoose_1.Types.ObjectId(userId.toString()),
                     status: 'completed',
-                    completedAt: { $gte: monthBeforeLastStart, $lte: monthBeforeLastEnd },
+                    completedAt: {
+                        $gte: monthBeforeLastStart,
+                        $lte: monthBeforeLastEnd,
+                    },
                 },
             },
             {
@@ -74,7 +77,7 @@ const getWalletByUserId = async (userId) => {
     const calculateChange = (current, previous) => {
         if (previous === 0)
             return current > 0 ? 100 : 0;
-        return Number(((current - previous) / previous * 100).toFixed(2));
+        return Number((((current - previous) / previous) * 100).toFixed(2));
     };
     return {
         ...wallet.toObject(),
@@ -90,13 +93,13 @@ const getWalletByUserId = async (userId) => {
 };
 const addEarnings = async (userId, amount, session) => {
     const wallet = await wallet_model_1.Wallet.findOneAndUpdate({ userId }, {
-        $inc: { balance: amount, totalEarnings: amount }
+        $inc: { balance: amount, totalEarnings: amount },
     }, { session, new: true, upsert: true });
     return wallet;
 };
 const deductBalance = async (userId, amount, session) => {
     const wallet = await wallet_model_1.Wallet.findOneAndUpdate({ userId, balance: { $gte: amount } }, {
-        $inc: { balance: -amount, totalWithdrawn: amount }
+        $inc: { balance: -amount, totalWithdrawn: amount },
     }, { session, new: true });
     if (!wallet) {
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Insufficient balance or wallet not found');
@@ -105,7 +108,7 @@ const deductBalance = async (userId, amount, session) => {
 };
 const refundBalance = async (userId, amount, session) => {
     const wallet = await wallet_model_1.Wallet.findOneAndUpdate({ userId }, {
-        $inc: { balance: amount, totalWithdrawn: -amount }
+        $inc: { balance: amount, totalWithdrawn: -amount },
     }, { session, new: true });
     if (!wallet) {
         throw new ApiError_1.default(http_status_codes_1.default.NOT_FOUND, 'Wallet not found for refund');
@@ -114,13 +117,13 @@ const refundBalance = async (userId, amount, session) => {
 };
 const addPendingEarnings = async (userId, amount, session) => {
     const wallet = await wallet_model_1.Wallet.findOneAndUpdate({ userId }, {
-        $inc: { pendingBalance: amount }
+        $inc: { pendingBalance: amount },
     }, { session, new: true, upsert: true });
     return wallet;
 };
 const completePendingEarnings = async (userId, amount, session) => {
     const wallet = await wallet_model_1.Wallet.findOneAndUpdate({ userId, pendingBalance: { $gte: amount } }, {
-        $inc: { pendingBalance: -amount, balance: amount, totalEarnings: amount }
+        $inc: { pendingBalance: -amount, balance: amount, totalEarnings: amount },
     }, { session, new: true });
     if (!wallet) {
         // If pending balance is less than amount (edge case), just add to balance
@@ -130,7 +133,7 @@ const completePendingEarnings = async (userId, amount, session) => {
 };
 const cancelPendingEarnings = async (userId, amount, session) => {
     const wallet = await wallet_model_1.Wallet.findOneAndUpdate({ userId, pendingBalance: { $gte: amount } }, {
-        $inc: { pendingBalance: -amount }
+        $inc: { pendingBalance: -amount },
     }, { session, new: true });
     return wallet;
 };
@@ -141,5 +144,5 @@ exports.WalletService = {
     refundBalance,
     addPendingEarnings,
     completePendingEarnings,
-    cancelPendingEarnings
+    cancelPendingEarnings,
 };

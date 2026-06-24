@@ -7,12 +7,16 @@ dotenv.config({ path: path.join(process.cwd(), '.env') })
 const envVarsSchema = z.object({
   IP_ADDRESS: z.string().optional(),
   DATABASE_URL: z.string({ required_error: 'DATABASE_URL is required' }),
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
   PORT: z.string().default('5000'),
   BCRYPT_SALT_ROUNDS: z.string().default('12'),
   JWT_SECRET: z.string({ required_error: 'JWT_SECRET is required' }),
   JWT_EXPIRE_IN: z.string().default('1d'),
-  JWT_REFRESH_SECRET: z.string({ required_error: 'JWT_REFRESH_SECRET is required' }),
+  JWT_REFRESH_SECRET: z.string({
+    required_error: 'JWT_REFRESH_SECRET is required',
+  }),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
@@ -109,6 +113,6 @@ export default {
     email: envVars.SUPER_ADMIN_EMAIL,
     password: envVars.SUPER_ADMIN_PASSWORD,
   },
-  cors_origins: envVars.CORS_ORIGINS?.split(',').map(origin => origin.trim()) || [],
+  cors_origins:
+    envVars.CORS_ORIGINS?.split(',').map(origin => origin.trim()) || [],
 }
-

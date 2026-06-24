@@ -11,12 +11,16 @@ dotenv_1.default.config({ path: path_1.default.join(process.cwd(), '.env') });
 const envVarsSchema = zod_1.z.object({
     IP_ADDRESS: zod_1.z.string().optional(),
     DATABASE_URL: zod_1.z.string({ required_error: 'DATABASE_URL is required' }),
-    NODE_ENV: zod_1.z.enum(['development', 'production', 'test']).default('development'),
+    NODE_ENV: zod_1.z
+        .enum(['development', 'production', 'test'])
+        .default('development'),
     PORT: zod_1.z.string().default('5000'),
     BCRYPT_SALT_ROUNDS: zod_1.z.string().default('12'),
     JWT_SECRET: zod_1.z.string({ required_error: 'JWT_SECRET is required' }),
     JWT_EXPIRE_IN: zod_1.z.string().default('1d'),
-    JWT_REFRESH_SECRET: zod_1.z.string({ required_error: 'JWT_REFRESH_SECRET is required' }),
+    JWT_REFRESH_SECRET: zod_1.z.string({
+        required_error: 'JWT_REFRESH_SECRET is required',
+    }),
     JWT_REFRESH_EXPIRES_IN: zod_1.z.string().default('30d'),
     GOOGLE_CLIENT_ID: zod_1.z.string().optional(),
     GOOGLE_CLIENT_SECRET: zod_1.z.string().optional(),

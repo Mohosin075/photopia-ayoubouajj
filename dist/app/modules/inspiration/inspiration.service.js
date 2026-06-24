@@ -63,5 +63,5 @@ exports.InspirationServices = {
     createInspiration,
     getAllInspirations,
     updateInspiration,
-    deleteInspiration
+    deleteInspiration,
 };

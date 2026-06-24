@@ -21,12 +21,18 @@ class MonitoringService {
                         const stripeSubscription = await stripe_service_1.stripeService.getSubscription(subscription.stripeSubscriptionId);
                         if (stripeSubscription.status !== subscription.status) {
                             const subscriptionItem = stripeSubscription.items.data[0];
-                            const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
-                            const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
+                            const currentPeriodStart = stripeSubscription.current_period_start ||
+                                subscriptionItem.current_period_start;
+                            const currentPeriodEnd = stripeSubscription.current_period_end ||
+                                subscriptionItem.current_period_end;
                             await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, {
                                 status: stripeSubscription.status,
-                                currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : undefined,
-                                currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
+                                currentPeriodStart: currentPeriodStart
+                                    ? new Date(currentPeriodStart * 1000)
+                                    : undefined,
+                                currentPeriodEnd: currentPeriodEnd
+                                    ? new Date(currentPeriodEnd * 1000)
+                                    : undefined,
                             });
                             console.log(`Synced subscription status: ${subscription._id}`);
                         }
@@ -139,9 +145,10 @@ class MonitoringService {
             };
             // Calculate churn rate
             const totalActive = report.subscriptions.active + report.subscriptions.trialing;
-            report.churnRate = totalActive > 0
-                ? ((report.canceledSubscriptions / totalActive) * 100).toFixed(2)
-                : '0.00';
+            report.churnRate =
+                totalActive > 0
+                    ? ((report.canceledSubscriptions / totalActive) * 100).toFixed(2)
+                    : '0.00';
             console.log('Daily subscription report generated', report);
             return report;
         }
@@ -161,16 +168,23 @@ class MonitoringService {
             if (staleSubscriptions.length > 0) {
                 console.warn(`Found ${staleSubscriptions.length} subscriptions with stale webhook data`);
                 // Sync with Stripe
-                for (const subscription of staleSubscriptions.slice(0, 10)) { // Limit to 10 to avoid rate limits
+                for (const subscription of staleSubscriptions.slice(0, 10)) {
+                    // Limit to 10 to avoid rate limits
                     try {
                         const stripeSubscription = await stripe_service_1.stripeService.getSubscription(subscription.stripeSubscriptionId);
                         const subscriptionItem = stripeSubscription.items.data[0];
-                        const currentPeriodStart = stripeSubscription.current_period_start || subscriptionItem.current_period_start;
-                        const currentPeriodEnd = stripeSubscription.current_period_end || subscriptionItem.current_period_end;
+                        const currentPeriodStart = stripeSubscription.current_period_start ||
+                            subscriptionItem.current_period_start;
+                        const currentPeriodEnd = stripeSubscription.current_period_end ||
+                            subscriptionItem.current_period_end;
                         await subscription_model_1.Subscription.findByIdAndUpdate(subscription._id, {
                             status: stripeSubscription.status,
-                            currentPeriodStart: currentPeriodStart ? new Date(currentPeriodStart * 1000) : undefined,
-                            currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : undefined,
+                            currentPeriodStart: currentPeriodStart
+                                ? new Date(currentPeriodStart * 1000)
+                                : undefined,
+                            currentPeriodEnd: currentPeriodEnd
+                                ? new Date(currentPeriodEnd * 1000)
+                                : undefined,
                             updatedAt: new Date(),
                         });
                         console.log(`Synced stale subscription: ${subscription._id}`);

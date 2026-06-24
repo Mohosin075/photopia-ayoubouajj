@@ -12,7 +12,7 @@ const locationSchema = new Schema({
   type: {
     type: String,
     enum: Object.values(SERVICE_LOCATION_TYPE),
-    default: SERVICE_LOCATION_TYPE.ONSITE
+    default: SERVICE_LOCATION_TYPE.ONSITE,
   },
   country: {
     type: String,
@@ -50,66 +50,68 @@ const locationSchema = new Schema({
 const servicePricingSchema = new Schema({
   type: {
     type: String,
-    enum: Object.values(SERVICE_PRICING_TYPE)
+    enum: Object.values(SERVICE_PRICING_TYPE),
   },
   weekdayHourlyRate: {
     type: Number,
-    min: 0
+    min: 0,
   },
   weekendHourlyRate: {
     type: Number,
-    min: 0
+    min: 0,
   },
   dailyRate: {
     type: Number,
-    min: 0
+    min: 0,
   },
   dailyHours: {
     type: Number,
     default: 8,
-    min: 1
+    min: 1,
   },
-  packages: [{
-    name: {
-      type: String,
-      required: true
+  packages: [
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      price: {
+        type: Number,
+        required: true,
+        min: 0,
+      },
+      duration: {
+        type: Number,
+        required: true,
+        min: 1,
+      },
+      description: String,
+      includes: [String],
     },
-    price: {
-      type: Number,
-      required: true,
-      min: 0
-    },
-    duration: {
-      type: Number,
-      required: true,
-      min: 1
-    },
-    description: String,
-    includes: [String]
-  }]
+  ],
 })
 
 const addOnSchema = new Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
   },
   price: {
     type: Number,
     required: true,
-    min: 0
+    min: 0,
   },
   description: {
     type: String,
-    trim: true
-  }
+    trim: true,
+  },
 })
 
 const pricingRuleSchema = new Schema({
   ruleType: {
     type: String,
-    required: true
+    required: true,
   },
   condition: {
     startHour: Number,
@@ -119,20 +121,20 @@ const pricingRuleSchema = new Schema({
     startDate: Date,
     endDate: Date,
     minDuration: Number,
-    maxDuration: Number
+    maxDuration: Number,
   },
   modifierType: {
     type: String,
-    required: true
+    required: true,
   },
   modifierValue: {
     type: Number,
-    required: true
+    required: true,
   },
   priority: {
     type: Number,
-    default: 10
-  }
+    default: 10,
+  },
 })
 
 const serviceSchema = new Schema<IService, ServiceModel>(
@@ -191,57 +193,57 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       required: true,
     },
     pricingModel: {
-      type: servicePricingSchema
+      type: servicePricingSchema,
     },
     pricingRules: {
       type: [pricingRuleSchema],
-      default: []
+      default: [],
     },
     travelFeePerKm: {
       type: Number,
       default: 1.5,
-      min: 0
+      min: 0,
     },
     allowOutsideRadius: {
       type: Boolean,
-      default: true
+      default: true,
     },
     maxTravelFee: {
       type: Number,
       default: 100,
-      min: 0
+      min: 0,
     },
     depositPercentage: {
       type: Number,
       default: 0,
       min: 0,
-      max: 1
+      max: 1,
     },
     cancellationPolicy: {
       freeCancellationHours: {
         type: Number,
-        default: 24
+        default: 24,
       },
       partialRefundHours: {
         type: Number,
-        default: 12
+        default: 12,
       },
       noRefundHours: {
         type: Number,
-        default: 2
-      }
+        default: 2,
+      },
     },
     duration: {
       value: {
         type: Number,
         required: true,
-        min: 1
+        min: 1,
       },
       unit: {
         type: String,
         enum: ['minute', 'hour'],
-        required: true
-      }
+        required: true,
+      },
     },
     location: {
       type: locationSchema,
@@ -292,14 +294,14 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       enabled: { type: Boolean, default: false },
       minimumBudget: { type: Number, default: 0 },
       withinRadiusKm: { type: Number, default: 30 },
-      verifiedClientsOnly: { type: Boolean, default: false }
+      verifiedClientsOnly: { type: Boolean, default: false },
     },
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 )
 
 // Indexes for better query performance

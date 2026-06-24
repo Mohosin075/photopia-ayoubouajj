@@ -1,7 +1,1 @@
-
-
-
-
-export const TokenController = {
-
-}
+export const TokenController = {}

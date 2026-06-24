@@ -15,15 +15,15 @@ const messageSchema = new mongoose_1.Schema({
     },
     text: {
         type: String,
-        required: false
+        required: false,
     },
     image: {
         type: String,
-        required: false
+        required: false,
     },
     file: {
         type: String,
-        required: false
+        required: false,
     },
     seen: {
         type: Boolean,

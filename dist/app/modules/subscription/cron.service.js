@@ -13,7 +13,8 @@ class CronService {
     }
     // Start all subscription-related cron jobs
     startSubscriptionCronJobs() {
-        if (process.env.NODE_ENV === 'production' || process.env.ENABLE_SUBSCRIPTION_MONITORING === 'true') {
+        if (process.env.NODE_ENV === 'production' ||
+            process.env.ENABLE_SUBSCRIPTION_MONITORING === 'true') {
             this.startHealthMonitoring();
             this.startDailyReporting();
             this.startWebhookHealthCheck();
@@ -35,7 +36,7 @@ class CronService {
                 console.error('Error in subscription health monitoring cron:', error);
             }
         }, {
-            timezone: 'UTC'
+            timezone: 'UTC',
         });
         job.start();
         this.jobs.set('health-monitoring', job);
@@ -57,7 +58,7 @@ class CronService {
                 console.error('Error generating daily subscription report:', error);
             }
         }, {
-            timezone: 'UTC'
+            timezone: 'UTC',
         });
         job.start();
         this.jobs.set('daily-reporting', job);
@@ -75,7 +76,7 @@ class CronService {
                 console.error('Error in webhook health check cron:', error);
             }
         }, {
-            timezone: 'UTC'
+            timezone: 'UTC',
         });
         job.start();
         this.jobs.set('webhook-health', job);
@@ -93,7 +94,7 @@ class CronService {
                 console.error('Error in trial conversion monitoring cron:', error);
             }
         }, {
-            timezone: 'UTC'
+            timezone: 'UTC',
         });
         job.start();
         this.jobs.set('trial-conversion', job);

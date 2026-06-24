@@ -10,11 +10,16 @@ const socket = (io: Server) => {
     socket.on('join-notification', async (userId: string) => {
       if (userId) {
         socket.join(userId)
-        console.log(colors.green(`User ${socket.id} joined notification room:${userId}`))
-        
+        console.log(
+          colors.green(`User ${socket.id} joined notification room:${userId}`),
+        )
+
         // Update user status to online
-        await User.findByIdAndUpdate(userId, { isOnline: true, lastActive: new Date() })
-        
+        await User.findByIdAndUpdate(userId, {
+          isOnline: true,
+          lastActive: new Date(),
+        })
+
         // Associate userId with socket for disconnect handling
         ;(socket as any).userId = userId
       }
@@ -25,7 +30,10 @@ const socket = (io: Server) => {
       console.log(colors.red('A user disconnect'), socket.id)
       const userId = (socket as any).userId
       if (userId) {
-        await User.findByIdAndUpdate(userId, { isOnline: false, lastActive: new Date() })
+        await User.findByIdAndUpdate(userId, {
+          isOnline: false,
+          lastActive: new Date(),
+        })
       }
     })
 

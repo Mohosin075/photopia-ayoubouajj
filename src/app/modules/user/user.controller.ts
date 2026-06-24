@@ -81,7 +81,8 @@ const deactivateProfile = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
-    message: 'User profile deactivated successfully. You can reactivate by logging in again.',
+    message:
+      'User profile deactivated successfully. You can reactivate by logging in again.',
     data: result,
   })
 })

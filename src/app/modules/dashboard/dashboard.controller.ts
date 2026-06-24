@@ -21,19 +21,21 @@ import {
 import ApiError from '../../../errors/ApiError'
 import { JwtPayload } from 'jsonwebtoken'
 
-const getUserManagementStats = catchAsync(async (req: Request, res: Response) => {
-  const { country, city } = req.query
-  const result = await DashboardService.getUserManagementStats(
-    country as string,
-    city as string,
-  )
-  sendResponse<IUserManagementStats>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'User management stats retrieved successfully',
-    data: result,
-  })
-})
+const getUserManagementStats = catchAsync(
+  async (req: Request, res: Response) => {
+    const { country, city } = req.query
+    const result = await DashboardService.getUserManagementStats(
+      country as string,
+      city as string,
+    )
+    sendResponse<IUserManagementStats>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'User management stats retrieved successfully',
+      data: result,
+    })
+  },
+)
 
 const getUserDetailsStats = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params
@@ -57,15 +59,17 @@ const warnUser = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const getContentModerationStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getContentModerationStats()
-  sendResponse<IContentModerationStats>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Content moderation stats retrieved successfully',
-    data: result,
-  })
-})
+const getContentModerationStats = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await DashboardService.getContentModerationStats()
+    sendResponse<IContentModerationStats>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Content moderation stats retrieved successfully',
+      data: result,
+    })
+  },
+)
 
 const getModerationReports = catchAsync(async (req: Request, res: Response) => {
   const result = await DashboardService.getModerationReports()
@@ -77,81 +81,93 @@ const getModerationReports = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const getModerationReportDetails = catchAsync(async (req: Request, res: Response) => {
-  const { reportId } = req.params
-  const result = await DashboardService.getModerationReportDetails(reportId)
-  sendResponse<IModerationReportDetails>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Moderation report details retrieved successfully',
-    data: result,
-  })
-})
+const getModerationReportDetails = catchAsync(
+  async (req: Request, res: Response) => {
+    const { reportId } = req.params
+    const result = await DashboardService.getModerationReportDetails(reportId)
+    sendResponse<IModerationReportDetails>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Moderation report details retrieved successfully',
+      data: result,
+    })
+  },
+)
 
-const handleModerationAction = catchAsync(async (req: Request, res: Response) => {
-  const { reportId } = req.params
-  const { action, details } = req.body
-  const admin = req.user as JwtPayload
+const handleModerationAction = catchAsync(
+  async (req: Request, res: Response) => {
+    const { reportId } = req.params
+    const { action, details } = req.body
+    const admin = req.user as JwtPayload
 
-  const result = await DashboardService.handleModerationAction(
-    reportId,
-    admin.userId,
-    action,
-    details || '',
-  )
+    const result = await DashboardService.handleModerationAction(
+      reportId,
+      admin.userId,
+      action,
+      details || '',
+    )
 
-  sendResponse<string>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Moderation action performed successfully',
-    data: result,
-  })
-})
+    sendResponse<string>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Moderation action performed successfully',
+      data: result,
+    })
+  },
+)
 
-const getPaymentAndCommissionStats = catchAsync(async (req: Request, res: Response) => {
-  const { country, city } = req.query
-  const result = await DashboardService.getPaymentAndCommissionStats(
-    country as string,
-    city as string,
-  )
-  sendResponse<IPaymentStats>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Payment and commission stats retrieved successfully',
-    data: result,
-  })
-})
+const getPaymentAndCommissionStats = catchAsync(
+  async (req: Request, res: Response) => {
+    const { country, city } = req.query
+    const result = await DashboardService.getPaymentAndCommissionStats(
+      country as string,
+      city as string,
+    )
+    sendResponse<IPaymentStats>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Payment and commission stats retrieved successfully',
+      data: result,
+    })
+  },
+)
 
-const getRecentTransactions = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getRecentTransactions()
-  sendResponse<ITransaction[]>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Recent transactions retrieved successfully',
-    data: result,
-  })
-})
+const getRecentTransactions = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await DashboardService.getRecentTransactions()
+    sendResponse<ITransaction[]>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Recent transactions retrieved successfully',
+      data: result,
+    })
+  },
+)
 
-const getTransactionDetails = catchAsync(async (req: Request, res: Response) => {
-  const { transactionId } = req.params
-  const result = await DashboardService.getTransactionDetails(transactionId)
-  sendResponse<ITransactionDetails>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Transaction details retrieved successfully',
-    data: result,
-  })
-})
+const getTransactionDetails = catchAsync(
+  async (req: Request, res: Response) => {
+    const { transactionId } = req.params
+    const result = await DashboardService.getTransactionDetails(transactionId)
+    sendResponse<ITransactionDetails>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Transaction details retrieved successfully',
+      data: result,
+    })
+  },
+)
 
-const getSubscriptionManagementStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getSubscriptionManagementStats()
-  sendResponse<ISubscriptionStats>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Subscription management stats retrieved successfully',
-    data: result,
-  })
-})
+const getSubscriptionManagementStats = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await DashboardService.getSubscriptionManagementStats()
+    sendResponse<ISubscriptionStats>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Subscription management stats retrieved successfully',
+      data: result,
+    })
+  },
+)
 
 const getSubscriberList = catchAsync(async (req: Request, res: Response) => {
   const result = await DashboardService.getSubscriberList()
@@ -163,15 +179,17 @@ const getSubscriberList = catchAsync(async (req: Request, res: Response) => {
   })
 })
 
-const getAdvancedAnalyticsStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getAdvancedAnalyticsStats()
-  sendResponse<IAdvancedAnalyticsStats>(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: 'Advanced analytics stats retrieved successfully',
-    data: result,
-  })
-})
+const getAdvancedAnalyticsStats = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await DashboardService.getAdvancedAnalyticsStats()
+    sendResponse<IAdvancedAnalyticsStats>(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: 'Advanced analytics stats retrieved successfully',
+      data: result,
+    })
+  },
+)
 
 const toggleUserStatus = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params
@@ -203,7 +221,10 @@ const exportPayments = catchAsync(async (req: Request, res: Response) => {
     'Content-Type',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   )
-  res.setHeader('Content-Disposition', 'attachment; filename=' + 'payments.xlsx')
+  res.setHeader(
+    'Content-Disposition',
+    'attachment; filename=' + 'payments.xlsx',
+  )
 
   res.send(result)
 })
@@ -220,7 +241,10 @@ const getLocationList = catchAsync(async (req: Request, res: Response) => {
 
 const getDetailedStats = catchAsync(async (req: Request, res: Response) => {
   const { country, city } = req.query
-  const result = await DashboardService.getDetailedStats(country as string, city as string)
+  const result = await DashboardService.getDetailedStats(
+    country as string,
+    city as string,
+  )
   sendResponse<IDetailedDashboardStats>(res, {
     statusCode: StatusCodes.OK,
     success: true,

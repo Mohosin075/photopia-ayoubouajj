@@ -65,4 +65,3 @@ const globalErrorHandler: ErrorRequestHandler = (
 }
 
 export default globalErrorHandler
-

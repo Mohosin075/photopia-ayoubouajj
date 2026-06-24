@@ -11,12 +11,22 @@ router.post(
 )
 router.post(
   '/:id',
-  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL),
+  auth(
+    USER_ROLES.USER,
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.PROFESSIONAL,
+  ),
   ChatController.createChat,
 )
 router.get(
   '/',
-  auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.PROFESSIONAL),
+  auth(
+    USER_ROLES.USER,
+    USER_ROLES.ADMIN,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.PROFESSIONAL,
+  ),
   ChatController.getChat,
 )
 

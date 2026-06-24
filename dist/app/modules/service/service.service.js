@@ -49,11 +49,19 @@ const buildWhereConditions = async (filters) => {
     // ... rest of the logic ...
     // Handle new filters based on provider profile or other criteria
     if (isOnline !== undefined) {
-        const onlineUsers = await user_model_1.User.find({ isOnline: isOnline === 'true' || isOnline === true }).select('_id').lean();
+        const onlineUsers = await user_model_1.User.find({
+            isOnline: isOnline === 'true' || isOnline === true,
+        })
+            .select('_id')
+            .lean();
         conditions.providerId = { $in: onlineUsers.map(u => u._id) };
     }
     if (quickResponse !== undefined) {
-        const quickResProfiles = await professionalProfile_model_1.ProfessionalProfile.find({ responseTime: { $lte: 120 } }).select('user').lean();
+        const quickResProfiles = await professionalProfile_model_1.ProfessionalProfile.find({
+            responseTime: { $lte: 120 },
+        })
+            .select('user')
+            .lean();
         const userIds = quickResProfiles.map(p => p.user);
         if (conditions.providerId) {
             conditions.providerId.$in = (conditions.providerId.$in || []).filter((id) => userIds.includes(id));
@@ -64,7 +72,11 @@ const buildWhereConditions = async (filters) => {
     }
     if (expressDelivery !== undefined) {
         // Assuming express delivery is delivery within 48 hours
-        const expressProfiles = await professionalProfile_model_1.ProfessionalProfile.find({ deliveryRate: { $gte: 95 } }).select('user').lean();
+        const expressProfiles = await professionalProfile_model_1.ProfessionalProfile.find({
+            deliveryRate: { $gte: 95 },
+        })
+            .select('user')
+            .lean();
         const userIds = expressProfiles.map(p => p.user);
         if (conditions.providerId) {
             conditions.providerId.$in = (conditions.providerId.$in || []).filter((id) => userIds.includes(id));
@@ -79,9 +91,11 @@ const buildWhereConditions = async (filters) => {
         const availableProviders = await Availability.find({
             $or: [
                 { 'defaultSchedule.saturday.isActive': true },
-                { 'defaultSchedule.sunday.isActive': true }
-            ]
-        }).select('providerId').lean();
+                { 'defaultSchedule.sunday.isActive': true },
+            ],
+        })
+            .select('providerId')
+            .lean();
         const userIds = availableProviders.map((a) => a.providerId);
         if (conditions.providerId) {
             conditions.providerId.$in = (conditions.providerId.$in || []).filter((id) => userIds.includes(id));
@@ -94,8 +108,10 @@ const buildWhereConditions = async (filters) => {
         // Filter providers with low advance notice hours
         const { Availability } = require('../availability/availability.model');
         const lastMinuteProviders = await Availability.find({
-            advanceNoticeHours: { $lte: 4 } // 4 hours or less
-        }).select('providerId').lean();
+            advanceNoticeHours: { $lte: 4 }, // 4 hours or less
+        })
+            .select('providerId')
+            .lean();
         const userIds = lastMinuteProviders.map((a) => a.providerId);
         if (conditions.providerId) {
             conditions.providerId.$in = (conditions.providerId.$in || []).filter((id) => userIds.includes(id));
@@ -126,7 +142,7 @@ const buildWhereConditions = async (filters) => {
     // Text search optimization or partial regex match
     if (searchTerm) {
         conditions.$or = service_constants_1.serviceSearchableFields.map(field => ({
-            [field]: { $regex: searchTerm, $options: 'i' }
+            [field]: { $regex: searchTerm, $options: 'i' },
         }));
     }
     // Range-based optimizations
@@ -231,7 +247,7 @@ const updateService = async (id, payload, userId) => {
         const existingService = await service_model_1.Service.findOne({
             providerId: service.providerId,
             title: payload.title,
-            _id: { $ne: id }
+            _id: { $ne: id },
         });
         if (existingService) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.CONFLICT, service_constants_1.SERVICE_CONSTANTS.MESSAGES.ALREADY_EXISTS);
@@ -274,7 +290,8 @@ const deleteService = async (id, userId) => {
     // Check if user is authorized (providerId or admin)
     if (userId && service.providerId.toString() !== userId) {
         const user = await user_model_1.User.findById(userId);
-        if (!user || !user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
+        if (!user ||
+            !user.roles.some(role => ['ADMIN', 'SUPER_ADMIN'].includes(role))) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.UNAUTHORIZED, service_constants_1.SERVICE_CONSTANTS.MESSAGES.UNAUTHORIZED);
         }
     }

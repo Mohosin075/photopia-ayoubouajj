@@ -1,5 +1,9 @@
 import { Schema, model } from 'mongoose'
-import { FavouriteModel, FavouriteType, IFavourite } from './favourite.interface'
+import {
+  FavouriteModel,
+  FavouriteType,
+  IFavourite,
+} from './favourite.interface'
 
 const favouriteSchema = new Schema<IFavourite, FavouriteModel>(
   {
@@ -26,11 +30,14 @@ const favouriteSchema = new Schema<IFavourite, FavouriteModel>(
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
-  }
+  },
 )
 
 // Ensure unique favorite per user and target
 favouriteSchema.index({ user: 1, service: 1 }, { unique: true, sparse: true })
 favouriteSchema.index({ user: 1, provider: 1 }, { unique: true, sparse: true })
 
-export const Favourite = model<IFavourite, FavouriteModel>('Favourite', favouriteSchema)
+export const Favourite = model<IFavourite, FavouriteModel>(
+  'Favourite',
+  favouriteSchema,
+)

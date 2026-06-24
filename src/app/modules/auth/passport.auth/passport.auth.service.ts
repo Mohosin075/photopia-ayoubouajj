@@ -67,8 +67,6 @@ const handleGoogleLogin = async (
     await session.commitTransaction()
     await session.endSession()
 
-
-
     return authResponse(
       StatusCodes.OK,
       `Welcome ${user[0].name} to our platform.`,
@@ -85,8 +83,6 @@ const handleGoogleLogin = async (
   }
 }
 
-
-
 export const PassportAuthServices = {
-  handleGoogleLogin
+  handleGoogleLogin,
 }

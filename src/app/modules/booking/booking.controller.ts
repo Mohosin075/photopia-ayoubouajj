@@ -10,7 +10,8 @@ import { User } from '../user/user.model'
 
 const createBooking = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload & { email?: string }
-  if (!user?.userId) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
+  if (!user?.userId)
+    throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
 
   let clientEmail = user.email
   if (!clientEmail) {
@@ -49,7 +50,11 @@ const updateBookingStatus = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
 
-  const result = await BookingService.updateBookingStatus(id, status, user.userId)
+  const result = await BookingService.updateBookingStatus(
+    id,
+    status,
+    user.userId,
+  )
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -63,10 +68,21 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
 
-  const filters = pick(req.query, ['searchTerm', 'status', 'bookingDate', 'serviceId', 'filterType'])
+  const filters = pick(req.query, [
+    'searchTerm',
+    'status',
+    'bookingDate',
+    'serviceId',
+    'filterType',
+  ])
   const options = pick(req.query, ['page', 'limit', 'sortBy', 'sortOrder'])
 
-  const result = await BookingService.getMyBookings(user.userId, user.role, filters, options)
+  const result = await BookingService.getMyBookings(
+    user.userId,
+    user.role,
+    filters,
+    options,
+  )
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -78,8 +94,16 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
 })
 
 const calculatePrice = catchAsync(async (req: Request, res: Response) => {
-  const { serviceId, startTime, endTime, date, distanceFromProviderKm, packageName, customOptions } = req.body
-  
+  const {
+    serviceId,
+    startTime,
+    endTime,
+    date,
+    distanceFromProviderKm,
+    packageName,
+    customOptions,
+  } = req.body
+
   const result = await BookingService.calculatePrice(
     serviceId,
     startTime,
@@ -88,7 +112,7 @@ const calculatePrice = catchAsync(async (req: Request, res: Response) => {
     distanceFromProviderKm || 0,
     undefined, // Overrides
     packageName,
-    customOptions
+    customOptions,
   )
 
   sendResponse(res, {
@@ -98,7 +122,6 @@ const calculatePrice = catchAsync(async (req: Request, res: Response) => {
     data: result,
   })
 })
-
 
 const getSingleBooking = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params
@@ -121,7 +144,11 @@ const getMyBookingsByDate = catchAsync(async (req: Request, res: Response) => {
   const date = req.query.date as string
   if (!date) throw new ApiError(httpStatus.BAD_REQUEST, 'Date is required')
 
-  const result = await BookingService.getMyBookingsByDate(user.userId, user.role, date)
+  const result = await BookingService.getMyBookingsByDate(
+    user.userId,
+    user.role,
+    date,
+  )
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -136,7 +163,11 @@ const modifyBookingOffer = catchAsync(async (req: Request, res: Response) => {
   const user = req.user as JwtPayload
   if (!user) throw new ApiError(httpStatus.UNAUTHORIZED, 'User not found')
 
-  const result = await BookingService.modifyBookingOffer(id, user.userId, req.body)
+  const result = await BookingService.modifyBookingOffer(
+    id,
+    user.userId,
+    req.body,
+  )
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

@@ -15,7 +15,10 @@ const socket = (io) => {
                 socket.join(userId);
                 console.log(colors_1.default.green(`User ${socket.id} joined notification room:${userId}`));
                 // Update user status to online
-                await user_model_1.User.findByIdAndUpdate(userId, { isOnline: true, lastActive: new Date() });
+                await user_model_1.User.findByIdAndUpdate(userId, {
+                    isOnline: true,
+                    lastActive: new Date(),
+                });
                 socket.userId = userId;
             }
         });
@@ -24,7 +27,10 @@ const socket = (io) => {
             console.log(colors_1.default.red('A user disconnect'), socket.id);
             const userId = socket.userId;
             if (userId) {
-                await user_model_1.User.findByIdAndUpdate(userId, { isOnline: false, lastActive: new Date() });
+                await user_model_1.User.findByIdAndUpdate(userId, {
+                    isOnline: false,
+                    lastActive: new Date(),
+                });
             }
         });
         // Join stream room

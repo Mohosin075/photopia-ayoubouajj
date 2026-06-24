@@ -15,7 +15,9 @@ const trackVisit = async (payload: {
 }): Promise<void> => {
   await Analytics.create({
     providerId: new Types.ObjectId(payload.providerId),
-    serviceId: payload.serviceId ? new Types.ObjectId(payload.serviceId) : undefined,
+    serviceId: payload.serviceId
+      ? new Types.ObjectId(payload.serviceId)
+      : undefined,
     visitorId: payload.visitorId,
     type: payload.type,
     interactionType: payload.interactionType,
@@ -23,12 +25,20 @@ const trackVisit = async (payload: {
   })
 }
 
-const getPremiumAnalytics = async (providerId: string): Promise<IPremiumAnalytics> => {
+const getPremiumAnalytics = async (
+  providerId: string,
+): Promise<IPremiumAnalytics> => {
   const objectId = new Types.ObjectId(providerId)
 
   // 1. Most viewed project
   const mostViewed = await Analytics.aggregate([
-    { $match: { providerId: objectId, type: 'view', serviceId: { $exists: true } } },
+    {
+      $match: {
+        providerId: objectId,
+        type: 'view',
+        serviceId: { $exists: true },
+      },
+    },
     { $group: { _id: '$serviceId', views: { $sum: 1 } } },
     { $sort: { views: -1 } },
     { $limit: 1 },
@@ -49,26 +59,40 @@ const getPremiumAnalytics = async (providerId: string): Promise<IPremiumAnalytic
     Booking.countDocuments({ providerId: objectId, status: 'completed' }),
   ])
 
-  const conversionRate = totalViews > 0 ? (completedBookings / totalViews) * 100 : 0
+  const conversionRate =
+    totalViews > 0 ? (completedBookings / totalViews) * 100 : 0
 
   // 3. Bounce Rate
   // Simplified: A visit is a bounce if it's a 'view' and there's no other interaction from same visitorId within 30 mins
-  const totalVisits = await Analytics.distinct('visitorId', { providerId: objectId, type: 'view' })
+  const totalVisits = await Analytics.distinct('visitorId', {
+    providerId: objectId,
+    type: 'view',
+  })
   const visitorsWithInteractions = await Analytics.distinct('visitorId', {
     providerId: objectId,
     type: 'interaction',
   })
-  
+
   const bounces = totalVisits.length - visitorsWithInteractions.length
-  const bounceRate = totalVisits.length > 0 ? (bounces / totalVisits.length) * 100 : 0
+  const bounceRate =
+    totalVisits.length > 0 ? (bounces / totalVisits.length) * 100 : 0
 
   // 4. Avg Revenue vs Category
-  const userBookings = await Booking.find({ providerId: objectId, status: 'completed' }).lean()
-  const userTotalRevenue = userBookings.reduce((acc, b) => acc + (b.pricingDetails?.providerEarnings || 0), 0)
-  const userAvgRevenue = userBookings.length > 0 ? userTotalRevenue / userBookings.length : 0
+  const userBookings = await Booking.find({
+    providerId: objectId,
+    status: 'completed',
+  }).lean()
+  const userTotalRevenue = userBookings.reduce(
+    (acc, b) => acc + (b.pricingDetails?.providerEarnings || 0),
+    0,
+  )
+  const userAvgRevenue =
+    userBookings.length > 0 ? userTotalRevenue / userBookings.length : 0
 
   // Get user's primary category from their first service
-  const firstService = await Service.findOne({ providerId: objectId }).populate('category').lean()
+  const firstService = await Service.findOne({ providerId: objectId })
+    .populate('category')
+    .lean()
   const categoryId = firstService?.category?._id
   const categoryName = (firstService?.category as any)?.name || 'N/A'
 
@@ -137,7 +161,10 @@ const getPremiumAnalytics = async (providerId: string): Promise<IPremiumAnalytic
     {
       $project: {
         timeToConvert: {
-          $divide: [{ $subtract: ['$createdAt', '$firstView.timestamp'] }, 1000 * 60 * 60], // in hours
+          $divide: [
+            { $subtract: ['$createdAt', '$firstView.timestamp'] },
+            1000 * 60 * 60,
+          ], // in hours
         },
       },
     },
@@ -147,11 +174,13 @@ const getPremiumAnalytics = async (providerId: string): Promise<IPremiumAnalytic
   const avgConversionTime = conversionTimes[0]?.avgTime || 0
 
   return {
-    mostViewedProject: mostViewed[0] ? {
-      serviceId: mostViewed[0]._id.toString(),
-      title: mostViewed[0].service.title,
-      views: mostViewed[0].views,
-    } : null,
+    mostViewedProject: mostViewed[0]
+      ? {
+          serviceId: mostViewed[0]._id.toString(),
+          title: mostViewed[0].service.title,
+          views: mostViewed[0].views,
+        }
+      : null,
     conversionRate,
     bounceRate,
     avgRevenueVsCategory: {

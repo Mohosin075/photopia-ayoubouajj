@@ -44,7 +44,7 @@ const createCheckoutSession = async (user, payload) => {
             metadata: {
                 userId: user.userId.toString(),
                 bookingId: payload.bookingId.toString(),
-                ...payload.metadata
+                ...payload.metadata,
             },
         });
         await payment_model_1.Payment.create({
@@ -59,7 +59,7 @@ const createCheckoutSession = async (user, payload) => {
             metadata: {
                 checkoutSessionId: session.id,
                 bookingId: payload.bookingId.toString(),
-                ...payload.metadata
+                ...payload.metadata,
             },
         });
         return {
@@ -86,10 +86,9 @@ const verifyCheckoutSession = async (sessionId) => {
             $or: [
                 { paymentIntentId: sessionId },
                 { 'metadata.checkoutSessionId': sessionId },
-                { paymentIntentId: session.payment_intent }
-            ]
-        })
-            .populate('userId', 'name email');
+                { paymentIntentId: session.payment_intent },
+            ],
+        }).populate('userId', 'name email');
         if (!payment) {
             throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Payment not found');
         }
@@ -103,7 +102,9 @@ const verifyCheckoutSession = async (sessionId) => {
                 payment.metadata = { ...payment.metadata, session };
                 await payment.save({ session: dbSession });
                 const bookingId = payment.bookingId || ((_a = session.metadata) === null || _a === void 0 ? void 0 : _a.bookingId);
-                const paymentType = ((_b = session.metadata) === null || _b === void 0 ? void 0 : _b.paymentType) || ((_c = payment.metadata) === null || _c === void 0 ? void 0 : _c.paymentType) || 'deposit';
+                const paymentType = ((_b = session.metadata) === null || _b === void 0 ? void 0 : _b.paymentType) ||
+                    ((_c = payment.metadata) === null || _c === void 0 ? void 0 : _c.paymentType) ||
+                    'deposit';
                 if (bookingId) {
                     const updateData = {
                         stripePaymentId: session.id,
@@ -128,7 +129,7 @@ const verifyCheckoutSession = async (sessionId) => {
                     await emailHelper_1.emailHelper.sendEmail({
                         to: userData.email,
                         subject: 'Payment Successful',
-                        html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`
+                        html: `<p>Hi ${userData.name}, your payment of ${payment.amount} ${payment.currency} was successful.</p>`,
                     });
                 }
                 await dbSession.commitTransaction();
@@ -183,12 +184,15 @@ const createPaymentIntent = async (user, payload) => {
         // Determine payable amount from booking state (server-side source of truth)
         const expectedDepositAmount = Number((booking.depositAmount || 0).toFixed(2));
         const expectedBalanceAmount = Number((booking.balanceAmount || 0).toFixed(2));
-        const providedAmount = typeof payload.amount === 'number' ? Number(payload.amount.toFixed(2)) : undefined;
+        const providedAmount = typeof payload.amount === 'number'
+            ? Number(payload.amount.toFixed(2))
+            : undefined;
         let payableAmount = 0;
         if (booking.paymentStatus === 'pending') {
             payableAmount = expectedDepositAmount;
         }
-        else if (booking.paymentStatus === 'deposit_paid' && expectedBalanceAmount > 0) {
+        else if (booking.paymentStatus === 'deposit_paid' &&
+            expectedBalanceAmount > 0) {
             payableAmount = expectedBalanceAmount;
         }
         else {
@@ -226,7 +230,7 @@ const createPaymentIntent = async (user, payload) => {
                 userId: user.userId,
                 userEmail,
                 bookingId: payload.bookingId,
-                ...payload.metadata
+                ...payload.metadata,
             },
         };
         // If paymentMethodId is provided → pay with saved card (off-session)
@@ -254,7 +258,7 @@ const createPaymentIntent = async (user, payload) => {
                 userId: user.userId,
                 bookingId: payload.bookingId,
                 usedSavedCard: !!payload.paymentMethodId,
-                ...payload.metadata
+                ...payload.metadata,
             },
         });
         return {
@@ -376,7 +380,8 @@ const getAllPayments = async (user, filterables, pagination) => {
         });
     }
     // Regular users can only see their own payments
-    if (user.activeRole === user_1.USER_ROLES.USER || user.activeRole === user_1.USER_ROLES.PROFESSIONAL) {
+    if (user.activeRole === user_1.USER_ROLES.USER ||
+        user.activeRole === user_1.USER_ROLES.PROFESSIONAL) {
         andConditions.push({
             userId: new mongoose_1.Types.ObjectId(user.userId),
         });
@@ -389,7 +394,7 @@ const getAllPayments = async (user, filterables, pagination) => {
             .sort({ [sortBy]: sortOrder })
             .populate('userId', 'name email')
             .populate({
-            path: 'bookingId'
+            path: 'bookingId',
         }),
         payment_model_1.Payment.countDocuments(whereConditions),
     ]);
@@ -407,8 +412,7 @@ const getSinglePayment = async (id) => {
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Payment ID');
     }
-    const result = await payment_model_1.Payment.findById(id)
-        .populate('userId', 'name email');
+    const result = await payment_model_1.Payment.findById(id).populate('userId', 'name email');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested payment not found, please try again with valid id');
     }
@@ -421,8 +425,7 @@ const updatePayment = async (id, payload) => {
     const result = await payment_model_1.Payment.findByIdAndUpdate(new mongoose_1.Types.ObjectId(id), { $set: payload }, {
         new: true,
         runValidators: true,
-    })
-        .populate('userId', 'name email');
+    }).populate('userId', 'name email');
     if (!result) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Requested payment not found, please try again with valid id');
     }
@@ -510,12 +513,16 @@ const generateInvoice = async (id) => {
     if (!mongoose_1.Types.ObjectId.isValid(id)) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.BAD_REQUEST, 'Invalid Payment ID');
     }
-    const payment = await payment_model_1.Payment.findById(id).populate('userId').populate('bookingId');
+    const payment = await payment_model_1.Payment.findById(id)
+        .populate('userId')
+        .populate('bookingId');
     if (!payment) {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.NOT_FOUND, 'Payment not found');
     }
     // 1. If it's a Stripe payment, try to get the official receipt URL
-    if (payment.paymentIntentId && payment.status === 'succeeded' && payment.paymentMethod === 'stripe') {
+    if (payment.paymentIntentId &&
+        payment.status === 'succeeded' &&
+        payment.paymentMethod === 'stripe') {
         try {
             const pi = await stripe_1.default.paymentIntents.retrieve(payment.paymentIntentId);
             if (pi.latest_charge) {
@@ -570,7 +577,7 @@ const getMyPaymentMethods = async (user) => {
         customer: userData.stripeCustomerId,
         type: 'card',
     });
-    const customer = await stripe_1.default.customers.retrieve(userData.stripeCustomerId);
+    const customer = (await stripe_1.default.customers.retrieve(userData.stripeCustomerId));
     const defaultPaymentMethodId = (_a = customer.invoice_settings) === null || _a === void 0 ? void 0 : _a.default_payment_method;
     return paymentMethods.data.map(pm => {
         var _a, _b, _c, _d;

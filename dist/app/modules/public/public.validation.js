@@ -27,13 +27,23 @@ exports.PublicValidation = {
     create: zod_1.z.object({
         body: zod_1.z.object({
             content: zod_1.z.string(),
-            type: zod_1.z.enum(['privacy-policy', 'terms-and-condition', 'contact', 'about']),
+            type: zod_1.z.enum([
+                'privacy-policy',
+                'terms-and-condition',
+                'contact',
+                'about',
+            ]),
         }),
     }),
     update: zod_1.z.object({
         body: zod_1.z.object({
             content: zod_1.z.string(),
-            type: zod_1.z.enum(['privacy-policy', 'terms-and-condition', 'contact', 'about']),
+            type: zod_1.z.enum([
+                'privacy-policy',
+                'terms-and-condition',
+                'contact',
+                'about',
+            ]),
         }),
     }),
     contactZodSchema,

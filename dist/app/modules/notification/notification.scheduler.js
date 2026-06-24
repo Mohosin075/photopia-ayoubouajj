@@ -9,6 +9,7 @@ const notification_model_1 = require("./notification.model");
 const notification_service_1 = require("./notification.service");
 const notification_interface_1 = require("./notification.interface");
 const user_model_1 = require("../user/user.model");
+const booking_model_1 = require("../booking/booking.model");
 class NotificationScheduler {
     constructor() {
         this.initializeSchedulers();
@@ -33,6 +34,10 @@ class NotificationScheduler {
         node_cron_1.default.schedule('*/15 * * * *', async () => {
             // Every 15 minutes
             await this.sendWelcomeEmails();
+        });
+        // Schedule 5: Scan upcoming bookings and send client & pro reminders daily at 8 AM
+        node_cron_1.default.schedule('0 8 * * *', async () => {
+            await this.sendBookingReminders();
         });
         console.log('✅ Notification schedulers initialized');
     }
@@ -135,10 +140,153 @@ class NotificationScheduler {
             console.error('Error cleaning up archived notifications:', error);
         }
     }
+    async sendBookingReminders() {
+        try {
+            console.log('⏰ Scanning upcoming bookings for reminders...');
+            const now = new Date();
+            // Calculate date ranges
+            const startOfDay = (days) => {
+                const d = new Date(now);
+                d.setDate(d.getDate() + days);
+                d.setHours(0, 0, 0, 0);
+                return d;
+            };
+            const endOfDay = (days) => {
+                const d = new Date(now);
+                d.setDate(d.getDate() + days);
+                d.setHours(23, 59, 59, 999);
+                return d;
+            };
+            const intervals = [
+                {
+                    days: 7,
+                    label: '7-day',
+                    clientType: notification_interface_1.NotificationType.REMINDER_7D,
+                    proType: notification_interface_1.NotificationType.REMINDER_7D,
+                    clientChannel: notification_interface_1.NotificationChannel.BOTH,
+                    proChannel: notification_interface_1.NotificationChannel.BOTH,
+                    clientPriority: notification_interface_1.NotificationPriority.MEDIUM,
+                    proPriority: notification_interface_1.NotificationPriority.MEDIUM,
+                },
+                {
+                    days: 3,
+                    label: '3-day',
+                    clientType: notification_interface_1.NotificationType.REMINDER_3D,
+                    proType: notification_interface_1.NotificationType.REMINDER_3D,
+                    clientChannel: notification_interface_1.NotificationChannel.BOTH,
+                    proChannel: notification_interface_1.NotificationChannel.BOTH,
+                    clientPriority: notification_interface_1.NotificationPriority.HIGH,
+                    proPriority: notification_interface_1.NotificationPriority.HIGH,
+                },
+                {
+                    days: 1,
+                    label: '1-day',
+                    clientType: notification_interface_1.NotificationType.REMINDER_1D,
+                    proType: notification_interface_1.NotificationType.REMINDER_1D,
+                    clientChannel: notification_interface_1.NotificationChannel.ALL,
+                    proChannel: notification_interface_1.NotificationChannel.ALL,
+                    clientPriority: notification_interface_1.NotificationPriority.HIGH,
+                    proPriority: notification_interface_1.NotificationPriority.HIGH,
+                },
+                {
+                    days: 0,
+                    label: 'same-day',
+                    clientType: notification_interface_1.NotificationType.REMINDER_SAME_DAY,
+                    proType: notification_interface_1.NotificationType.REMINDER_SAME_DAY,
+                    clientChannel: notification_interface_1.NotificationChannel.BOTH,
+                    proChannel: notification_interface_1.NotificationChannel.BOTH,
+                    clientPriority: notification_interface_1.NotificationPriority.HIGH,
+                    proPriority: notification_interface_1.NotificationPriority.URGENT,
+                },
+            ];
+            for (const interval of intervals) {
+                const start = startOfDay(interval.days);
+                const end = endOfDay(interval.days);
+                // Find bookings scheduled inside this window
+                const bookings = await booking_model_1.Booking.find({
+                    bookingDate: { $gte: start, $lte: end },
+                    status: 'confirmed',
+                });
+                console.log(`⏰ Found ${bookings.length} confirmed bookings for ${interval.label} reminders.`);
+                for (const booking of bookings) {
+                    try {
+                        const formattedDate = booking.bookingDate.toLocaleDateString();
+                        const time = booking.startTime;
+                        // Prevent duplicate reminder sends in the same calendar day (Production Shield)
+                        const startOfDay = new Date();
+                        startOfDay.setHours(0, 0, 0, 0);
+                        // 1. Client Reminder Check
+                        const existingClientReminder = await notification_model_1.Notification.findOne({
+                            userId: booking.clientId,
+                            type: interval.clientType,
+                            'metadata.bookingId': booking._id.toString(),
+                            createdAt: { $gte: startOfDay },
+                        });
+                        if (!existingClientReminder) {
+                            // --- Send Client Reminder ---
+                            await notification_service_1.NotificationServices.createNotification({
+                                userId: booking.clientId,
+                                title: `${interval.label.toUpperCase()} Reminder: Photopya Booking`,
+                                content: `Hi ${booking.clientName}, this is a reminder for your upcoming service on ${formattedDate} at ${time}.`,
+                                type: interval.clientType,
+                                channel: interval.clientChannel,
+                                priority: interval.clientPriority,
+                                metadata: {
+                                    bookingId: booking._id.toString(),
+                                    bookingNumber: booking.bookingNumber,
+                                },
+                                actionUrl: `/bookings/${booking._id}`,
+                            }, interval.clientChannel === notification_interface_1.NotificationChannel.BOTH ||
+                                interval.clientChannel === notification_interface_1.NotificationChannel.ALL);
+                        }
+                        else {
+                            console.log(`[Reminder Shield] Client reminder already sent today for booking ${booking.bookingNumber}`);
+                        }
+                        // 2. Professional Reminder Check
+                        const existingProReminder = await notification_model_1.Notification.findOne({
+                            userId: booking.providerId,
+                            type: interval.proType,
+                            'metadata.bookingId': booking._id.toString(),
+                            createdAt: { $gte: startOfDay },
+                        });
+                        if (!existingProReminder) {
+                            // --- Send Professional Reminder ---
+                            await notification_service_1.NotificationServices.createNotification({
+                                userId: booking.providerId,
+                                title: `${interval.label.toUpperCase()} Reminder: Client Session`,
+                                content: `Hi Professional, you have an upcoming booking session with ${booking.clientName} on ${formattedDate} at ${time}.`,
+                                type: interval.proType,
+                                channel: interval.proChannel,
+                                priority: interval.proPriority,
+                                metadata: {
+                                    bookingId: booking._id.toString(),
+                                    bookingNumber: booking.bookingNumber,
+                                },
+                                actionUrl: `/bookings/${booking._id}`,
+                            }, interval.proChannel === notification_interface_1.NotificationChannel.BOTH ||
+                                interval.proChannel === notification_interface_1.NotificationChannel.ALL);
+                        }
+                        else {
+                            console.log(`[Reminder Shield] Professional reminder already sent today for booking ${booking.bookingNumber}`);
+                        }
+                    }
+                    catch (err) {
+                        console.error(`Failed to send reminder for booking ${booking.bookingNumber}:`, err.message);
+                    }
+                }
+            }
+        }
+        catch (error) {
+            console.error('Error in sendBookingReminders scheduler:', error);
+        }
+    }
     // Public method to manually trigger schedulers (for testing)
     async triggerManualSchedule(type) {
         console.log(`🔧 Manually triggering scheduler: ${type}`);
         switch (type) {
+            case 'reminders':
+                await this.sendBookingReminders();
+                break;
             case 'welcome':
                 await this.sendWelcomeEmails();
                 break;

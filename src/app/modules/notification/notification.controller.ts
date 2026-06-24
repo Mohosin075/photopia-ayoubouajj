@@ -81,7 +81,10 @@ const updateNotification = catchAsync(async (req: Request, res: Response) => {
   const result = await NotificationServices.updateNotification(
     id,
     req.body,
-    user.activeRole === USER_ROLES.USER || user.activeRole === USER_ROLES.PROFESSIONAL ? user.userId : undefined,
+    user.activeRole === USER_ROLES.USER ||
+      user.activeRole === USER_ROLES.PROFESSIONAL
+      ? user.userId
+      : undefined,
   )
 
   sendResponse(res, {
@@ -173,7 +176,6 @@ const sendTestEmail = catchAsync(async (req: Request, res: Response) => {
     data: result,
   })
 })
-
 
 export const NotificationController = {
   createNotification,

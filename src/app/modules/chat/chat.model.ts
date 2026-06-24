@@ -1,5 +1,5 @@
-import { model, Schema } from 'mongoose';
-import { ChatModel, IChat } from './chat.interface';
+import { model, Schema } from 'mongoose'
+import { ChatModel, IChat } from './chat.interface'
 
 const chatSchema = new Schema<IChat, ChatModel>(
   {
@@ -16,9 +16,9 @@ const chatSchema = new Schema<IChat, ChatModel>(
   },
   {
     timestamps: true,
-  }
-);
+  },
+)
 
-chatSchema.index({ participants: 1 });
+chatSchema.index({ participants: 1 })
 
-export const Chat = model<IChat, ChatModel>('Chat', chatSchema);
+export const Chat = model<IChat, ChatModel>('Chat', chatSchema)
