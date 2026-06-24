@@ -284,6 +284,10 @@ const serviceSchema = new Schema<IService, ServiceModel>(
       type: [addOnSchema],
       default: [],
     },
+    otherServices: {
+      type: [String],
+      default: [],
+    },
     autoAcceptBookings: {
       enabled: { type: Boolean, default: false },
       minimumBudget: { type: Number, default: 0 },

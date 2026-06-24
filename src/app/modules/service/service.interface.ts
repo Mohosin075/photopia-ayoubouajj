@@ -118,6 +118,7 @@ export interface IService {
   totalView: number
   totalBooking: number
   addOns?: IAddOn[]
+  otherServices?: string[]
   autoAcceptBookings?: {
     enabled: boolean
     minimumBudget?: number

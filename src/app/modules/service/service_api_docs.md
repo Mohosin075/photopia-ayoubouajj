@@ -32,6 +32,7 @@
   "subCategory": "Wedding",                          // Optional (string)
   "tags": ["wedding", "photo", "4k"],                // Optional (Array of strings)
   "equipment": ["Sony A7III", "Gimbal"],             // Optional (Array of strings)
+  "otherServices": ["videography", "drone shoots"],  // Optional (Array of strings)
   "price": 500,                                      // Required (Number) - Base Price or Hourly Rate
   "currency": "USD",                                 // Optional (String, default usually 'EUR')
   "pricingType": "PACKAGE",                          // Required ('DAILY', 'HOURLY', 'PACKAGE')

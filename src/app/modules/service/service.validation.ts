@@ -100,6 +100,7 @@ export const createServiceSchema = z.object({
     gallery: z.array(z.string().url()).optional(),
     status: z.enum(statusValues).default(SERVICE_STATUS.ACTIVE),
     addOns: z.array(addOnSchema).optional(),
+    otherServices: z.array(z.string()).optional(),
     autoAcceptBookings: autoAcceptBookingsSchema.optional(),
   }).superRefine((data, ctx) => {
     if (data.pricingType === SERVICE_PRICING_TYPE.DAILY) {
@@ -155,6 +156,7 @@ export const updateServiceSchema = z.object({
     isActive: z.boolean().optional(),
     isOriginal: z.boolean().optional(),
     addOns: z.array(addOnSchema).optional(),
+    otherServices: z.array(z.string()).optional(),
     autoAcceptBookings: autoAcceptBookingsSchema.optional(),
   }).superRefine((data, ctx) => {
     if (data.pricingType === SERVICE_PRICING_TYPE.DAILY) {
