@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-// import { sendNotifications } from '../../../helpers/notificationsHelper';
+import NotificationIntegration from '../notification/notification.integration'
 import { IMessage } from './message.interface'
 import { Message } from './message.model'
 import ApiError from '../../../errors/ApiError'
@@ -30,16 +30,16 @@ const sendMessageToDB = async (payload: any): Promise<IMessage> => {
     io.emit(`getMessage::${payload?.chatId}`, response)
     io.emit(`updateChatList::${payload?.sender}`)
     io.emit(`updateChatList::${payload?.receiver}`)
-
-    const data = {
-      text: `${sender?.name} send you message.`,
-      title: 'Received Message',
-      link: payload?.chatId,
-      direction: 'message',
-      receiver: payload.receiver,
-    }
-    // await sendNotifications(data);
   }
+
+  // Trigger push notification to receiver asynchronously
+  const messageText = payload.text || (payload.image ? 'Sent an image' : payload.file ? 'Sent a file' : 'New message')
+  NotificationIntegration.onNewMessage(
+    new mongoose.Types.ObjectId(payload.sender),
+    new mongoose.Types.ObjectId(payload.receiver),
+    messageText,
+    payload.chatId
+  ).catch(err => console.error('Error sending message push notification:', err))
 
   return response
 }

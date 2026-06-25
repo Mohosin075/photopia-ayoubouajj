@@ -77,6 +77,7 @@ export class NotificationIntegration {
     senderId: Types.ObjectId,
     receiverId: Types.ObjectId,
     message: string,
+    chatId?: Types.ObjectId | string,
   ): Promise<void> {
     try {
       await NotificationServices.createNotification({
@@ -89,6 +90,7 @@ export class NotificationIntegration {
         metadata: {
           senderId,
           messagePreview: message.substring(0, 100),
+          chatId: chatId ? chatId.toString() : undefined,
         },
         actionUrl: `${process.env.CLIENT_URL}/messages/${senderId}`,
         actionText: 'View Message',
