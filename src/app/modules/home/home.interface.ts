@@ -7,7 +7,7 @@ import { IProfessionalProfile } from '../professionalProfile/professionalProfile
 export interface IHomeData {
   recentlyViewed: IRecentlyViewed[]
   mainCategories: ICategory[]
-  trendingThisWeek: ICategory[]
+  trendingThisWeek: IService[]
   availableNow: IProfessionalProfile[]
   availableNowCounts: {
     online: number

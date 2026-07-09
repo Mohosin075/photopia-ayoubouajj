@@ -37,20 +37,29 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
   }
 
   if (recentlyViewed.length === 0) {
-    recentlyViewed = (await RecentlyViewed.find()
-      .populate({
-        path: 'serviceId',
-        populate: [
-          { path: 'providerId', select: 'name fullName profile isOnline' },
-          { path: 'category', select: 'name image icon theme' },
-        ],
-      })
-      .sort({ viewedAt: -1 })
-      .limit(3)) as unknown as IRecentlyViewed[]
+    const fallbackServices = await Service.find()
+      .populate('providerId', 'name fullName profile isOnline')
+      .populate('category', 'name image icon theme')
+      .sort({ createdAt: -1 })
+      .limit(8)
+      .lean()
+
+    recentlyViewed = fallbackServices.map(service => ({
+      _id: service._id,
+      serviceId: service,
+      userId: userId || null,
+      viewedAt: new Date(),
+    })) as unknown as IRecentlyViewed[]
   }
+
+  // Find distinct category IDs that have at least one active service
+  const activeServiceCategoryIds = await Service.distinct('category', {
+    status: SERVICE_STATUS.ACTIVE,
+  })
 
   // Section 3: Main Categories
   let mainCategories = (await Category.find({
+    _id: { $in: activeServiceCategoryIds },
     isPopular: true,
     isActive: true,
     type: 'category',
@@ -58,23 +67,28 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
 
   if (mainCategories.length === 0) {
     mainCategories = (await Category.find({
-      isActive: true,
-      type: 'category',
-    }).limit(3)) as unknown as ICategory[]
+      _id: { $in: activeServiceCategoryIds },
+    }).limit(12)) as unknown as ICategory[]
   }
 
-  // Section 4: Trending This Week
-  let trendingThisWeek = (await Category.find({
-    isTrending: true,
+  // Section 4: Trending This Week (Services)
+  let trendingThisWeek = (await Service.find({
+    status: SERVICE_STATUS.ACTIVE,
     isActive: true,
-    type: 'subcategory',
-  }).limit(6)) as unknown as ICategory[]
+  })
+    .populate('providerId', 'name fullName profile isOnline')
+    .populate('category', 'name image icon theme')
+    .sort({ createdAt: 1 }) // Or you can sort by viewCount/rating if available
+    .limit(8)
+    .lean()) as unknown as IService[]
 
   if (trendingThisWeek.length === 0) {
-    trendingThisWeek = (await Category.find({
-      isActive: true,
-      type: 'subcategory',
-    }).limit(3)) as unknown as ICategory[]
+    trendingThisWeek = (await Service.find()
+      .populate('providerId', 'name fullName profile isOnline')
+      .populate('category', 'name image icon theme')
+      .sort({ createdAt: 1 })
+      .limit(8)
+      .lean()) as unknown as IService[]
   }
 
   // Section 5: Available Right Now
@@ -153,9 +167,15 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
       .limit(3)) as unknown as IProfessionalProfile[]
   }
 
-  // Section 8: Creative Styles
+  // Find distinct subcategory IDs that have at least one active service
+  const activeServiceSubCategoryIds = await Service.distinct('subCategory', {
+    status: SERVICE_STATUS.ACTIVE,
+  })
+
+  // Section 8: Creative Styles (Subcategories)
   let creativeStyles = await Category.find({
-    theme: { $ne: null },
+    _id: { $in: activeServiceSubCategoryIds },
+    type: 'subcategory',
     isActive: true,
   })
     .select('name theme description image')
@@ -163,9 +183,12 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
     .lean()
 
   if (creativeStyles.length === 0) {
-    creativeStyles = (await Category.find({ isActive: true })
+    creativeStyles = (await Category.find({
+      _id: { $in: activeServiceSubCategoryIds },
+      type: 'subcategory',
+    })
       .select('name theme description image')
-      .limit(3)
+      .limit(8)
       .lean()) as any
   }
 
@@ -288,13 +311,10 @@ const getHomeData = async (userId?: string): Promise<IHomeData> => {
     .lean()) as unknown as IService[]
 
   if (originalProjects.length === 0) {
-    originalProjects = (await Service.find({
-      status: SERVICE_STATUS.ACTIVE,
-      isActive: true,
-    })
+    originalProjects = (await Service.find()
       .populate('providerId', 'name fullName profile isOnline')
       .populate('category', 'name image icon theme')
-      .limit(3)
+      .limit(10)
       .lean()) as unknown as IService[]
   }
 
