@@ -34,6 +34,8 @@ import { Notification } from '../notification/notification.model'
 import {
   CreateNotificationDto,
   NotificationType,
+  NotificationChannel,
+  NotificationPriority,
 } from '../notification/notification.interface'
 import { NotificationServices } from '../notification/notification.service'
 
@@ -180,9 +182,11 @@ const warnUser = async (userId: string, message: string): Promise<string> => {
 
   const payload: CreateNotificationDto = {
     userId,
-    title: 'Admin Warning',
+    title: 'Admin Warning ⚠️',
     content: message,
     type: NotificationType.SYSTEM_ALERT,
+    channel: NotificationChannel.BOTH,
+    priority: NotificationPriority.HIGH,
   }
 
   await NotificationServices.createNotification(payload, true)

@@ -154,6 +154,146 @@ export class NotificationIntegration {
       console.error('Error creating account verification notification:', error)
     }
   }
+
+  static async onBookingRequested(booking: any): Promise<void> {
+    try {
+      await NotificationServices.createNotification({
+        userId: booking.clientId,
+        title: 'Booking Request Sent 📅',
+        content: `Your booking request for service was sent. Booking #: ${booking.bookingNumber}`,
+        type: NotificationType.BOOKING_REQUEST_SENT,
+        channel: NotificationChannel.PUSH,
+        priority: NotificationPriority.MEDIUM,
+        metadata: {
+          bookingId: booking._id.toString(),
+          bookingNumber: booking.bookingNumber,
+        },
+        actionUrl: `/bookings/${booking._id}`,
+        actionText: 'View Details',
+      })
+
+      await NotificationServices.createNotification({
+        userId: booking.providerId,
+        title: 'New Booking Request 📅',
+        content: `You received a new booking request from ${booking.clientName || 'Client'}. Booking #: ${booking.bookingNumber}`,
+        type: NotificationType.BOOKING_REQUEST_SENT,
+        channel: NotificationChannel.PUSH,
+        priority: NotificationPriority.HIGH,
+        metadata: {
+          bookingId: booking._id.toString(),
+          bookingNumber: booking.bookingNumber,
+        },
+        actionUrl: `/bookings/${booking._id}`,
+        actionText: 'View Details',
+      })
+    } catch (error) {
+      console.error('Error in onBookingRequested notification:', error)
+    }
+  }
+
+  static async onBookingConfirmed(booking: any): Promise<void> {
+    try {
+      await NotificationServices.createNotification({
+        userId: booking.clientId,
+        title: 'Booking Confirmed 🎉',
+        content: `Your booking has been confirmed by the provider. Booking #: ${booking.bookingNumber}`,
+        type: NotificationType.BOOKING_CONFIRMED,
+        channel: NotificationChannel.PUSH,
+        priority: NotificationPriority.HIGH,
+        metadata: {
+          bookingId: booking._id.toString(),
+          bookingNumber: booking.bookingNumber,
+        },
+        actionUrl: `/bookings/${booking._id}`,
+        actionText: 'View Details',
+      })
+
+      await NotificationServices.createNotification({
+        userId: booking.providerId,
+        title: 'Booking Confirmed 🎉',
+        content: `Booking session with ${booking.clientName || 'Client'} is confirmed. Booking #: ${booking.bookingNumber}`,
+        type: NotificationType.BOOKING_CONFIRMED,
+        channel: NotificationChannel.PUSH,
+        priority: NotificationPriority.HIGH,
+        metadata: {
+          bookingId: booking._id.toString(),
+          bookingNumber: booking.bookingNumber,
+        },
+        actionUrl: `/bookings/${booking._id}`,
+        actionText: 'View Details',
+      })
+    } catch (error) {
+      console.error('Error in onBookingConfirmed notification:', error)
+    }
+  }
+
+  static async onBookingCancelled(booking: any, cancelledByUserId: string): Promise<void> {
+    try {
+      const isClient = booking.clientId.toString() === cancelledByUserId.toString()
+      const targetUserId = isClient ? booking.providerId : booking.clientId
+      const title = 'Booking Cancelled ❌'
+      const content = isClient
+        ? `Client ${booking.clientName || 'Client'} cancelled booking #${booking.bookingNumber}.`
+        : `Provider cancelled your booking #${booking.bookingNumber}.`
+      
+      const notifType = isClient 
+        ? NotificationType.BOOKING_CANCELLED_BY_CLIENT 
+        : NotificationType.BOOKING_CANCELLED_BY_PRO
+
+      await NotificationServices.createNotification({
+        userId: targetUserId,
+        title,
+        content,
+        type: notifType,
+        channel: NotificationChannel.PUSH,
+        priority: NotificationPriority.HIGH,
+        metadata: {
+          bookingId: booking._id.toString(),
+          bookingNumber: booking.bookingNumber,
+        },
+        actionUrl: `/bookings/${booking._id}`,
+        actionText: 'View Details',
+      })
+    } catch (error) {
+      console.error('Error in onBookingCancelled notification:', error)
+    }
+  }
+
+  static async onBookingCompleted(booking: any): Promise<void> {
+    try {
+      await NotificationServices.createNotification({
+        userId: booking.clientId,
+        title: 'Service Completed 🌟',
+        content: `Your service is marked as completed. Please leave a review for your provider!`,
+        type: NotificationType.SERVICE_COMPLETED,
+        channel: NotificationChannel.PUSH,
+        priority: NotificationPriority.MEDIUM,
+        metadata: {
+          bookingId: booking._id.toString(),
+          bookingNumber: booking.bookingNumber,
+        },
+        actionUrl: `/bookings/${booking._id}/review`,
+        actionText: 'Write Review',
+      })
+
+      await NotificationServices.createNotification({
+        userId: booking.providerId,
+        title: 'Earnings Credited 💰',
+        content: `Booking #${booking.bookingNumber} is completed. Earnings have been credited to your wallet.`,
+        type: NotificationType.TRANSFER_COMPLETED,
+        channel: NotificationChannel.PUSH,
+        priority: NotificationPriority.MEDIUM,
+        metadata: {
+          bookingId: booking._id.toString(),
+          bookingNumber: booking.bookingNumber,
+        },
+        actionUrl: `/wallet`,
+        actionText: 'Go to Wallet',
+      })
+    } catch (error) {
+      console.error('Error in onBookingCompleted notification:', error)
+    }
+  }
 }
 
 export default NotificationIntegration

@@ -7,6 +7,7 @@ import { emailHelper } from '../../../helpers/emailHelper'
 import { emailTemplate } from '../../../shared/emailTemplate'
 import { Booking } from '../booking/booking.model'
 import { WalletService } from '../wallet/wallet.service'
+import NotificationIntegration from '../notification/notification.integration'
 
 const handleCheckoutSessionCompleted = async (
   sessionData: any,
@@ -35,6 +36,8 @@ const handleCheckoutSessionCompleted = async (
 
     const mongoSession = await Payment.startSession()
     mongoSession.startTransaction()
+
+    let bookingToNotify: any = null
 
     try {
       // Find and lock the payment document
@@ -94,6 +97,7 @@ const handleCheckoutSessionCompleted = async (
         )
 
         if (updatedBooking) {
+          bookingToNotify = updatedBooking
           console.log(
             `Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentStatus: ${updatedBooking.paymentStatus}`,
           )
@@ -113,12 +117,16 @@ const handleCheckoutSessionCompleted = async (
         `Successfully processed payment for session: ${sessionWithDetails.id}`,
       )
 
-      // Send email
-      await emailHelper.sendEmail({
-        to: payment.userEmail,
-        subject: 'Payment Successful',
-        html: `<p>Your payment was successful.</p>`,
-      })
+      // Send push notification & email asynchronously
+      NotificationIntegration.onPaymentSuccess(payment._id).catch(err =>
+        console.error('onPaymentSuccess notification error:', err),
+      )
+
+      if (bookingToNotify && bookingToNotify.status === 'confirmed') {
+        NotificationIntegration.onBookingConfirmed(bookingToNotify).catch(err =>
+          console.error('onBookingConfirmed notification error:', err),
+        )
+      }
     } catch (error) {
       await mongoSession.abortTransaction()
       throw error
@@ -163,6 +171,8 @@ const handleCheckoutSessionExpired = async (session: any): Promise<void> => {
 const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
   const mongoSession = await Payment.startSession()
   mongoSession.startTransaction()
+
+  let bookingToNotify: any = null
 
   try {
     // STRICT LOOKUP: First try paymentIntentId
@@ -243,6 +253,7 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
       )
 
       if (updatedBooking) {
+        bookingToNotify = updatedBooking
         console.log(
           `Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentType: ${paymentType}, paymentStatus: ${updatedBooking.paymentStatus}`,
         )
@@ -259,13 +270,15 @@ const handlePaymentSuccess = async (paymentIntent: any): Promise<void> => {
     await mongoSession.commitTransaction()
     console.log(`Successfully processed payment intent: ${paymentIntent.id}`)
 
-    // Send email
-    if (payment.userEmail) {
-      await emailHelper.sendEmail({
-        to: payment.userEmail,
-        subject: 'Payment Successful',
-        html: `<p>Your payment was successful.</p>`,
-      })
+    // Send push notification & email asynchronously
+    NotificationIntegration.onPaymentSuccess(payment._id).catch(err =>
+      console.error('onPaymentSuccess notification error:', err),
+    )
+
+    if (bookingToNotify && bookingToNotify.status === 'confirmed') {
+      NotificationIntegration.onBookingConfirmed(bookingToNotify).catch(err =>
+        console.error('onBookingConfirmed notification error:', err),
+      )
     }
   } catch (error) {
     await mongoSession.abortTransaction()
@@ -302,6 +315,12 @@ const handlePaymentFailure = async (paymentIntent: any): Promise<void> => {
     }
 
     await mongoSession.commitTransaction()
+
+    if (payment) {
+      NotificationIntegration.onPaymentFailed(payment._id).catch(err =>
+        console.error('onPaymentFailed notification error:', err),
+      )
+    }
   } catch (error) {
     await mongoSession.abortTransaction()
     throw error

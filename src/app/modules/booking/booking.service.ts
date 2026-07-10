@@ -6,6 +6,7 @@ import { AvailabilityService } from '../availability/availability.service'
 import { Service } from '../service/service.model'
 import { User } from '../user/user.model'
 import mongoose, { Types } from 'mongoose'
+import NotificationIntegration from '../notification/notification.integration'
 import { SERVICE_PRICING_TYPE } from '../../../enum/service'
 import { WalletService } from '../wallet/wallet.service'
 import stripe from '../../../config/stripe'
@@ -389,6 +390,17 @@ const createBooking = async (
     $inc: { totalBooking: 1 },
   })
 
+  // Trigger notifications asynchronously
+  if (booking.status === 'confirmed') {
+    NotificationIntegration.onBookingConfirmed(booking).catch(err =>
+      console.error('Booking confirmed notification error:', err),
+    )
+  } else {
+    NotificationIntegration.onBookingRequested(booking).catch(err =>
+      console.error('Booking requested notification error:', err),
+    )
+  }
+
   // ============================================
   // PAYMENT FLOW: intent (Flutter) vs checkout (Web)
   // ============================================
@@ -577,6 +589,22 @@ const updateBookingStatus = async (
 
     await booking.save({ session })
     await session.commitTransaction()
+
+    // Trigger push notifications asynchronously based on new status
+    if (status === 'confirmed' && previousStatus !== 'confirmed') {
+      NotificationIntegration.onBookingConfirmed(booking).catch(err =>
+        console.error('Booking confirmed notification error:', err),
+      )
+    } else if (status === 'cancelled' && previousStatus !== 'cancelled') {
+      NotificationIntegration.onBookingCancelled(booking, userId).catch(err =>
+        console.error('Booking cancelled notification error:', err),
+      )
+    } else if (status === 'completed' && previousStatus !== 'completed') {
+      NotificationIntegration.onBookingCompleted(booking).catch(err =>
+        console.error('Booking completed notification error:', err),
+      )
+    }
+
     return booking
   } catch (error) {
     await session.abortTransaction()
