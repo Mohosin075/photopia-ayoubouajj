@@ -79,7 +79,7 @@ const getMyBookings = catchAsync(async (req: Request, res: Response) => {
 
   const result = await BookingService.getMyBookings(
     user.userId,
-    user.role,
+    user.activeRole || user.role,
     filters,
     options,
   )
@@ -146,7 +146,7 @@ const getMyBookingsByDate = catchAsync(async (req: Request, res: Response) => {
 
   const result = await BookingService.getMyBookingsByDate(
     user.userId,
-    user.role,
+    user.activeRole || user.role,
     date,
   )
 

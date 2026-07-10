@@ -40,15 +40,16 @@ const socketAuth = (...roles: string[]) => {
           authId: verifiedUser.authId,
           name: verifiedUser.name,
           email: verifiedUser.email,
-          role: verifiedUser.role,
+          role: verifiedUser.activeRole || verifiedUser.role,
           ...verifiedUser,
         }
 
         // Guard user based on roles
-        if (roles.length && !roles.includes(verifiedUser.role)) {
+        const socketUserRole = verifiedUser.activeRole || verifiedUser.role
+        if (roles.length && !roles.includes(socketUserRole)) {
           console.error(
             colors.red(
-              `Socket authentication failed: User role ${verifiedUser.role} not authorized`,
+              `Socket authentication failed: User role ${socketUserRole} not authorized`,
             ),
           )
           return next(
@@ -104,7 +105,7 @@ const handleSocketRequest = (socket: Socket, ...roles: string[]) => {
       config.jwt.jwt_secret as Secret,
     )
     // Guard user based on roles
-    if (roles.length && !roles.includes(verifiedUser.role)) {
+    if (roles.length && !roles.includes(verifiedUser.activeRole || verifiedUser.role)) {
       socket.emit(
         'socket_error',
         createErrorResponse(
