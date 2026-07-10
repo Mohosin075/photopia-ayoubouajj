@@ -132,10 +132,12 @@ const sendNotificationPush = async (
       return
     }
 
-    // Skip if quiet hours are enabled, active, and priority is not URGENT
+    // Skip if quiet hours are enabled, active, and priority is not URGENT (excluding real-time messages)
     if (
       user.settings?.quietHoursEnabled !== false &&
-      notification.priority !== NotificationPriority.URGENT
+      notification.priority !== NotificationPriority.URGENT &&
+      notification.type !== NotificationType.NEW_MESSAGE &&
+      notification.type !== NotificationType.URGENT_MESSAGE
     ) {
       const timezone = user.timezone || 'UTC'
       try {
