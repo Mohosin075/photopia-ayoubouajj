@@ -43,7 +43,9 @@ export const sendPushNotification = async (
   try {
     const response = await admin.messaging().send(message)
     console.log('Successfully sent message:', response)
+    return response
   } catch (error: any) {
     console.error('Error sending message:', error?.message, error)
+    throw error
   }
 }

@@ -66,7 +66,7 @@ export class NotificationScheduler {
 
       for (const notification of pendingNotifications) {
         try {
-          await NotificationServices.sendNotificationEmail(notification)
+          await NotificationServices.dispatchNotification(notification)
         } catch (error: any) {
           console.error(
             `Failed to process notification ${notification._id}:`,

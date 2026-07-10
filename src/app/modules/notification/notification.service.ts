@@ -80,35 +80,13 @@ const createNotification = async (
 
     const notification = await Notification.create(notificationData)
 
-    // Send real-time notification via socket
-    if (notification.channel !== NotificationChannel.EMAIL) {
-      if (io) {
-        io.to(notification.userId.toString()).emit('notification', {
-          type: 'NEW_NOTIFICATION',
-          data: notification,
-        })
-      }
-    }
-
-    // Send email if requested
-    if (
-      (sendEmail && notification.channel !== NotificationChannel.IN_APP) ||
-      notification.channel === NotificationChannel.ALL
-    ) {
-      await sendNotificationEmail(notification)
-    }
-
-    // Send push notification if requested
-    await sendNotificationPush(notification)
-
-    // Send SMS notification if requested
-    if (
-      notification.channel === NotificationChannel.SMS ||
-      notification.channel === NotificationChannel.ALL
-    ) {
-      const user = await User.findById(notification.userId)
-      if (user && user.phone) {
-        await sendSMSNotification(user.phone, notification.content)
+    if (!payload.scheduledAt) {
+      try {
+        await dispatchNotification(notification, { sendEmail, sendPush })
+      } catch (dispatchError: any) {
+        console.error(
+          `Gracefully handled dispatch error in createNotification: ${dispatchError.message}`,
+        )
       }
     }
 
@@ -227,6 +205,7 @@ const sendNotificationPush = async (
         'metadata.pushError': error.message,
       },
     })
+    throw error
   }
 }
 
@@ -324,6 +303,99 @@ const sendNotificationEmail = async (
   }
 }
 
+const dispatchNotification = async (
+  notification: INotification,
+  options?: { sendEmail?: boolean; sendPush?: boolean }
+): Promise<void> => {
+  const user = await User.findById(notification.userId)
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  let emailSent = false
+  let pushSent = false
+  let smsSent = false
+  let socketSent = false
+  let errors: string[] = []
+
+  // 1. Socket IO (In-App)
+  if (notification.channel !== NotificationChannel.EMAIL) {
+    if (io) {
+      io.to(notification.userId.toString()).emit('notification', {
+        type: 'NEW_NOTIFICATION',
+        data: notification,
+      })
+      socketSent = true
+    }
+  }
+
+  // 2. Email
+  const shouldSendEmail =
+    options?.sendEmail !== undefined
+      ? options.sendEmail
+      : (notification.channel === NotificationChannel.EMAIL ||
+         notification.channel === NotificationChannel.BOTH ||
+         notification.channel === NotificationChannel.ALL)
+
+  if (shouldSendEmail && user.email) {
+    try {
+      await sendNotificationEmail(notification)
+      emailSent = true
+    } catch (err: any) {
+      errors.push(`Email error: ${err.message}`)
+    }
+  }
+
+  // 3. Push
+  const shouldSendPush =
+    options?.sendPush !== undefined
+      ? options.sendPush
+      : (notification.channel === NotificationChannel.PUSH ||
+         notification.channel === NotificationChannel.BOTH ||
+         notification.channel === NotificationChannel.ALL)
+
+  if (shouldSendPush && user.deviceToken) {
+    try {
+      await sendNotificationPush(notification)
+      pushSent = true
+    } catch (err: any) {
+      errors.push(`Push error: ${err.message}`)
+    }
+  }
+
+  // 4. SMS
+  const shouldSendSMS =
+    notification.channel === NotificationChannel.SMS ||
+    notification.channel === NotificationChannel.ALL
+
+  if (shouldSendSMS && user.phone) {
+    try {
+      await sendSMSNotification(user.phone, notification.content)
+      smsSent = true
+    } catch (err: any) {
+      errors.push(`SMS error: ${err.message}`)
+    }
+  }
+
+  const hasSentAny = emailSent || pushSent || smsSent || socketSent
+  if (errors.length > 0) {
+    await Notification.findByIdAndUpdate(notification._id, {
+      status: hasSentAny ? NotificationStatus.SENT : NotificationStatus.FAILED,
+      $set: {
+        'metadata.errors': errors,
+      },
+    })
+    if (!hasSentAny) {
+      throw new Error(`Notification failed to send: ${errors.join(', ')}`)
+    }
+  } else {
+    await Notification.findByIdAndUpdate(notification._id, {
+      status: NotificationStatus.SENT,
+      sentAt: new Date(),
+    })
+  }
+}
+
 const sendScheduledNotifications = async (): Promise<void> => {
   try {
     const pendingNotifications = await Notification.find({
@@ -337,7 +409,7 @@ const sendScheduledNotifications = async (): Promise<void> => {
 
     for (const notification of pendingNotifications) {
       try {
-        await sendNotificationEmail(notification)
+        await dispatchNotification(notification)
       } catch (error: any) {
         console.error(
           `Failed to process notification ${notification._id}:`,
@@ -706,6 +778,7 @@ const sendTestEmail = async (
 export const NotificationServices = {
   createNotification,
   sendNotificationEmail,
+  dispatchNotification,
 
   getAllNotifications,
   getNotificationById,
