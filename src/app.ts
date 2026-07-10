@@ -61,7 +61,7 @@ app.use(passport.session())
 // CORS - Using env based origins (reloaded)
 app.use(
   cors({
-    origin: config.cors_origins.length > 0 ? config.cors_origins : ['*', 'http://92.205.234.176/3005'],
+    origin: config.cors_origins.length > 0 ? config.cors_origins : ['*', 'http://92.205.234.176:3005'],
     credentials: true,
   }),
 )
