@@ -132,6 +132,7 @@ const sendNotificationPush = async (
       return
     }
 
+    /*
     // Skip if quiet hours are enabled, active, and priority is not URGENT (excluding real-time messages)
     if (
       user.settings?.quietHoursEnabled !== false &&
@@ -176,6 +177,7 @@ const sendNotificationPush = async (
         )
       }
     }
+    */
 
     const pushPayload: any = {
       notificationId: notification._id.toString(),
