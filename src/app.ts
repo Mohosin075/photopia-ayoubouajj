@@ -61,7 +61,11 @@ app.use(passport.session())
 // CORS
 app.use(
   cors({
-    origin: 'http://92.205.234.176:3005',
+    origin: [
+      'http://92.205.234.176:3005',
+      'http://localhost:3005', // Localhost for local development testing
+      'http://127.0.0.1:3005'
+    ],
     credentials: true,
   }),
 )
