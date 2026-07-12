@@ -728,7 +728,7 @@ const getTransactionDetails = async (
 }
 
 const getSubscriptionManagementStats =
-  async (): Promise<ISubscriptionStats> => {
+  async (country?: string, city?: string): Promise<ISubscriptionStats> => {
     const now = new Date()
     const firstDayOfCurrentMonth = new Date(
       now.getFullYear(),
@@ -740,6 +740,15 @@ const getSubscriptionManagementStats =
       now.getMonth() - 1,
       1,
     )
+
+    let userIds: any[] | null = null
+    if (country || city) {
+      let userFilter: any = { status: { $ne: USER_STATUS.DELETED } }
+      if (country) userFilter['address.country'] = country
+      if (city) userFilter['address.city'] = city
+      const filteredUsers = await User.find(userFilter).select('_id').lean()
+      userIds = filteredUsers.map(u => u._id)
+    }
 
     const [
       totalProviders,
@@ -753,26 +762,36 @@ const getSubscriptionManagementStats =
       User.countDocuments({
         roles: USER_ROLES.PROFESSIONAL,
         status: { $ne: USER_STATUS.DELETED },
+        ...(userIds ? { _id: { $in: userIds } } : {}),
       }),
       User.countDocuments({
         roles: USER_ROLES.PROFESSIONAL,
         status: { $ne: USER_STATUS.DELETED },
         createdAt: { $lt: firstDayOfCurrentMonth },
+        ...(userIds ? { _id: { $in: userIds } } : {}),
       }),
       Payment.find({
         status: 'succeeded',
         createdAt: { $gte: firstDayOfCurrentMonth },
         metadata: { $exists: true, $ne: null },
         'metadata.type': 'subscription',
+        ...(userIds ? { userId: { $in: userIds } } : {}),
       }).lean(),
       Payment.find({
         status: 'succeeded',
         createdAt: { $gte: firstDayOfLastMonth, $lt: firstDayOfCurrentMonth },
         metadata: { $exists: true, $ne: null },
         'metadata.type': 'subscription',
+        ...(userIds ? { userId: { $in: userIds } } : {}),
       }).lean(),
-      Subscription.countDocuments({ status: 'active' }),
-      Subscription.find({ status: 'active' }).populate('planId').lean(),
+      Subscription.countDocuments({ 
+        status: 'active',
+        ...(userIds ? { userId: { $in: userIds } } : {}),
+      }),
+      Subscription.find({ 
+        status: 'active',
+        ...(userIds ? { userId: { $in: userIds } } : {}),
+      }).populate('planId').lean(),
       SubscriptionPlan.findOne({ isActive: true })
         .sort({ priority: -1 })
         .lean(),
@@ -838,8 +857,20 @@ const getSubscriptionManagementStats =
     }
   }
 
-const getSubscriberList = async (): Promise<ISubscriber[]> => {
-  const subscriptions = await Subscription.find({ status: 'active' })
+const getSubscriberList = async (country?: string, city?: string): Promise<ISubscriber[]> => {
+  let userIds: any[] | null = null
+  if (country || city) {
+    let userFilter: any = { status: { $ne: USER_STATUS.DELETED } }
+    if (country) userFilter['address.country'] = country
+    if (city) userFilter['address.city'] = city
+    const filteredUsers = await User.find(userFilter).select('_id').lean()
+    userIds = filteredUsers.map(u => u._id)
+  }
+
+  const subscriptions = await Subscription.find({ 
+    status: 'active',
+    ...(userIds ? { userId: { $in: userIds } } : {})
+  })
     .populate('userId', 'name fullName email profile')
     .populate('planId', 'name')
     .sort({ createdAt: -1 })
@@ -855,13 +886,14 @@ const getSubscriberList = async (): Promise<ISubscriber[]> => {
   }).lean()
 
   return subscriptions.map((s: any) => {
+    const userIdString = s.userId?._id?.toString() || ''
     const userPayments = payments.filter(
-      p => p.userId.toString() === s.userId?._id?.toString(),
+      p => userIdString && p.userId.toString() === userIdString,
     )
     const totalRevenue = userPayments.reduce((acc, p) => acc + p.amount, 0)
 
     return {
-      id: s.userId?._id?.toString() || '',
+      id: userIdString,
       name: s.userId?.fullName || s.userId?.name || 'Unknown',
       email: s.userId?.email || '',
       profile: s.userId?.profile || '',
@@ -1292,7 +1324,7 @@ const exportPayments = async () => {
   return buffer
 }
 
-const getLocationList = async () => {
+const getLocationList = async (queryCountry?: string) => {
   const users = await User.find({ status: { $ne: USER_STATUS.DELETED } })
     .select('address.country address.city')
     .lean()
@@ -1300,7 +1332,12 @@ const getLocationList = async () => {
   const countries = [
     ...new Set(users.map(u => u.address?.country).filter(Boolean)),
   ]
-  const cities = [...new Set(users.map(u => u.address?.city).filter(Boolean))]
+
+  const filteredUsers = queryCountry 
+    ? users.filter(u => u.address?.country === queryCountry) 
+    : users;
+
+  const cities = [...new Set(filteredUsers.map(u => u.address?.city).filter(Boolean))]
 
   return { countries, cities }
 }
@@ -1324,17 +1361,28 @@ const getDetailedStats = async (
   let paymentFilter: any = { status: 'succeeded' }
 
   if (country || city) {
-    // If we have specific users from this location
-    const locationCondition = {
-      $or: [
-        { clientId: { $in: userIds } },
-        { providerId: { $in: userIds } },
-        { 'eventLocation.city': city },
-        { 'eventLocation.country': country },
-      ],
+    const orConditions: any[] = []
+    
+    if (userIds.length > 0) {
+      orConditions.push({ clientId: { $in: userIds } })
+      orConditions.push({ providerId: { $in: userIds } })
     }
-    bookingFilter = { ...bookingFilter, ...locationCondition }
-    paymentFilter.userId = { $in: userIds }
+    
+    if (city) orConditions.push({ 'eventLocation.city': city })
+    if (country) orConditions.push({ 'eventLocation.country': country })
+    
+    if (orConditions.length > 0) {
+      bookingFilter = { ...bookingFilter, $or: orConditions }
+    } else {
+      // If no users match and no valid city/country, force no match
+      bookingFilter = { ...bookingFilter, _id: null }
+    }
+
+    if (userIds.length > 0) {
+      paymentFilter.userId = { $in: userIds }
+    } else {
+      paymentFilter.userId = null // Force no match
+    }
   }
 
   // 2. Main Metrics (Real Database Counts)

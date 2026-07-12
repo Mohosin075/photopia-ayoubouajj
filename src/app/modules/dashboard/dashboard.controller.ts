@@ -159,7 +159,11 @@ const getTransactionDetails = catchAsync(
 
 const getSubscriptionManagementStats = catchAsync(
   async (req: Request, res: Response) => {
-    const result = await DashboardService.getSubscriptionManagementStats()
+    const { country, city } = req.query
+    const result = await DashboardService.getSubscriptionManagementStats(
+      country as string,
+      city as string,
+    )
     sendResponse<ISubscriptionStats>(res, {
       statusCode: StatusCodes.OK,
       success: true,
@@ -170,7 +174,11 @@ const getSubscriptionManagementStats = catchAsync(
 )
 
 const getSubscriberList = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getSubscriberList()
+  const { country, city } = req.query
+  const result = await DashboardService.getSubscriberList(
+    country as string,
+    city as string,
+  )
   sendResponse<ISubscriber[]>(res, {
     statusCode: StatusCodes.OK,
     success: true,
@@ -230,7 +238,8 @@ const exportPayments = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getLocationList = catchAsync(async (req: Request, res: Response) => {
-  const result = await DashboardService.getLocationList()
+  const { country } = req.query;
+  const result = await DashboardService.getLocationList(country as string);
   sendResponse(res, {
     statusCode: StatusCodes.OK,
     success: true,
