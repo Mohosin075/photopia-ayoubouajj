@@ -29,12 +29,13 @@ const socketAuth = (...roles) => {
                     authId: verifiedUser.authId,
                     name: verifiedUser.name,
                     email: verifiedUser.email,
-                    role: verifiedUser.role,
+                    role: verifiedUser.activeRole || verifiedUser.role,
                     ...verifiedUser,
                 };
                 // Guard user based on roles
-                if (roles.length && !roles.includes(verifiedUser.role)) {
-                    console.error(colors_1.default.red(`Socket authentication failed: User role ${verifiedUser.role} not authorized`));
+                const socketUserRole = verifiedUser.activeRole || verifiedUser.role;
+                if (roles.length && !roles.includes(socketUserRole)) {
+                    console.error(colors_1.default.red(`Socket authentication failed: User role ${socketUserRole} not authorized`));
                     return next(new ApiError_1.default(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this socket event"));
                 }
                 console.log(colors_1.default.green(`Socket authenticated for user: ${verifiedUser.userId || verifiedUser.authId}`));
@@ -70,7 +71,7 @@ const handleSocketRequest = (socket, ...roles) => {
         // Verify token
         const verifiedUser = jwtHelper_1.jwtHelper.verifyToken(jwtToken, config_1.default.jwt.jwt_secret);
         // Guard user based on roles
-        if (roles.length && !roles.includes(verifiedUser.role)) {
+        if (roles.length && !roles.includes(verifiedUser.activeRole || verifiedUser.role)) {
             socket.emit('socket_error', createErrorResponse(http_status_codes_1.StatusCodes.FORBIDDEN, "You don't have permission to access this socket event"));
             return null;
         }

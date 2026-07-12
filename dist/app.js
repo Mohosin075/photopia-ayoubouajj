@@ -21,7 +21,9 @@ const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const swagger_1 = __importDefault(require("./utils/swagger"));
 const app = (0, express_1.default)();
 // Security headers
-app.use((0, helmet_1.default)());
+app.use((0, helmet_1.default)({
+    crossOriginResourcePolicy: { policy: "cross-origin" }
+}));
 // Rate limiting
 const limiter = (0, express_rate_limit_1.default)({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -53,9 +55,13 @@ app.use((0, express_session_1.default)({
 // Initialize Passport
 app.use(passport_1.default.initialize());
 app.use(passport_1.default.session());
-// CORS - Using env based origins
+// CORS
 app.use((0, cors_1.default)({
-    origin: config_1.default.cors_origins.length > 0 ? config_1.default.cors_origins : ['*'],
+    origin: [
+        'http://92.205.234.176:3005',
+        'http://localhost:3005', // Localhost for local development testing
+        'http://127.0.0.1:3005'
+    ],
     credentials: true,
 }));
 // Cookie parser

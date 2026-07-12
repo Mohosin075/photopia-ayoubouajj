@@ -108,7 +108,8 @@ const getTransactionDetails = (0, catchAsync_1.default)(async (req, res) => {
     });
 });
 const getSubscriptionManagementStats = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await dashboard_service_1.DashboardService.getSubscriptionManagementStats();
+    const { country, city } = req.query;
+    const result = await dashboard_service_1.DashboardService.getSubscriptionManagementStats(country, city);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -117,7 +118,8 @@ const getSubscriptionManagementStats = (0, catchAsync_1.default)(async (req, res
     });
 });
 const getSubscriberList = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await dashboard_service_1.DashboardService.getSubscriberList();
+    const { country, city } = req.query;
+    const result = await dashboard_service_1.DashboardService.getSubscriberList(country, city);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,
@@ -157,7 +159,8 @@ const exportPayments = (0, catchAsync_1.default)(async (req, res) => {
     res.send(result);
 });
 const getLocationList = (0, catchAsync_1.default)(async (req, res) => {
-    const result = await dashboard_service_1.DashboardService.getLocationList();
+    const { country } = req.query;
+    const result = await dashboard_service_1.DashboardService.getLocationList(country);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.StatusCodes.OK,
         success: true,

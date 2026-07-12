@@ -52,7 +52,7 @@ class NotificationScheduler {
             console.log(`📧 Processing ${pendingNotifications.length} pending notifications...`);
             for (const notification of pendingNotifications) {
                 try {
-                    await notification_service_1.NotificationServices.sendNotificationEmail(notification);
+                    await notification_service_1.NotificationServices.dispatchNotification(notification);
                 }
                 catch (error) {
                     console.error(`Failed to process notification ${notification._id}:`, error);

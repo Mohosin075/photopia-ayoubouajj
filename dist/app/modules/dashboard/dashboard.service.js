@@ -139,9 +139,11 @@ const warnUser = async (userId, message) => {
     }
     const payload = {
         userId,
-        title: 'Admin Warning',
+        title: 'Admin Warning ⚠️',
         content: message,
         type: notification_interface_1.NotificationType.SYSTEM_ALERT,
+        channel: notification_interface_1.NotificationChannel.BOTH,
+        priority: notification_interface_1.NotificationPriority.HIGH,
     };
     await notification_service_1.NotificationServices.createNotification(payload, true);
     return 'Warning sent to user successfully.';
@@ -594,34 +596,54 @@ const getTransactionDetails = async (transactionId) => {
     }
     return details;
 };
-const getSubscriptionManagementStats = async () => {
+const getSubscriptionManagementStats = async (country, city) => {
     const now = new Date();
     const firstDayOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const firstDayOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    let userIds = null;
+    if (country || city) {
+        let userFilter = { status: { $ne: user_1.USER_STATUS.DELETED } };
+        if (country)
+            userFilter['address.country'] = country;
+        if (city)
+            userFilter['address.city'] = city;
+        const filteredUsers = await user_model_1.User.find(userFilter).select('_id').lean();
+        userIds = filteredUsers.map(u => u._id);
+    }
     const [totalProviders, lastMonthProviders, currentMonthPayments, lastMonthPayments, activeSubscriptions, allSubscriptions, premiumPlan,] = await Promise.all([
         user_model_1.User.countDocuments({
             roles: user_1.USER_ROLES.PROFESSIONAL,
             status: { $ne: user_1.USER_STATUS.DELETED },
+            ...(userIds ? { _id: { $in: userIds } } : {}),
         }),
         user_model_1.User.countDocuments({
             roles: user_1.USER_ROLES.PROFESSIONAL,
             status: { $ne: user_1.USER_STATUS.DELETED },
             createdAt: { $lt: firstDayOfCurrentMonth },
+            ...(userIds ? { _id: { $in: userIds } } : {}),
         }),
         payment_model_1.Payment.find({
             status: 'succeeded',
             createdAt: { $gte: firstDayOfCurrentMonth },
             metadata: { $exists: true, $ne: null },
             'metadata.type': 'subscription',
+            ...(userIds ? { userId: { $in: userIds } } : {}),
         }).lean(),
         payment_model_1.Payment.find({
             status: 'succeeded',
             createdAt: { $gte: firstDayOfLastMonth, $lt: firstDayOfCurrentMonth },
             metadata: { $exists: true, $ne: null },
             'metadata.type': 'subscription',
+            ...(userIds ? { userId: { $in: userIds } } : {}),
         }).lean(),
-        subscription_model_1.Subscription.countDocuments({ status: 'active' }),
-        subscription_model_1.Subscription.find({ status: 'active' }).populate('planId').lean(),
+        subscription_model_1.Subscription.countDocuments({
+            status: 'active',
+            ...(userIds ? { userId: { $in: userIds } } : {}),
+        }),
+        subscription_model_1.Subscription.find({
+            status: 'active',
+            ...(userIds ? { userId: { $in: userIds } } : {}),
+        }).populate('planId').lean(),
         subscription_plan_model_1.SubscriptionPlan.findOne({ isActive: true })
             .sort({ priority: -1 })
             .lean(),
@@ -678,8 +700,21 @@ const getSubscriptionManagementStats = async () => {
         },
     };
 };
-const getSubscriberList = async () => {
-    const subscriptions = await subscription_model_1.Subscription.find({ status: 'active' })
+const getSubscriberList = async (country, city) => {
+    let userIds = null;
+    if (country || city) {
+        let userFilter = { status: { $ne: user_1.USER_STATUS.DELETED } };
+        if (country)
+            userFilter['address.country'] = country;
+        if (city)
+            userFilter['address.city'] = city;
+        const filteredUsers = await user_model_1.User.find(userFilter).select('_id').lean();
+        userIds = filteredUsers.map(u => u._id);
+    }
+    const subscriptions = await subscription_model_1.Subscription.find({
+        status: 'active',
+        ...(userIds ? { userId: { $in: userIds } } : {})
+    })
         .populate('userId', 'name fullName email profile')
         .populate('planId', 'name')
         .sort({ createdAt: -1 })
@@ -694,10 +729,11 @@ const getSubscriberList = async () => {
     }).lean();
     return subscriptions.map((s) => {
         var _a, _b, _c, _d, _e, _f, _g;
-        const userPayments = payments.filter(p => { var _a, _b; return p.userId.toString() === ((_b = (_a = s.userId) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()); });
+        const userIdString = ((_b = (_a = s.userId) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) || '';
+        const userPayments = payments.filter(p => userIdString && p.userId.toString() === userIdString);
         const totalRevenue = userPayments.reduce((acc, p) => acc + p.amount, 0);
         return {
-            id: ((_b = (_a = s.userId) === null || _a === void 0 ? void 0 : _a._id) === null || _b === void 0 ? void 0 : _b.toString()) || '',
+            id: userIdString,
             name: ((_c = s.userId) === null || _c === void 0 ? void 0 : _c.fullName) || ((_d = s.userId) === null || _d === void 0 ? void 0 : _d.name) || 'Unknown',
             email: ((_e = s.userId) === null || _e === void 0 ? void 0 : _e.email) || '',
             profile: ((_f = s.userId) === null || _f === void 0 ? void 0 : _f.profile) || '',
@@ -1094,14 +1130,17 @@ const exportPayments = async () => {
     const buffer = await workbook.xlsx.writeBuffer();
     return buffer;
 };
-const getLocationList = async () => {
+const getLocationList = async (queryCountry) => {
     const users = await user_model_1.User.find({ status: { $ne: user_1.USER_STATUS.DELETED } })
         .select('address.country address.city')
         .lean();
     const countries = [
         ...new Set(users.map(u => { var _a; return (_a = u.address) === null || _a === void 0 ? void 0 : _a.country; }).filter(Boolean)),
     ];
-    const cities = [...new Set(users.map(u => { var _a; return (_a = u.address) === null || _a === void 0 ? void 0 : _a.city; }).filter(Boolean))];
+    const filteredUsers = queryCountry
+        ? users.filter(u => { var _a; return ((_a = u.address) === null || _a === void 0 ? void 0 : _a.country) === queryCountry; })
+        : users;
+    const cities = [...new Set(filteredUsers.map(u => { var _a; return (_a = u.address) === null || _a === void 0 ? void 0 : _a.city; }).filter(Boolean))];
     return { countries, cities };
 };
 const getDetailedStats = async (country, city) => {
@@ -1118,17 +1157,28 @@ const getDetailedStats = async (country, city) => {
     let bookingFilter = { status: 'completed' };
     let paymentFilter = { status: 'succeeded' };
     if (country || city) {
-        // If we have specific users from this location
-        const locationCondition = {
-            $or: [
-                { clientId: { $in: userIds } },
-                { providerId: { $in: userIds } },
-                { 'eventLocation.city': city },
-                { 'eventLocation.country': country },
-            ],
-        };
-        bookingFilter = { ...bookingFilter, ...locationCondition };
-        paymentFilter.userId = { $in: userIds };
+        const orConditions = [];
+        if (userIds.length > 0) {
+            orConditions.push({ clientId: { $in: userIds } });
+            orConditions.push({ providerId: { $in: userIds } });
+        }
+        if (city)
+            orConditions.push({ 'eventLocation.city': city });
+        if (country)
+            orConditions.push({ 'eventLocation.country': country });
+        if (orConditions.length > 0) {
+            bookingFilter = { ...bookingFilter, $or: orConditions };
+        }
+        else {
+            // If no users match and no valid city/country, force no match
+            bookingFilter = { ...bookingFilter, _id: null };
+        }
+        if (userIds.length > 0) {
+            paymentFilter.userId = { $in: userIds };
+        }
+        else {
+            paymentFilter.userId = null; // Force no match
+        }
     }
     // 2. Main Metrics (Real Database Counts)
     const [totalBookingsCount, prevMonthBookingsCount, totalPayments, prevMonthPayments, totalCreators, totalCustomers, supportTickets, prevSupportTickets,] = await Promise.all([

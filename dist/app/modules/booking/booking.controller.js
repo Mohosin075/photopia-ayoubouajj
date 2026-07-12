@@ -65,7 +65,7 @@ const getMyBookings = (0, catchAsync_1.default)(async (req, res) => {
         'filterType',
     ]);
     const options = (0, pick_1.default)(req.query, ['page', 'limit', 'sortBy', 'sortOrder']);
-    const result = await booking_service_1.BookingService.getMyBookings(user.userId, user.role, filters, options);
+    const result = await booking_service_1.BookingService.getMyBookings(user.userId, user.activeRole || user.role, filters, options);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
@@ -103,7 +103,7 @@ const getMyBookingsByDate = (0, catchAsync_1.default)(async (req, res) => {
     const date = req.query.date;
     if (!date)
         throw new ApiError_1.default(http_status_codes_1.default.BAD_REQUEST, 'Date is required');
-    const result = await booking_service_1.BookingService.getMyBookingsByDate(user.userId, user.role, date);
+    const result = await booking_service_1.BookingService.getMyBookingsByDate(user.userId, user.activeRole || user.role, date);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,

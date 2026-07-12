@@ -58,7 +58,12 @@ router.post(
 
 router.patch(
   '/read-all',
-  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  auth(
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
+  ),
   NotificationController.markAllAsRead,
 )
 
@@ -71,7 +76,12 @@ router.patch(
 
 router.patch(
   '/:id/read',
-  auth(USER_ROLES.PROFESSIONAL, USER_ROLES.USER),
+  auth(
+    USER_ROLES.PROFESSIONAL,
+    USER_ROLES.USER,
+    USER_ROLES.SUPER_ADMIN,
+    USER_ROLES.ADMIN,
+  ),
   NotificationController.markAsRead,
 )
 

@@ -60,28 +60,12 @@ const createNotification = async (payload, sendEmail = false, sendPush = true) =
             notificationData.status = notification_interface_1.NotificationStatus.PENDING;
         }
         const notification = await notification_model_1.Notification.create(notificationData);
-        // Send real-time notification via socket
-        if (notification.channel !== notification_interface_1.NotificationChannel.EMAIL) {
-            if (server_1.io) {
-                server_1.io.to(notification.userId.toString()).emit('notification', {
-                    type: 'NEW_NOTIFICATION',
-                    data: notification,
-                });
+        if (!payload.scheduledAt) {
+            try {
+                await dispatchNotification(notification, { sendEmail, sendPush });
             }
-        }
-        // Send email if requested
-        if ((sendEmail && notification.channel !== notification_interface_1.NotificationChannel.IN_APP) ||
-            notification.channel === notification_interface_1.NotificationChannel.ALL) {
-            await sendNotificationEmail(notification);
-        }
-        // Send push notification if requested
-        await sendNotificationPush(notification);
-        // Send SMS notification if requested
-        if (notification.channel === notification_interface_1.NotificationChannel.SMS ||
-            notification.channel === notification_interface_1.NotificationChannel.ALL) {
-            const user = await user_model_1.User.findById(notification.userId);
-            if (user && user.phone) {
-                await (0, smsHelper_1.sendSMSNotification)(user.phone, notification.content);
+            catch (dispatchError) {
+                console.error(`Gracefully handled dispatch error in createNotification: ${dispatchError.message}`);
             }
         }
         return notification;
@@ -91,7 +75,7 @@ const createNotification = async (payload, sendEmail = false, sendPush = true) =
     }
 };
 const sendNotificationPush = async (notification) => {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b;
     try {
         const user = await user_model_1.User.findById(notification.userId);
         if (!user) {
@@ -112,32 +96,52 @@ const sendNotificationPush = async (notification) => {
             console.log(`[DND Suppression] Suppressed push notification due to DND mode for user ${user._id}.`);
             return;
         }
-        // Skip if quiet hours are enabled, active, and priority is not URGENT
-        if (((_c = user.settings) === null || _c === void 0 ? void 0 : _c.quietHoursEnabled) !== false &&
-            notification.priority !== notification_interface_1.NotificationPriority.URGENT) {
-            const timezone = user.timezone || 'UTC';
-            try {
-                // Get user's current local hour
-                const localTimeStr = new Date().toLocaleString('en-US', {
-                    timeZone: timezone,
-                    hour: 'numeric',
-                    hour12: false,
-                });
-                const localHour = parseInt(localTimeStr, 10);
-                const startHour = parseInt(((_e = (_d = user.settings) === null || _d === void 0 ? void 0 : _d.quietHoursStart) === null || _e === void 0 ? void 0 : _e.split(':')[0]) || '22', 10);
-                const endHour = parseInt(((_g = (_f = user.settings) === null || _f === void 0 ? void 0 : _f.quietHoursEnd) === null || _g === void 0 ? void 0 : _g.split(':')[0]) || '8', 10);
-                const isQuietTime = startHour > endHour
-                    ? localHour >= startHour || localHour < endHour
-                    : localHour >= startHour && localHour < endHour;
-                if (isQuietTime) {
-                    console.log(`[Quiet Hours] Suppressed push notification for user ${user._id} during quiet hours (${localHour}:00).`);
-                    return;
-                }
+        /*
+        // Skip if quiet hours are enabled, active, and priority is not URGENT (excluding real-time messages)
+        if (
+          user.settings?.quietHoursEnabled !== false &&
+          notification.priority !== NotificationPriority.URGENT &&
+          notification.type !== NotificationType.NEW_MESSAGE &&
+          notification.type !== NotificationType.URGENT_MESSAGE
+        ) {
+          const timezone = user.timezone || 'UTC'
+          try {
+            // Get user's current local hour
+            const localTimeStr = new Date().toLocaleString('en-US', {
+              timeZone: timezone,
+              hour: 'numeric',
+              hour12: false,
+            })
+            const localHour = parseInt(localTimeStr, 10)
+    
+            const startHour = parseInt(
+              user.settings?.quietHoursStart?.split(':')[0] || '22',
+              10,
+            )
+            const endHour = parseInt(
+              user.settings?.quietHoursEnd?.split(':')[0] || '8',
+              10,
+            )
+    
+            const isQuietTime =
+              startHour > endHour
+                ? localHour >= startHour || localHour < endHour
+                : localHour >= startHour && localHour < endHour
+    
+            if (isQuietTime) {
+              console.log(
+                `[Quiet Hours] Suppressed push notification for user ${user._id} during quiet hours (${localHour}:00).`,
+              )
+              return
             }
-            catch (err) {
-                console.error('Quiet Hours calculation failed, falling back to sending:', err);
-            }
+          } catch (err) {
+            console.error(
+              'Quiet Hours calculation failed, falling back to sending:',
+              err,
+            )
+          }
         }
+        */
         const pushPayload = {
             notificationId: notification._id.toString(),
             type: notification.type,
@@ -160,6 +164,7 @@ const sendNotificationPush = async (notification) => {
                 'metadata.pushError': error.message,
             },
         });
+        throw error;
     }
 };
 const sendNotificationEmail = async (notification) => {
@@ -235,6 +240,87 @@ const sendNotificationEmail = async (notification) => {
         throw new ApiError_1.default(http_status_codes_1.StatusCodes.INTERNAL_SERVER_ERROR, `Failed to send email notification: ${error.message}`);
     }
 };
+const dispatchNotification = async (notification, options) => {
+    const user = await user_model_1.User.findById(notification.userId);
+    if (!user) {
+        throw new Error('User not found');
+    }
+    let emailSent = false;
+    let pushSent = false;
+    let smsSent = false;
+    let socketSent = false;
+    let errors = [];
+    // 1. Socket IO (In-App)
+    if (notification.channel !== notification_interface_1.NotificationChannel.EMAIL) {
+        if (server_1.io) {
+            server_1.io.to(notification.userId.toString()).emit('notification', {
+                type: 'NEW_NOTIFICATION',
+                data: notification,
+            });
+            socketSent = true;
+        }
+    }
+    // 2. Email
+    const shouldSendEmail = (options === null || options === void 0 ? void 0 : options.sendEmail) !== undefined
+        ? options.sendEmail
+        : (notification.channel === notification_interface_1.NotificationChannel.EMAIL ||
+            notification.channel === notification_interface_1.NotificationChannel.BOTH ||
+            notification.channel === notification_interface_1.NotificationChannel.ALL);
+    if (shouldSendEmail && user.email) {
+        try {
+            await sendNotificationEmail(notification);
+            emailSent = true;
+        }
+        catch (err) {
+            errors.push(`Email error: ${err.message}`);
+        }
+    }
+    // 3. Push
+    const shouldSendPush = (options === null || options === void 0 ? void 0 : options.sendPush) !== undefined
+        ? options.sendPush
+        : (notification.channel === notification_interface_1.NotificationChannel.PUSH ||
+            notification.channel === notification_interface_1.NotificationChannel.BOTH ||
+            notification.channel === notification_interface_1.NotificationChannel.ALL);
+    if (shouldSendPush && user.deviceToken) {
+        try {
+            await sendNotificationPush(notification);
+            pushSent = true;
+        }
+        catch (err) {
+            errors.push(`Push error: ${err.message}`);
+        }
+    }
+    // 4. SMS
+    const shouldSendSMS = notification.channel === notification_interface_1.NotificationChannel.SMS ||
+        notification.channel === notification_interface_1.NotificationChannel.ALL;
+    if (shouldSendSMS && user.phone) {
+        try {
+            await (0, smsHelper_1.sendSMSNotification)(user.phone, notification.content);
+            smsSent = true;
+        }
+        catch (err) {
+            errors.push(`SMS error: ${err.message}`);
+        }
+    }
+    const hasSentAny = emailSent || pushSent || smsSent || socketSent;
+    if (errors.length > 0) {
+        await notification_model_1.Notification.findByIdAndUpdate(notification._id, {
+            status: hasSentAny ? notification_interface_1.NotificationStatus.SENT : notification_interface_1.NotificationStatus.FAILED,
+            $set: {
+                'metadata.errors': errors,
+            },
+        });
+        if (!hasSentAny) {
+            throw new Error(`Notification failed to send: ${errors.join(', ')}`);
+        }
+    }
+    else {
+        await notification_model_1.Notification.findByIdAndUpdate(notification._id, {
+            status: notification_interface_1.NotificationStatus.SENT,
+            sentAt: new Date(),
+        });
+    }
+};
 const sendScheduledNotifications = async () => {
     try {
         const pendingNotifications = await notification_model_1.Notification.find({
@@ -244,7 +330,7 @@ const sendScheduledNotifications = async () => {
         console.log(`📧 Processing ${pendingNotifications.length} scheduled notifications...`);
         for (const notification of pendingNotifications) {
             try {
-                await sendNotificationEmail(notification);
+                await dispatchNotification(notification);
             }
             catch (error) {
                 console.error(`Failed to process notification ${notification._id}:`, error);
@@ -515,6 +601,7 @@ const sendTestEmail = async (to, template) => {
 exports.NotificationServices = {
     createNotification,
     sendNotificationEmail,
+    dispatchNotification,
     getAllNotifications,
     getNotificationById,
     updateNotification,

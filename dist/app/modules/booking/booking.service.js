@@ -11,6 +11,7 @@ const availability_service_1 = require("../availability/availability.service");
 const service_model_1 = require("../service/service.model");
 const user_model_1 = require("../user/user.model");
 const mongoose_1 = __importDefault(require("mongoose"));
+const notification_integration_1 = __importDefault(require("../notification/notification.integration"));
 const service_1 = require("../../../enum/service");
 const wallet_service_1 = require("../wallet/wallet.service");
 const stripe_1 = __importDefault(require("../../../config/stripe"));
@@ -269,6 +270,13 @@ const createBooking = async (payload, user) => {
     await service_model_1.Service.findByIdAndUpdate(payload.serviceId, {
         $inc: { totalBooking: 1 },
     });
+    // Trigger notifications asynchronously
+    if (booking.status === 'confirmed') {
+        notification_integration_1.default.onBookingConfirmed(booking).catch(err => console.error('Booking confirmed notification error:', err));
+    }
+    else {
+        notification_integration_1.default.onBookingRequested(booking).catch(err => console.error('Booking requested notification error:', err));
+    }
     // ============================================
     // PAYMENT FLOW: intent (Flutter) vs checkout (Web)
     // ============================================
@@ -418,6 +426,16 @@ const updateBookingStatus = async (bookingId, status, userId) => {
         }
         await booking.save({ session });
         await session.commitTransaction();
+        // Trigger push notifications asynchronously based on new status
+        if (status === 'confirmed' && previousStatus !== 'confirmed') {
+            notification_integration_1.default.onBookingConfirmed(booking).catch(err => console.error('Booking confirmed notification error:', err));
+        }
+        else if (status === 'cancelled' && previousStatus !== 'cancelled') {
+            notification_integration_1.default.onBookingCancelled(booking, userId).catch(err => console.error('Booking cancelled notification error:', err));
+        }
+        else if (status === 'completed' && previousStatus !== 'completed') {
+            notification_integration_1.default.onBookingCompleted(booking).catch(err => console.error('Booking completed notification error:', err));
+        }
         return booking;
     }
     catch (error) {

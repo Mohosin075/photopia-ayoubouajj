@@ -18,7 +18,9 @@ import swaggerDocs from './utils/swagger'
 const app = express()
 
 // Security headers
-app.use(helmet())
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
+}))
 
 // Rate limiting
 const limiter = rateLimit({

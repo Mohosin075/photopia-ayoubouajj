@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MessageService = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
+const notification_integration_1 = __importDefault(require("../notification/notification.integration"));
 const message_model_1 = require("./message.model");
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const http_status_codes_1 = require("http-status-codes");
@@ -28,15 +29,10 @@ const sendMessageToDB = async (payload) => {
         io.emit(`getMessage::${payload === null || payload === void 0 ? void 0 : payload.chatId}`, response);
         io.emit(`updateChatList::${payload === null || payload === void 0 ? void 0 : payload.sender}`);
         io.emit(`updateChatList::${payload === null || payload === void 0 ? void 0 : payload.receiver}`);
-        const data = {
-            text: `${sender === null || sender === void 0 ? void 0 : sender.name} send you message.`,
-            title: 'Received Message',
-            link: payload === null || payload === void 0 ? void 0 : payload.chatId,
-            direction: 'message',
-            receiver: payload.receiver,
-        };
-        // await sendNotifications(data);
     }
+    // Trigger push notification to receiver asynchronously
+    const messageText = payload.text || (payload.image ? 'Sent an image' : payload.file ? 'Sent a file' : 'New message');
+    notification_integration_1.default.onNewMessage(new mongoose_1.default.Types.ObjectId(payload.sender), new mongoose_1.default.Types.ObjectId(payload.receiver), messageText, payload.chatId).catch(err => console.error('Error sending message push notification:', err));
     return response;
 };
 const getMessageFromDB = async (chatId, user) => {

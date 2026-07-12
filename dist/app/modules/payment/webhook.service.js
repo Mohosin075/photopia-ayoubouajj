@@ -8,9 +8,9 @@ const http_status_codes_1 = require("http-status-codes");
 const stripe_1 = __importDefault(require("../../../config/stripe"));
 const ApiError_1 = __importDefault(require("../../../errors/ApiError"));
 const payment_model_1 = require("./payment.model");
-const emailHelper_1 = require("../../../helpers/emailHelper");
 const booking_model_1 = require("../booking/booking.model");
 const wallet_service_1 = require("../wallet/wallet.service");
+const notification_integration_1 = __importDefault(require("../notification/notification.integration"));
 const handleCheckoutSessionCompleted = async (sessionData) => {
     var _a, _b, _c, _d;
     try {
@@ -31,6 +31,7 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
         }
         const mongoSession = await payment_model_1.Payment.startSession();
         mongoSession.startTransaction();
+        let bookingToNotify = null;
         try {
             // Find and lock the payment document
             const payment = await payment_model_1.Payment.findOne({
@@ -71,6 +72,7 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
                 }
                 const updatedBooking = await booking_model_1.Booking.findByIdAndUpdate(bookingId, updateData, { session: mongoSession, new: true });
                 if (updatedBooking) {
+                    bookingToNotify = updatedBooking;
                     console.log(`Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentStatus: ${updatedBooking.paymentStatus}`);
                     // Add to pending balance for the provider (only on deposit)
                     if (paymentType !== 'balance') {
@@ -80,12 +82,11 @@ const handleCheckoutSessionCompleted = async (sessionData) => {
             }
             await mongoSession.commitTransaction();
             console.log(`Successfully processed payment for session: ${sessionWithDetails.id}`);
-            // Send email
-            await emailHelper_1.emailHelper.sendEmail({
-                to: payment.userEmail,
-                subject: 'Payment Successful',
-                html: `<p>Your payment was successful.</p>`,
-            });
+            // Send push notification & email asynchronously
+            notification_integration_1.default.onPaymentSuccess(payment._id).catch(err => console.error('onPaymentSuccess notification error:', err));
+            if (bookingToNotify && bookingToNotify.status === 'confirmed') {
+                notification_integration_1.default.onBookingConfirmed(bookingToNotify).catch(err => console.error('onBookingConfirmed notification error:', err));
+            }
         }
         catch (error) {
             await mongoSession.abortTransaction();
@@ -128,6 +129,7 @@ const handlePaymentSuccess = async (paymentIntent) => {
     var _a, _b, _c;
     const mongoSession = await payment_model_1.Payment.startSession();
     mongoSession.startTransaction();
+    let bookingToNotify = null;
     try {
         // STRICT LOOKUP: First try paymentIntentId
         let payment = await payment_model_1.Payment.findOne({
@@ -190,6 +192,7 @@ const handlePaymentSuccess = async (paymentIntent) => {
             }
             const updatedBooking = await booking_model_1.Booking.findByIdAndUpdate(bookingId, updateData, { session: mongoSession, new: true });
             if (updatedBooking) {
+                bookingToNotify = updatedBooking;
                 console.log(`Webhook: Booking ${updatedBooking.bookingNumber} updated - paymentType: ${paymentType}, paymentStatus: ${updatedBooking.paymentStatus}`);
                 // Add to pending balance for the provider (only on deposit, not balance)
                 if (paymentType !== 'balance') {
@@ -199,13 +202,10 @@ const handlePaymentSuccess = async (paymentIntent) => {
         }
         await mongoSession.commitTransaction();
         console.log(`Successfully processed payment intent: ${paymentIntent.id}`);
-        // Send email
-        if (payment.userEmail) {
-            await emailHelper_1.emailHelper.sendEmail({
-                to: payment.userEmail,
-                subject: 'Payment Successful',
-                html: `<p>Your payment was successful.</p>`,
-            });
+        // Send push notification & email asynchronously
+        notification_integration_1.default.onPaymentSuccess(payment._id).catch(err => console.error('onPaymentSuccess notification error:', err));
+        if (bookingToNotify && bookingToNotify.status === 'confirmed') {
+            notification_integration_1.default.onBookingConfirmed(bookingToNotify).catch(err => console.error('onBookingConfirmed notification error:', err));
         }
     }
     catch (error) {
@@ -237,6 +237,9 @@ const handlePaymentFailure = async (paymentIntent) => {
             await payment.save({ session: mongoSession });
         }
         await mongoSession.commitTransaction();
+        if (payment) {
+            notification_integration_1.default.onPaymentFailed(payment._id).catch(err => console.error('onPaymentFailed notification error:', err));
+        }
     }
     catch (error) {
         await mongoSession.abortTransaction();

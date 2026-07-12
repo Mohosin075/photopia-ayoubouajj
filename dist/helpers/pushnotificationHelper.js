@@ -34,9 +34,11 @@ const sendPushNotification = async (deviceToken, title, body, data, icon) => {
     try {
         const response = await firebase_admin_1.default.messaging().send(message);
         console.log('Successfully sent message:', response);
+        return response;
     }
     catch (error) {
         console.error('Error sending message:', error === null || error === void 0 ? void 0 : error.message, error);
+        throw error;
     }
 };
 exports.sendPushNotification = sendPushNotification;

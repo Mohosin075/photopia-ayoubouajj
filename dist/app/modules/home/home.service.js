@@ -29,40 +29,52 @@ const getHomeData = async (userId) => {
             .limit(10));
     }
     if (recentlyViewed.length === 0) {
-        recentlyViewed = (await recentlyViewed_model_1.RecentlyViewed.find()
-            .populate({
-            path: 'serviceId',
-            populate: [
-                { path: 'providerId', select: 'name fullName profile isOnline' },
-                { path: 'category', select: 'name image icon theme' },
-            ],
-        })
-            .sort({ viewedAt: -1 })
-            .limit(3));
+        const fallbackServices = await service_model_1.Service.find()
+            .populate('providerId', 'name fullName profile isOnline')
+            .populate('category', 'name image icon theme')
+            .sort({ createdAt: -1 })
+            .limit(8)
+            .lean();
+        recentlyViewed = fallbackServices.map(service => ({
+            _id: service._id,
+            serviceId: service,
+            userId: userId || null,
+            viewedAt: new Date(),
+        }));
     }
+    // Find distinct category IDs that have at least one active service
+    const activeServiceCategoryIds = await service_model_1.Service.distinct('category', {
+        status: service_1.SERVICE_STATUS.ACTIVE,
+    });
     // Section 3: Main Categories
     let mainCategories = (await category_model_1.Category.find({
+        _id: { $in: activeServiceCategoryIds },
         isPopular: true,
         isActive: true,
         type: 'category',
     }).limit(12));
     if (mainCategories.length === 0) {
         mainCategories = (await category_model_1.Category.find({
-            isActive: true,
-            type: 'category',
-        }).limit(3));
+            _id: { $in: activeServiceCategoryIds },
+        }).limit(12));
     }
-    // Section 4: Trending This Week
-    let trendingThisWeek = (await category_model_1.Category.find({
-        isTrending: true,
+    // Section 4: Trending This Week (Services)
+    let trendingThisWeek = (await service_model_1.Service.find({
+        status: service_1.SERVICE_STATUS.ACTIVE,
         isActive: true,
-        type: 'subcategory',
-    }).limit(6));
+    })
+        .populate('providerId', 'name fullName profile isOnline')
+        .populate('category', 'name image icon theme')
+        .sort({ createdAt: 1 }) // Or you can sort by viewCount/rating if available
+        .limit(8)
+        .lean());
     if (trendingThisWeek.length === 0) {
-        trendingThisWeek = (await category_model_1.Category.find({
-            isActive: true,
-            type: 'subcategory',
-        }).limit(3));
+        trendingThisWeek = (await service_model_1.Service.find()
+            .populate('providerId', 'name fullName profile isOnline')
+            .populate('category', 'name image icon theme')
+            .sort({ createdAt: 1 })
+            .limit(8)
+            .lean());
     }
     // Section 5: Available Right Now
     const onlineUsers = await user_model_1.User.find({ isOnline: true }).select('_id').lean();
@@ -125,18 +137,26 @@ const getHomeData = async (userId) => {
             .sort({ rating: -1, projects: -1 })
             .limit(3));
     }
-    // Section 8: Creative Styles
+    // Find distinct subcategory IDs that have at least one active service
+    const activeServiceSubCategoryIds = await service_model_1.Service.distinct('subCategory', {
+        status: service_1.SERVICE_STATUS.ACTIVE,
+    });
+    // Section 8: Creative Styles (Subcategories)
     let creativeStyles = await category_model_1.Category.find({
-        theme: { $ne: null },
+        _id: { $in: activeServiceSubCategoryIds },
+        type: 'subcategory',
         isActive: true,
     })
         .select('name theme description image')
         .limit(10)
         .lean();
     if (creativeStyles.length === 0) {
-        creativeStyles = (await category_model_1.Category.find({ isActive: true })
+        creativeStyles = (await category_model_1.Category.find({
+            _id: { $in: activeServiceSubCategoryIds },
+            type: 'subcategory',
+        })
             .select('name theme description image')
-            .limit(3)
+            .limit(8)
             .lean());
     }
     // Section 9: Near You (Dynamic from DB)
@@ -246,13 +266,10 @@ const getHomeData = async (userId) => {
         .limit(10)
         .lean());
     if (originalProjects.length === 0) {
-        originalProjects = (await service_model_1.Service.find({
-            status: service_1.SERVICE_STATUS.ACTIVE,
-            isActive: true,
-        })
+        originalProjects = (await service_model_1.Service.find()
             .populate('providerId', 'name fullName profile isOnline')
             .populate('category', 'name image icon theme')
-            .limit(3)
+            .limit(10)
             .lean());
     }
     // Section 10: Ideas
@@ -262,24 +279,24 @@ const getHomeData = async (userId) => {
         .limit(6)
         .lean());
     // Fallback Section 10: If ProjectIdea collection is empty, get 3 services as related demo data from DB
-    if (ideas.length === 0) {
-        const fallbackServices = await service_model_1.Service.find({
-            status: service_1.SERVICE_STATUS.ACTIVE,
-            isActive: true,
-        })
-            .limit(3)
-            .select('title description coverMedia')
-            .lean();
-        ideas = fallbackServices.map((s, index) => ({
-            _id: s._id,
-            title: s.title,
-            linkText: s.title,
-            subCategoryId: null,
-            order: index,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        }));
-    }
+    //   if (ideas.length === 0) {
+    //     const fallbackServices = await Service.find({
+    //       status: SERVICE_STATUS.ACTIVE,
+    //       isActive: true,
+    //     })
+    //       .limit(3)
+    //       .select('title description coverMedia')
+    //       .lean()
+    //     ideas = fallbackServices.map((s, index) => ({
+    //       _id: s._id,
+    //       title: s.title,
+    //       linkText: s.title,
+    //       subCategoryId: null as any,
+    //       order: index,
+    //       createdAt: new Date(),
+    //       updatedAt: new Date(),
+    //     })) as any
+    //   }
     return {
         originalProjects,
         recentlyViewed,
