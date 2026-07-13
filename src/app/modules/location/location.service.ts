@@ -16,38 +16,33 @@ const searchSuggestions = async (
   }
 
   try {
-    const response = await axios.get(
-      'https://maps.googleapis.com/maps/api/place/autocomplete/json',
+    // Using Places API (New) - v1 endpoint
+    const response = await axios.post(
+      'https://places.googleapis.com/v1/places:autocomplete',
+      { input: query },
       {
-        params: {
-          input: query,
-          key: apiKey,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': apiKey,
         },
       },
     )
 
-    if (
-      response.data.status !== 'OK' &&
-      response.data.status !== 'ZERO_RESULTS'
-    ) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        `Google API Error: ${response.data.status}`,
-      )
-    }
+    const suggestions = response.data.suggestions || []
 
-    const predictions = response.data.predictions || []
-
-    return predictions.map((prediction: any) => ({
-      description: prediction.description,
-      placeId: prediction.place_id,
-      mainText: prediction.structured_formatting.main_text,
-      secondaryText: prediction.structured_formatting.secondary_text,
-    }))
+    return suggestions.map((s: any) => {
+      const prediction = s.placePrediction
+      return {
+        description: prediction?.text?.text || '',
+        placeId: prediction?.placeId || '',
+        mainText: prediction?.structuredFormat?.mainText?.text || prediction?.text?.text || '',
+        secondaryText: prediction?.structuredFormat?.secondaryText?.text || '',
+      }
+    })
   } catch (error: any) {
     throw new ApiError(
-      error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR,
-      error.message || 'Failed to fetch suggestions',
+      error.response?.status || StatusCodes.INTERNAL_SERVER_ERROR,
+      error.response?.data?.error?.message || error.message || 'Failed to fetch suggestions',
     )
   }
 }
