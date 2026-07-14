@@ -4,13 +4,21 @@ import DailyRotateFile from 'winston-daily-rotate-file'
 
 const { combine, timestamp, label, printf } = format
 
-// Custom log format
-const myFormat = printf(({ level, message, label, timestamp }) => {
+const myFormat = printf((info) => {
+  const { level, message, label, timestamp } = info
   const date = new Date(timestamp as string)
   const hour = date.getHours()
   const minutes = date.getMinutes()
   const seconds = date.getSeconds()
-  return `${date.toDateString()} ${hour}:${minutes}:${seconds} [${label}] ${level}: ${message}`
+  
+  let logMessage = `${date.toDateString()} ${hour}:${minutes}:${seconds} [${label}] ${level}: ${message}`
+  
+  const splat = info[Symbol.for('splat') as keyof typeof info] as any[]
+  if (splat && splat.length) {
+    logMessage += `\n${splat.join(' ')}`
+  }
+  
+  return logMessage
 })
 
 const logger = createLogger({
